@@ -289,7 +289,7 @@ def _w_instance_cycles(rank, world, ex, env, cycles):
     import mlx.core as mx
 
     def counts():
-        return threading.active_count(), len(os.listdir("/proc/self/fd"))
+        return threading.active_count(), len(os.listdir("/dev/fd"))
 
     series = []
     for c in range(cycles):
