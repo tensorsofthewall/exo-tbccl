@@ -32,7 +32,7 @@ def _entry(rank: int, world: int, conn: Any, fn: Callable[..., Any], args: tuple
         conn.send(("fail", f"{type(e).__name__}: {e}\n{traceback.format_exc()}"))
 
 
-def run_world(world: int, fn: Callable[..., Any], *args: Any, timeout: float = 120.0, skip_rank_after_bootstrap: int | None = None) -> list[Any]:
+def run_world(world: int, fn: Callable[..., Any], *args: Any, timeout: float = 120.0, tolerate_exit: Sequence[int] = ()) -> list[Any]:
     """Run fn(rank, world, exchange, *args) in `world` processes; returns each rank's result or raises with every rank's failure."""
     parents = []
     procs = []
@@ -85,6 +85,8 @@ def run_world(world: int, fn: Callable[..., Any], *args: Any, timeout: float = 1
         p.join(5)
         if p.is_alive():
             p.kill()
+    for r in tolerate_exit:
+        failures.pop(r, None)
     if failures:
         raise AssertionError("\n".join(f"[rank {r}] {m}" for r, m in sorted(failures.items())))
     return results
