@@ -27,10 +27,21 @@ if __name__ == "__main__":
     ap.add_argument("--tokens", type=int, default=48)
     ap.add_argument("--chunk", type=int, default=512)
     ap.add_argument("--reps", type=int, default=0)
+    ap.add_argument("--backend", default="tbccl", choices=["tbccl", "ring"])
+    ap.add_argument("--ring-ips", default="192.168.3.2,192.168.3.1", help="rank-ordered TB ips for the ring hostfile")
     a = ap.parse_args()
     from real_model_loopback import worker
     from two_host_fastpath import TcpExchange
 
-    ex = TcpExchange(a.rank, a.host, a.peer, a.port, timeout_s=1800)
-    res = worker(a.rank, 2, ex, {}, a.split, a.prompt, a.tokens, a.chunk, a.reps, a.host)
+    ex = None
+    if a.backend == "ring":
+        import tempfile
+
+        ips = a.ring_ips.split(",")
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
+            json.dump([f"{ip}:{29810 + i}" for i, ip in enumerate(ips)], f)
+        os.environ["MLX_HOSTFILE"], os.environ["MLX_RANK"] = f.name, str(a.rank)
+    else:
+        ex = TcpExchange(a.rank, a.host, a.peer, a.port, timeout_s=1800)
+    res = worker(a.rank, 2, ex, {}, a.split, a.prompt, a.tokens, a.chunk, a.reps, a.host, a.backend)
     print("RESULT", json.dumps(res))

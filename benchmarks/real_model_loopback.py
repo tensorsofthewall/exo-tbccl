@@ -25,7 +25,7 @@ TEXT = (
 )
 
 
-def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=0, host="127.0.0.1"):
+def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=0, host="127.0.0.1", backend="tbccl"):
     os.environ.update(env)
     import mlx.core as mx
     from mlx_lm import load
@@ -67,7 +67,12 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
     ref = greedy_reference() if rank == 0 else None  # one reference at a time: two unsharded long prefills do not fit an 8 GiB GPU
     mx.clear_cache()
 
-    comm = TbcclPipelineComm.create(rank, world, ex, bind_host=host, advertise_host=host, timeout_ms=1800000)
+    if backend == "ring":  # exo's MlxRing: the hostfile is a JSON list of "ip:port" in rank order (MLX_HOSTFILE / MLX_RANK already set)
+        from exo.worker.engines.mlx.pipeline_comm import MlxPipelineComm
+
+        comm = MlxPipelineComm(mx.distributed.init(backend="ring", strict=True))
+    else:
+        comm = TbcclPipelineComm.create(rank, world, ex, bind_host=host, advertise_host=host, timeout_ms=1800000)
     try:
         n_layers = len(model.layers)
         bounds = [(0, split), (split, n_layers)]
@@ -122,6 +127,10 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
             step_s.append(time.perf_counter() - ts)
         stable = all(prefix_digest(n) == d for n, d in snaps.items())  # earlier KV entries unchanged by everything that followed
         comm.barrier()
+        if backend == "ring":
+            return {"match_ref": (toks == ref) if rank == 0 else None, "all_tokens": toks, "ref_tokens": ref, "tokens": toks[:8], "prompt_tokens": len(prompt),
+                    "ttft_s": round(ttft, 3), "tpot_ms": round(1e3 * sorted(step_s)[len(step_s) // 2], 3), "kv_prefix_stable": stable,
+                    "copies": (0, 0), "labels": {"ring": 1}, "pool": {}, "async": (0, 0), "pending_end": 0}
         s, ps = comm.stats, comm.pool.stats
         return {
             "match_ref": (toks == ref) if rank == 0 else None, "all_tokens": toks, "ref_tokens": ref, "tokens": toks[:8], "prompt_tokens": len(prompt), "ttft_s": round(ttft, 3),
