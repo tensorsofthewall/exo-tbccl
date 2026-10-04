@@ -1,0 +1,141 @@
+"""Real-model (local Qwen3-0.6B-8bit, never downloaded) pipeline over loopback TbcclPipelineComm through exo's pipeline_auto_parallel.
+
+    python benchmarks/real_model_loopback.py --split 21 --prompt medium [--tokens 48]   (run with exo's venv; mode via EXO_TBCCL_* env)
+
+Greedy decode on one rank unsharded gives the reference tokens; the two ranks then run the pipelined model (prefill with queued sends, decode with
+the final all_gather) and must produce identical token ids. Also prints a digest of each rank's KV cache so modes can be compared bit for bit
+(the receive-buffer poison control must not change tokens or cache state). Not a performance measurement: both ranks share one GPU.
+"""
+
+import argparse
+import hashlib
+import json
+import os
+import sys
+import time
+
+sys.path.insert(0, __file__.rsplit("/benchmarks", 1)[0])
+from tests.harness import run_world  # noqa: E402
+
+MODEL = os.path.expanduser("~/.exo_p53/local_models/Qwen3-0.6B-8bit")
+TEXT = (
+    "The history of distributed computing spans decades of work on how separate machines can cooperate. "
+    "Early systems exchanged messages over slow serial lines; later ones built shared file systems, remote procedure calls, and eventually "
+    "collective communication libraries that move tensors between accelerators. "
+)
+
+
+def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk):
+    os.environ.update(env)
+    import mlx.core as mx
+    from mlx_lm import load
+    from mlx_lm.models.cache import make_prompt_cache
+
+    from exo.shared.models.model_cards import ModelCard, ModelTask
+    from exo.shared.types.backends import Backend
+    from exo.shared.types.common import ModelId
+    from exo.shared.types.memory import Memory
+    from exo.shared.types.worker.shards import PipelineShardMetadata
+    from exo.worker.engines.mlx.auto_parallel import (
+        flush_prefill_sends,
+        pipeline_auto_parallel,
+        set_pipeline_prefill,
+        set_pipeline_queue_sends,
+    )
+    from exo_tbccl.group import TbcclPipelineComm
+
+    model, tok = load(MODEL)
+    reps = {"short": 1, "medium": 12, "long": 150}[prompt_kind]
+    prompt = tok.encode(TEXT * reps)
+    p = mx.array(prompt)
+
+    def greedy_reference():
+        cache = make_prompt_cache(model)
+        for i in range(0, p.size - 1, chunk):  # same chunking and split as the pipelined run (prefill the prompt without its last token, then decode it)
+            mx.eval(model(p[:-1][i : i + chunk][None], cache=cache))
+        logits = model(p[-1:].reshape(1, 1), cache=cache)
+        out = []
+        t = mx.argmax(logits[0, -1])
+        for _ in range(ntok):
+            mx.eval(t)
+            out.append(int(t))
+            logits = model(t.reshape(1, 1), cache=cache)
+            t = mx.argmax(logits[0, -1])
+        return out
+
+    ref = greedy_reference()
+
+    comm = TbcclPipelineComm.create(rank, world, ex, bind_host="127.0.0.1", advertise_host="127.0.0.1", timeout_ms=60000)
+    try:
+        n_layers = len(model.layers)
+        bounds = [(0, split), (split, n_layers)]
+        card = ModelCard(
+            model_id=ModelId("mlx-community/Qwen3-0.6B-8bit"), storage_size=Memory.from_kb(1), n_layers=n_layers, hidden_size=1024,
+            supports_tensor=False, tasks=[ModelTask.TextGeneration], backends=[Backend.MlxMetal, Backend.MlxCuda, Backend.MlxCpu],
+        )
+        shard = PipelineShardMetadata(model_card=card, device_rank=rank, world_size=world, start_layer=bounds[rank][0], end_layer=bounds[rank][1], n_layers=n_layers)
+        gen = pipeline_auto_parallel(model, comm, shard)
+        try:
+            while True:
+                next(gen)
+        except StopIteration as stop:
+            model = stop.value
+        cache = make_prompt_cache(model)
+
+        def prefix_digest(n):
+            h = hashlib.sha256()
+            for c in cache:
+                if getattr(c, "keys", None) is not None:
+                    for a in (c.keys[..., :n, :], c.values[..., :n, :]):
+                        mx.eval(a)
+                        h.update(bytes(memoryview(__import__("numpy").array(a.astype(mx.float32)))))
+            return h.hexdigest()
+
+        snaps = {}
+        t0 = time.perf_counter()
+        set_pipeline_prefill(model, True)
+        set_pipeline_queue_sends(model, True)
+        body = p[:-1]
+        for i in range(0, body.size, chunk):
+            out = model(body[i : i + chunk][None], cache=cache)
+            mx.eval(out)
+            flush_prefill_sends()
+        set_pipeline_queue_sends(model, False)
+        set_pipeline_prefill(model, False)
+        logits = model(p[-1:].reshape(1, 1), cache=cache)
+        t = mx.argmax(logits[0, -1])
+        ttft = time.perf_counter() - t0
+        toks, step_s = [], []
+        for k in range(ntok):
+            if k in (0, ntok // 2):
+                n = next(c.offset for c in cache if getattr(c, "keys", None) is not None)
+                snaps[n] = prefix_digest(n)
+            ts = time.perf_counter()
+            mx.eval(t)
+            toks.append(int(t))
+            logits = model(t.reshape(1, 1), cache=cache)
+            t = mx.argmax(logits[0, -1])
+            step_s.append(time.perf_counter() - ts)
+        stable = all(prefix_digest(n) == d for n, d in snaps.items())  # earlier KV entries unchanged by everything that followed
+        comm.barrier()
+        s, ps = comm.stats, comm.pool.stats
+        return {
+            "match_ref": toks == ref, "tokens": toks[:8], "prompt_tokens": len(prompt), "ttft_s": round(ttft, 3),
+            "tpot_ms": round(1e3 * sorted(step_s)[len(step_s) // 2], 3), "kv_prefix_stable": stable,
+            "copies": (s.materialized_copies, s.staged_fallback_copies), "labels": dict(s.direct_ops),
+            "pool": {"hits": ps.hits, "misses": ps.misses, "peak_bytes": ps.peak_bytes, "untracked": ps.untracked, "evictions": ps.evictions},
+            "async": (s.async_send_submitted, s.async_send_reaped), "pending_end": len(comm._pending),
+        }
+    finally:
+        comm.close()
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--split", type=int, default=21)
+    ap.add_argument("--prompt", default="medium")
+    ap.add_argument("--tokens", type=int, default=48)
+    ap.add_argument("--chunk", type=int, default=2048)
+    a = ap.parse_args()
+    res = run_world(2, worker, {}, a.split, a.prompt, a.tokens, a.chunk, timeout=1800)
+    print(json.dumps(res))
