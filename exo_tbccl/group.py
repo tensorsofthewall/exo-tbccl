@@ -12,8 +12,10 @@ import threading
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING
 
+from . import _cuda_caps
 from ._loader import native
 from .bridge import TRACE, Borrow, CopyStats, borrow
+from .config import MANAGED_AUTO, MANAGED_CUDA, MANAGED_HOST, FastPathConfig
 from .errors import TbcclAbortedError, TbcclError, TbcclInvalidArgumentError, error_for
 
 if TYPE_CHECKING:
@@ -23,6 +25,11 @@ log = logging.getLogger("exo_tbccl")
 
 ByteExchange = Callable[[str, bytes], Sequence[bytes]]
 """All-gather of opaque bytes supplied by the host application: ``exchange(purpose, payload)`` returns every rank's payload in rank order."""
+
+
+def _AUTO_ALLOWED(caps: "_cuda_caps.DeviceCaps") -> bool:
+    """Configurations the Phase 54 capability audit proved safe for host-direct managed access. Empty until the stress gates pass."""
+    return False
 
 
 class Transfer:
@@ -49,7 +56,9 @@ class Transfer:
 
 
 class TbcclPipelineComm:
-    def __init__(self, comm: object, rank: int, size: int):
+    def __init__(self, comm: object, rank: int, size: int, config: FastPathConfig | None = None):
+        self.config = config or FastPathConfig.from_env()
+        self._managed_verified: bool | None = None
         self._comm = comm
         self._rank = rank
         self._size = size
@@ -71,6 +80,7 @@ class TbcclPipelineComm:
         bind_host: str | None = None,
         advertise_host: str | None = None,
         timeout_ms: int = 0,
+        config: FastPathConfig | None = None,
     ) -> "TbcclPipelineComm":
         """UniqueId exchange -> BootstrapBegin -> endpoint blob all-gather -> BootstrapComplete. ``exchange`` is the host's opaque all-gather."""
         uids = exchange("uid", native.unique_id())
@@ -86,7 +96,7 @@ class TbcclPipelineComm:
             raise e.with_context(rank=rank) from None
         finally:
             bs.close()
-        return cls(comm, rank, world_size)
+        return cls(comm, rank, world_size, config)
 
     # ---- helpers ----------------------------------------------------------------------------------------------------------------------
 
@@ -95,6 +105,23 @@ class TbcclPipelineComm:
 
     def size(self) -> int:
         return self._size
+
+    def _managed_as_host(self, send: bool, recv: bool) -> bool:
+        """Policy for describing kDLCUDAManaged storage to TBCCL as host memory. ``cuda`` (the default) never does; ``host`` is a forced
+        override for measurement; ``auto`` requires the driver to confirm managed memory that the CPU may access while the GPU is active
+        (and is further limited to configurations the Phase 54 audit proved, see docs/cuda_managed_memory.md)."""
+        cfg = self.config
+        if cfg.managed_mode == MANAGED_CUDA:
+            return False
+        if (send and not cfg.managed_send) or (recv and not cfg.managed_recv):
+            return False
+        if cfg.managed_mode == MANAGED_HOST:
+            return True
+        assert cfg.managed_mode == MANAGED_AUTO
+        if self._managed_verified is None:
+            caps = _cuda_caps.device_caps(0)
+            self._managed_verified = bool(caps and caps.cpu_may_access_managed_while_gpu_active and _AUTO_ALLOWED(caps))
+        return self._managed_verified
 
     def _check_open(self) -> None:
         if self._closed:
@@ -162,13 +189,13 @@ class TbcclPipelineComm:
 
     def send_async(self, array: "mx.array", dst: int) -> Transfer:
         self._reap()
-        b = borrow(array, self.stats)
+        b = borrow(array, self.stats, managed_as_host=self._managed_as_host(True, False))
         self._trace("send", dst, b)
         return self._submit("send", dst, [b], lambda: self._comm.send(b.ptr, b.nbytes, b.kind, b.device, dst))  # pyright: ignore[reportAttributeAccessIssue]
 
     def recv_into_async(self, dest: "mx.array", src: int) -> Transfer:
         self._reap()
-        b = borrow(dest, self.stats, writable=True)
+        b = borrow(dest, self.stats, writable=True, managed_as_host=self._managed_as_host(False, True))
         self._trace("recv", src, b)
         return self._submit("recv", src, [b], lambda: self._comm.recv(b.ptr, b.nbytes, b.kind, b.device, src))  # pyright: ignore[reportAttributeAccessIssue]
 
@@ -203,9 +230,10 @@ class TbcclPipelineComm:
         out_shape = (self._size,) if len(shape) == 0 else (self._size * shape[0], *shape[1:])
         dest = mx.zeros(out_shape, dtype=array.dtype)
         mx.eval(dest)
-        sb = borrow(array, self.stats)
+        as_host = self._managed_as_host(True, True)
+        sb = borrow(array, self.stats, managed_as_host=as_host)
         try:
-            rb = borrow(dest, self.stats, writable=True)
+            rb = borrow(dest, self.stats, writable=True, managed_as_host=as_host)
         except TbcclError:
             sb.release()
             raise

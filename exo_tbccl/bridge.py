@@ -78,7 +78,9 @@ class Borrow:
         self.owner = None
 
 
-def _kind_for(device_type: int, device_id: int) -> tuple[int, int, str]:
+def _kind_for(device_type: int, device_id: int, managed_as_host: bool = False) -> tuple[int, int, str]:
+    if managed_as_host and device_type == native.DL_CUDA_MANAGED:
+        return MEMORY_HOST, -1, "managed-host"
     try:
         kind, label = _KIND_BY_DEVICE[device_type]
     except KeyError:
@@ -90,11 +92,14 @@ def _is_mlx(array: object) -> bool:
     return type(array).__module__.startswith("mlx.")
 
 
-def borrow(array: object, stats: CopyStats | None = None, *, writable: bool = False) -> Borrow:
+def borrow(array: object, stats: CopyStats | None = None, *, writable: bool = False, managed_as_host: bool = False) -> Borrow:
     """Borrow the bytes of an MLX array (or any DLPack producer with a C-contiguous layout).
 
     For MLX the array is evaluated (the same ``mx.eval`` boundary exo's pipeline already requires) and made row-contiguous when it is not;
     that materialization is a payload-sized copy and is counted in ``stats.materialized_copies``.
+
+    ``managed_as_host`` (policy decided by the caller, never inferred here) describes a kDLCUDAManaged export to TBCCL as host memory.
+    ``__dlpack_device__`` stays authoritative for what the storage is; this only changes how TBCCL is told to touch it.
     """
     if _is_mlx(array):
         import mlx.core as mx
@@ -102,7 +107,7 @@ def borrow(array: object, stats: CopyStats | None = None, *, writable: bool = Fa
         arr: mx.array = array  # pyright: ignore[reportAssignmentType]
         mx.eval(arr)
         device_type, device_id = arr.__dlpack_device__()
-        kind, device, label = _kind_for(device_type, device_id)
+        kind, device, label = _kind_for(device_type, device_id, managed_as_host)
         if arr.size == 0:
             return Borrow(arr, None, None, 0, 0, kind, device, label)
         uint = {1: mx.uint8, 2: mx.uint16, 4: mx.uint32, 8: mx.uint64}[arr.dtype.size]
@@ -134,7 +139,7 @@ def borrow(array: object, stats: CopyStats | None = None, *, writable: bool = Fa
     exp = native.Export(array)
     device_type, device_id = exp.device
     try:
-        kind, device, label = _kind_for(device_type, device_id)
+        kind, device, label = _kind_for(device_type, device_id, managed_as_host)
     except TbcclUnsupportedError:
         exp.release()
         raise
