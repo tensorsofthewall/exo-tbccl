@@ -25,7 +25,7 @@ TEXT = (
 )
 
 
-def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk):
+def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=0):
     os.environ.update(env)
     import mlx.core as mx
     from mlx_lm import load
@@ -44,8 +44,9 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk):
     )
     from exo_tbccl.group import TbcclPipelineComm
 
+    mx.set_cache_limit(128 << 20)  # two ranks and a reference share one small GPU
     model, tok = load(MODEL)
-    reps = {"short": 1, "medium": 12, "long": 150}[prompt_kind]
+    reps = reps_override or {"short": 1, "medium": 12, "long": 150}[prompt_kind]
     prompt = tok.encode(TEXT * reps)
     p = mx.array(prompt)
 
@@ -101,6 +102,8 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk):
             out = model(body[i : i + chunk][None], cache=cache)
             mx.eval(out)
             flush_prefill_sends()
+            del out
+            mx.clear_cache()
         set_pipeline_queue_sends(model, False)
         set_pipeline_prefill(model, False)
         logits = model(p[-1:].reshape(1, 1), cache=cache)
@@ -137,9 +140,11 @@ if __name__ == "__main__":
     ap.add_argument("--prompt", default="medium")
     ap.add_argument("--tokens", type=int, default=48)
     ap.add_argument("--chunk", type=int, default=2048)
+    ap.add_argument("--reps", type=int, default=0)
     a = ap.parse_args()
-    res = run_world(2, worker, {}, a.split, a.prompt, a.tokens, a.chunk, timeout=1800)
+    res = run_world(2, worker, {}, a.split, a.prompt, a.tokens, a.chunk, a.reps, timeout=1800)
+    ref = res[0]["ref_tokens"]
     for r in res:
-        r["match_ref"] = res[0]["match_ref"] and r["all_tokens"] == res[0]["ref_tokens"]  # rank 1 is checked against rank 0's reference
+        r["match_ref"] = res[0]["match_ref"] and r["all_tokens"] == ref  # rank 1 is checked against rank 0's reference
         del r["all_tokens"], r["ref_tokens"]
     print(json.dumps(res))
