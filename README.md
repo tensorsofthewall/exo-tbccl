@@ -21,7 +21,7 @@ mx.distributed    DLPack bridge
                     libtbccl
 ```
 
-Scope (Phase 53): pipeline parallelism for text generation only. Not tensor parallelism, not image/CFG models. exo owns discovery,
+Scope (Phase 53, extended in Phase 54): pipeline parallelism for text generation only. Not tensor parallelism, not image/CFG models. exo owns discovery,
 topology, placement and shard assignment; TBCCL never discovers anything.
 
 ## Install
@@ -53,13 +53,28 @@ structured result code (`TbcclTransportError`, `TbcclAbortedError`, `TbcclTimeou
 operation. Set `EXO_TBCCL_TRACE=1` to log the path of every operation (host, cuda-direct, metal-direct); `comm.stats` counts any
 adapter copy (it must stay 0).
 
+## Fast paths (Phase 54, all off by default)
+
+`FastPathConfig` (or the environment, read when a communicator is created) selects three opt-in optimizations; the defaults are exactly the Phase 53 behavior.
+
+| setting | values | what it does | measured |
+|---|---|---|---|
+| `EXO_TBCCL_CUDA_MANAGED_MODE` | `cuda` (default), `host`, `auto` | describe CUDA-managed MLX storage to TBCCL as host memory (`auto`: only a proven capability signature and <= 16 KiB) | wins on loopback at decode sizes, **loses on the real TB4 link**; leave at `cuda` |
+| `EXO_TBCCL_RECV` | `fresh` (default), `reuse` | serve `recv_like` destinations from a bounded pool, released at exo's `step_complete()` | -60% bridge round trip on Metal; neutral end to end |
+| `EXO_TBCCL_ASYNC_SEND` | `0` (default), `1` | decode sends submit and return; Work/Borrow are tracked and reaped, failures surface at the next communication point | neutral end to end |
+
+`kDLCUDAManaged` stays authoritative for what storage is; see `docs/cuda_managed_memory.md`, `docs/receive_buffer_pool.md`, `docs/async_send.md` and `docs/phase54_results.md`.
+Reuse is audited for Qwen3 (KVCache) and the synthetic model only; audit other cache families with `EXO_TBCCL_RECV_POISON=0xA5` before enabling it.
+
 ## Tests
 
 ```sh
-<exo venv>/bin/python -m pytest -p no:asyncio tests          # 27 tests, process-per-rank, loopback
+<exo venv>/bin/python -m pytest -p no:asyncio tests          # 58 tests, process-per-rank, loopback
 <exo venv>/bin/python examples/link_probe.py ...             # two-host correctness probe (see its docstring)
 <exo venv>/bin/python benchmarks/bridge_overhead.py          # loopback bridge cost
 ```
 
+Two-host probes: `examples/two_host_fastpath.py`, `examples/two_host_ring_chain.py`, `benchmarks/real_model_two_host.py` (see their docstrings; AER-gate every real-link run).
+
 See `docs/architecture.md`, `docs/mlx_dlpack_bridge.md`, `docs/bootstrap.md`, `docs/phase53_memory_bridge.md`, `docs/phase53_exo_audit.md`
-and `docs/phase53_results.md`.
+`docs/phase53_results.md` and `docs/phase54_results.md`.

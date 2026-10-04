@@ -28,10 +28,17 @@ Three codebases, one-way dependencies:
    through exo's runner byte exchange as opaque bytes (see `bootstrap.md`).
 3. Generation: the runner threads a `CommGroup` (an `mx.distributed.Group` or a `PipelineComm`) through the pipeline layers, the prefill queue and
    the runner-level agreements (barrier, any, task agreement, KV-cache pressure). Tensor-parallel code still takes an `mx.distributed.Group`.
-4. Shutdown: the engine releases the communicator before model state is destroyed.
+4. Lifetime boundary (Phase 54): `PipelineLastLayer` calls `comm.step_complete()` right after the stage output has been evaluated; `TbcclPipelineComm` uses it to recycle receive
+   destinations when `EXO_TBCCL_RECV=reuse` (a no-op for `MlxPipelineComm`).
+5. Shutdown: the engine releases the communicator before model state is destroyed.
+
+## Fast-path modules (Phase 54)
+
+- `exo_tbccl/config.py`: `FastPathConfig`, environment overrides. `exo_tbccl/_cuda_caps.py`: driver capability inspection (ctypes, internal). `exo_tbccl/recv_pool.py`: bounded receive pool.
+  Asynchronous sends reuse the `Transfer` pending table in `group.py` (`detached` transfers).
 
 ## Failure model
 
 Peer death surfaces as a structured transport error on the surviving rank within about a second; the runner fails, exo reports an error chunk to
 the client and the instance can be deleted. Cancellation never fails the instance. A bootstrap that cannot complete ends at its timeout (120 s) with
-the ranks it was still waiting for.
+the ranks it was still waiting for. A failed asynchronous send is held and raised at the next communication point; every collective drains outstanding sends.
