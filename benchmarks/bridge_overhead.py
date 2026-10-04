@@ -101,6 +101,7 @@ def worker(rank, world, ex, iters):
                     b.release()
                     t3 = time.perf_counter()
                     y = comm.recv_like(x, peer)
+                    comm.step_complete()
                     t4 = time.perf_counter()
                     if i >= warm:
                         stages["export"].append((t1 - t) * 1e6)
@@ -109,6 +110,7 @@ def worker(rank, world, ex, iters):
                         stages["alloc"].append(0.0)
                 else:
                     y = comm.recv_like(x, peer)
+                    comm.step_complete()
                     comm.send(x, peer)
                 if i >= warm:
                     via.append((time.perf_counter() - t0) * 1e6)
