@@ -103,7 +103,10 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         set_pipeline_prefill(model, True)
         set_pipeline_queue_sends(model, True)
         body = p[:-1]
+        die = os.environ.get("EXO_P54_DIE_AT", "")  # "<rank>:prefill:<chunk index>" or "<rank>:decode:<step>" (failure-injection test)
         for i in range(0, body.size, chunk):
+            if die == f"{rank}:prefill:{i // chunk}":
+                os._exit(0)
             out = model(body[i : i + chunk][None], cache=cache)
             mx.eval(out)
             flush_prefill_sends()
@@ -115,7 +118,17 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         t = mx.argmax(logits[0, -1])
         ttft = time.perf_counter() - t0
         toks, step_s = [], []
+        def resources():
+            rss = int(open("/proc/self/statm").read().split()[1]) * os.sysconf("SC_PAGE_SIZE") / 2**20 if os.path.exists("/proc/self/statm") else -1
+            return {"rss_mb": round(rss, 1), "threads": __import__("threading").active_count(), "fds": len(os.listdir("/dev/fd")), "pending": len(getattr(comm, "_pending", ())),
+                    "detached": len(getattr(comm, "_async_sends", ())), "pool_slots": comm.pool.slot_count if hasattr(comm, "pool") else 0, "pool_bytes": comm.pool.cached_bytes if hasattr(comm, "pool") else 0}
+
+        samples = {}
         for k in range(ntok):
+            if die == f"{rank}:decode:{k}":
+                os._exit(0)
+            if k in (200, ntok // 2, ntok - 1):
+                samples[k] = resources()
             if k in (0, ntok // 2):
                 n = next(c.offset for c in cache if getattr(c, "keys", None) is not None)
                 snaps[n] = prefix_digest(n)
@@ -134,7 +147,7 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         s, ps = comm.stats, comm.pool.stats
         return {
             "match_ref": (toks == ref) if rank == 0 else None, "all_tokens": toks, "ref_tokens": ref, "tokens": toks[:8], "prompt_tokens": len(prompt), "ttft_s": round(ttft, 3),
-            "tpot_ms": round(1e3 * sorted(step_s)[len(step_s) // 2], 3), "kv_prefix_stable": stable,
+            "tpot_ms": round(1e3 * sorted(step_s)[len(step_s) // 2], 3), "kv_prefix_stable": stable, "resources": samples,
             "copies": (s.materialized_copies, s.staged_fallback_copies), "labels": dict(s.direct_ops),
             "pool": {"hits": ps.hits, "misses": ps.misses, "peak_bytes": ps.peak_bytes, "untracked": ps.untracked, "evictions": ps.evictions},
             "async": (s.async_send_submitted, s.async_send_reaped), "pending_end": len(comm._pending),
