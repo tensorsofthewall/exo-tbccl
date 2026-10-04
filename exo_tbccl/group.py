@@ -239,17 +239,23 @@ class TbcclPipelineComm:
         return self._closed or bool(self._comm.is_aborted())  # pyright: ignore[reportAttributeAccessIssue]
 
     def close(self) -> None:
-        """Abort, drain every in-flight Work (bounded after an abort), release all borrows, then destroy the communicator. Idempotent."""
+        """Release every borrow and destroy the communicator. Idempotent.
+
+        With work still in flight the communicator is aborted first (so every Work becomes terminal and the drain is bounded). With nothing in
+        flight no abort is sent: an abort is communicator-wide and would fail a peer that is still completing its side of the last collective.
+        """
         if self._closed:
             return
         self._closed = True
-        try:
-            self._comm.abort("closing")  # pyright: ignore[reportAttributeAccessIssue]
-        except TbcclError:
-            pass
+        self._reap_for_close()
         with self._lock:
             pending = list(self._pending)
             self._pending.clear()
+        if pending:
+            try:
+                self._comm.abort("closing")  # pyright: ignore[reportAttributeAccessIssue]
+            except TbcclError:
+                pass
         for t in pending:
             try:
                 t.work.wait()  # pyright: ignore[reportAttributeAccessIssue]
@@ -257,6 +263,21 @@ class TbcclPipelineComm:
                 pass
             t._finish()
         self._comm.close()  # pyright: ignore[reportAttributeAccessIssue]
+
+    def _reap_for_close(self) -> None:
+        with self._lock:
+            pending = list(self._pending)
+        for t in pending:
+            if t.terminal:
+                continue
+            try:
+                done, _ = t.work.test()  # pyright: ignore[reportAttributeAccessIssue]
+            except TbcclError:
+                continue
+            if done:
+                t._finish()
+                with self._lock:
+                    self._pending.discard(t)
 
     def __enter__(self) -> "TbcclPipelineComm":
         return self
