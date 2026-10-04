@@ -45,6 +45,8 @@ class CopyStats:
     direct_bytes: int = 0
     materialized_copies: int = 0
     staged_fallback_copies: int = 0
+    async_send_submitted: int = 0
+    async_send_reaped: int = 0
 
     def note_direct(self, label: str, nbytes: int) -> None:
         self.direct_ops[label] = self.direct_ops.get(label, 0) + 1

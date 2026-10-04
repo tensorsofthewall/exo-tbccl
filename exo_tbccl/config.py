@@ -4,6 +4,7 @@ Environment overrides (benchmarking/debugging, read once at ``FastPathConfig.fro
 
 ``EXO_TBCCL_CUDA_MANAGED_MODE``  cuda | host | auto      how a kDLCUDAManaged export is described to TBCCL (default cuda)
 ``EXO_TBCCL_MANAGED_DIRS``       send,recv | send | recv  which directions the managed mapping applies to (default send,recv)
+``EXO_TBCCL_MANAGED_MAX_BYTES``   integer                   largest payload ``auto`` maps to host (default 8192; ``host`` ignores it)
 ``EXO_TBCCL_RECV``               fresh | reuse             receive destination policy (default fresh)
 ``EXO_TBCCL_ASYNC_SEND``         0 | 1                     decode sends are not waited for immediately (default 0)
 """
@@ -23,6 +24,7 @@ class FastPathConfig:
     managed_mode: str = MANAGED_CUDA
     managed_send: bool = True
     managed_recv: bool = True
+    managed_max_bytes: int = 8192
     recv_reuse: bool = False
     async_send: bool = False
 
@@ -38,4 +40,4 @@ class FastPathConfig:
         recv = env.get("EXO_TBCCL_RECV", "fresh").lower()
         if recv not in ("fresh", "reuse"):
             raise ValueError(f"EXO_TBCCL_RECV must be fresh|reuse, got {recv!r}")
-        return cls(mode, "send" in dirs, "recv" in dirs, recv == "reuse", env.get("EXO_TBCCL_ASYNC_SEND", "0") not in ("", "0"))
+        return cls(mode, "send" in dirs, "recv" in dirs, int(env.get("EXO_TBCCL_MANAGED_MAX_BYTES", "8192")), recv == "reuse", env.get("EXO_TBCCL_ASYNC_SEND", "0") not in ("", "0"))
