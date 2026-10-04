@@ -1,0 +1,27 @@
+cmake_minimum_required(VERSION 3.20)
+project(exo_tbccl LANGUAGES C)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+
+# Only the installed TBCCL C ABI is linked: TBCCL::tbccl_c. No TBCCL C++ header, source tree or private symbol is used.
+if(DEFINED ENV{TBCCL_ROOT} AND NOT TBCCL_ROOT)
+    set(TBCCL_ROOT "$ENV{TBCCL_ROOT}")
+endif()
+if(TBCCL_ROOT)
+    list(PREPEND CMAKE_PREFIX_PATH "${TBCCL_ROOT}")
+endif()
+find_package(Python 3.13 REQUIRED COMPONENTS Interpreter Development.Module)
+find_package(TBCCL 0.5 CONFIG REQUIRED)
+find_package(Threads REQUIRED)
+if(NOT TBCCL_c_FOUND)
+    message(FATAL_ERROR "this TBCCL install has no C ABI target (TBCCL::tbccl_c); TBCCL >= 0.5 is required")
+endif()
+
+python_add_library(_native MODULE src/native/exo_tbccl_native.c WITH_SOABI)
+target_compile_options(_native PRIVATE -Wall -Wextra -Wpedantic -Wno-missing-field-initializers)
+target_link_libraries(_native PRIVATE TBCCL::tbccl_c Threads::Threads)
+set_target_properties(_native PROPERTIES C_VISIBILITY_PRESET hidden)
+message(STATUS "exo_tbccl: TBCCL ${TBCCL_VERSION}, CUDA component: ${TBCCL_cuda_FOUND}")
+install(TARGETS _native LIBRARY DESTINATION exo_tbccl)
