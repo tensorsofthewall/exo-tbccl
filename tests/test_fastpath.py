@@ -255,3 +255,60 @@ def _w_premature_release(rank, world, ex, env):
 def test_poison_control_detects_a_premature_release_boundary():
     res = run_world(2, _w_premature_release, {"EXO_TBCCL_RECV": "reuse", "EXO_TBCCL_RECV_POISON": "0xA5"})
     assert res[1] != 6.0  # the control is sensitive: a wrong boundary changes the output
+
+
+def _w_cancel_with_outstanding_sends(rank, world, ex, env):
+    import time
+
+    import numpy as np
+
+    comm = _create(rank, world, ex, env)
+    if rank == 1:
+        time.sleep(6.0)  # never receives: rank 0's sends stay outstanding
+        comm.close()
+        return None
+    bufs = [np.full(1 << 22, i, dtype=np.uint8) for i in range(8)]
+    for b in bufs:
+        comm.send(b, 1)  # asynchronous; keeps {Work, Borrow}
+    outstanding = len(comm._async_sends)
+    t0 = time.time()
+    comm.close()  # cancellation: in-flight work -> abort -> drain -> release borrows -> destroy
+    return outstanding, time.time() - t0, len(comm._pending), len(comm._async_sends)
+
+
+def test_close_with_outstanding_async_sends_is_bounded_and_releases_everything():
+    res = run_world(2, _w_cancel_with_outstanding_sends, {"EXO_TBCCL_ASYNC_SEND": "1"}, timeout=120, tolerate_exit=(1,))
+    outstanding, elapsed, pending, detached = res[0]
+    assert outstanding >= 1 and elapsed < 30 and pending == 0 and detached == 0, res[0]
+
+
+def _w_instance_cycles(rank, world, ex, env, cycles):
+    import os
+    import threading
+
+    import mlx.core as mx
+
+    def counts():
+        return threading.active_count(), len(os.listdir("/proc/self/fd"))
+
+    series = []
+    for c in range(cycles):
+        comm = _create(rank, world, ex, env)
+        for i in range(5):
+            if rank == 0:
+                comm.send(mx.full((512,), i, dtype=mx.float32), 1)
+            else:
+                x = comm.recv_like(mx.zeros((512,), dtype=mx.float32), 0)
+                assert float(x[0]) == i
+                comm.step_complete()
+            comm.all_gather(mx.zeros((4,), dtype=mx.float32))
+        comm.barrier()
+        comm.close()
+        series.append(counts())
+    return series
+
+
+def test_repeated_create_close_cycles_with_every_fast_path_do_not_grow_threads_or_fds():
+    env = {"EXO_TBCCL_ASYNC_SEND": "1", "EXO_TBCCL_RECV": "reuse", "EXO_TBCCL_CUDA_MANAGED_MODE": "host"}
+    for series in run_world(2, _w_instance_cycles, env, 8):
+        assert series[-1][0] <= series[1][0] and series[-1][1] <= series[1][1] + 2, series

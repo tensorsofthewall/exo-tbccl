@@ -30,9 +30,18 @@ ByteExchange = Callable[[str, bytes], Sequence[bytes]]
 """All-gather of opaque bytes supplied by the host application: ``exchange(purpose, payload)`` returns every rank's payload in rank order."""
 
 
+_PROVEN_MANAGED_HOST_SIGNATURES = (
+    # Linux, discrete GPU, driver-managed pageable access without host page tables: CPU access to managed pages is legal while the GPU runs and
+    # faults the pages to the host (RTX 3070 Ti Laptop, sm_86, driver 610.43.02, the latency-attribution work). Add a signature only after the
+    # stress gates pass on it.
+    {"managed_memory": 1, "concurrent_managed_access": 1, "pageable_memory_access": 1, "pageable_memory_access_uses_host_page_tables": 0,
+     "direct_managed_mem_access_from_host": 0, "integrated": 0},
+)
+
+
 def _AUTO_ALLOWED(caps: "_cuda_caps.DeviceCaps") -> bool:
-    """Configurations the capability audit proved safe for host-direct managed access. Empty until the stress gates pass."""
-    return False
+    """True when the driver-reported attributes equal a signature the latency-attribution capability audit proved safe for host-direct managed access."""
+    return any(all(caps.attrs.get(k) == v for k, v in sig.items()) for sig in _PROVEN_MANAGED_HOST_SIGNATURES)
 
 
 class Transfer:
@@ -62,7 +71,7 @@ class Transfer:
 class TbcclPipelineComm:
     def __init__(self, comm: object, rank: int, size: int, config: FastPathConfig | None = None):
         self.config = config or FastPathConfig.from_env()
-        self._managed_verified: bool | None = None
+        self._managed_verified: dict[int, bool] = {}
         poison = os.environ.get("EXO_TBCCL_RECV_POISON")
         self.pool = ReceivePool(poison=int(poison, 0) & 0xFF if poison else None)
         self._deferred_error: TbcclError | None = None
@@ -114,10 +123,11 @@ class TbcclPipelineComm:
     def size(self) -> int:
         return self._size
 
-    def _managed_as_host(self, send: bool, recv: bool, nbytes: int) -> bool:
-        """Policy for describing kDLCUDAManaged storage to TBCCL as host memory. ``cuda`` (the default) never does; ``host`` is a forced
-        override for measurement; ``auto`` requires the driver to confirm managed memory that the CPU may access while the GPU is active
-        (and is further limited to configurations the audit proved, see docs/cuda_managed_memory.md)."""
+    def _managed_as_host(self, send: bool, recv: bool, array: "mx.array") -> bool:
+        """Policy for describing kDLCUDAManaged storage to TBCCL as host memory. ``cuda`` (the default) never does; ``host`` is a forced override
+        for measurement; ``auto`` needs the array to be CUDA-managed, its device to match a capability signature the latency-attribution audit proved
+        (docs/cuda_managed_memory.md), and the payload to be small enough that CPU access to GPU-written pages stays cheap. Anything else,
+        including a driver that cannot be queried, keeps the CUDA path."""
         cfg = self.config
         if cfg.managed_mode == MANAGED_CUDA:
             return False
@@ -125,13 +135,15 @@ class TbcclPipelineComm:
             return False
         if cfg.managed_mode == MANAGED_HOST:
             return True
-        assert cfg.managed_mode == MANAGED_AUTO
-        if nbytes > cfg.managed_max_bytes:
+        if array.nbytes > cfg.managed_max_bytes:
             return False
-        if self._managed_verified is None:
-            caps = _cuda_caps.device_caps(0)
-            self._managed_verified = bool(caps and caps.cpu_may_access_managed_while_gpu_active and _AUTO_ALLOWED(caps))
-        return self._managed_verified
+        device_type, ordinal = array.__dlpack_device__()
+        if device_type != native.DL_CUDA_MANAGED:
+            return False
+        if ordinal not in self._managed_verified:
+            caps = _cuda_caps.device_caps(ordinal)
+            self._managed_verified[ordinal] = bool(caps and _AUTO_ALLOWED(caps))
+        return self._managed_verified[ordinal]
 
     def _check_open(self) -> None:
         if self._closed:
@@ -230,14 +242,14 @@ class TbcclPipelineComm:
 
     def send_async(self, array: "mx.array", dst: int) -> Transfer:
         self._reap()
-        b = borrow(array, self.stats, managed_as_host=self._managed_as_host(True, False, array.nbytes))
+        b = borrow(array, self.stats, managed_as_host=self._managed_as_host(True, False, array))
         self.pool.pin_aliased(b.ptr, b.nbytes)
         self._trace("send", dst, b)
         return self._submit("send", dst, [b], lambda: self._comm.send(b.ptr, b.nbytes, b.kind, b.device, dst))  # pyright: ignore[reportAttributeAccessIssue]
 
     def recv_into_async(self, dest: "mx.array", src: int) -> Transfer:
         self._reap()
-        b = borrow(dest, self.stats, writable=True, managed_as_host=self._managed_as_host(False, True, dest.nbytes))
+        b = borrow(dest, self.stats, writable=True, managed_as_host=self._managed_as_host(False, True, dest))
         self._trace("recv", src, b)
         return self._submit("recv", src, [b], lambda: self._comm.recv(b.ptr, b.nbytes, b.kind, b.device, src))  # pyright: ignore[reportAttributeAccessIssue]
 
@@ -294,7 +306,7 @@ class TbcclPipelineComm:
         out_shape = (self._size,) if len(shape) == 0 else (self._size * shape[0], *shape[1:])
         dest = mx.zeros(out_shape, dtype=array.dtype)
         mx.eval(dest)
-        as_host = self._managed_as_host(True, True, array.nbytes)
+        as_host = self._managed_as_host(True, True, array)
         sb = borrow(array, self.stats, managed_as_host=as_host)
         try:
             rb = borrow(dest, self.stats, writable=True, managed_as_host=as_host)
