@@ -57,7 +57,12 @@ static void export_release_impl(ExportObject *self) {
     if (self->managed != NULL) {
         ExoDLManagedTensor *m = self->managed;
         self->managed = NULL;
-        if (m->deleter != NULL) m->deleter(m);
+        if (m->deleter != NULL) {
+            /* The producer's deleter may run Python code (ctypes, numpy, torch): never call it with an exception pending. */
+            PyObject *pending = PyErr_GetRaisedException();
+            m->deleter(m);
+            PyErr_SetRaisedException(pending);
+        }
     }
     Py_CLEAR(self->capsule);
     self->ptr = NULL;
@@ -130,7 +135,9 @@ static PyObject *export_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
     }
     ExportObject *self = (ExportObject *)type->tp_alloc(type, 0);
     if (self == NULL) {
+        PyObject *pending = PyErr_GetRaisedException();
         if (m->deleter) m->deleter(m);
+        PyErr_SetRaisedException(pending);
         Py_DECREF(cap);
         return NULL;
     }
