@@ -63,9 +63,10 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk):
             t = mx.argmax(logits[0, -1])
         return out
 
-    ref = greedy_reference()
+    ref = greedy_reference() if rank == 0 else None  # one reference at a time: two unsharded long prefills do not fit an 8 GiB GPU
+    mx.clear_cache()
 
-    comm = TbcclPipelineComm.create(rank, world, ex, bind_host="127.0.0.1", advertise_host="127.0.0.1", timeout_ms=60000)
+    comm = TbcclPipelineComm.create(rank, world, ex, bind_host="127.0.0.1", advertise_host="127.0.0.1", timeout_ms=1800000)
     try:
         n_layers = len(model.layers)
         bounds = [(0, split), (split, n_layers)]
@@ -120,7 +121,7 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk):
         comm.barrier()
         s, ps = comm.stats, comm.pool.stats
         return {
-            "match_ref": toks == ref, "tokens": toks[:8], "prompt_tokens": len(prompt), "ttft_s": round(ttft, 3),
+            "match_ref": (toks == ref) if rank == 0 else None, "all_tokens": toks, "ref_tokens": ref, "tokens": toks[:8], "prompt_tokens": len(prompt), "ttft_s": round(ttft, 3),
             "tpot_ms": round(1e3 * sorted(step_s)[len(step_s) // 2], 3), "kv_prefix_stable": stable,
             "copies": (s.materialized_copies, s.staged_fallback_copies), "labels": dict(s.direct_ops),
             "pool": {"hits": ps.hits, "misses": ps.misses, "peak_bytes": ps.peak_bytes, "untracked": ps.untracked, "evictions": ps.evictions},
@@ -138,4 +139,7 @@ if __name__ == "__main__":
     ap.add_argument("--chunk", type=int, default=2048)
     a = ap.parse_args()
     res = run_world(2, worker, {}, a.split, a.prompt, a.tokens, a.chunk, timeout=1800)
+    for r in res:
+        r["match_ref"] = res[0]["match_ref"] and r["all_tokens"] == res[0]["ref_tokens"]  # rank 1 is checked against rank 0's reference
+        del r["all_tokens"], r["ref_tokens"]
     print(json.dumps(res))
