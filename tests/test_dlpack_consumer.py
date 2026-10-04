@@ -38,7 +38,7 @@ def test_byte_offset_and_c_strides_are_honoured():
 
 def test_non_contiguous_is_rejected_and_the_deleter_still_runs():
     p = FakeProducer(buf(), [4, 4], strides=[1, 4])
-    with pytest.raises(ValueError, match="C-contiguous"):
+    with pytest.raises(native.NotContiguousError):
         native.Export(p)
     assert p.deleted == 1
 

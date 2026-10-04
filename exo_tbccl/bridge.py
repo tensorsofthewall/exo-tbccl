@@ -2,7 +2,7 @@
 
 Findings that shape this module (docs/mlx_dlpack_bridge.md): MLX reports the real device only through ``__dlpack_device__`` (CUDA arrays are
 CUDA *managed* memory, Metal arrays are Metal), its capsule always says CPU and cannot carry bfloat16, and ``array.view(mx.uint8)`` is a
-zero-copy byte alias on both platforms. A borrowed buffer is therefore the uint8 view of an evaluated, row-contiguous array.
+zero-copy alias on both platforms. A borrowed buffer is therefore a same-width unsigned view of an evaluated, row-contiguous array.
 
 A ``Borrow`` keeps the MLX array, its view and the DLPack export alive until ``release()``; the caller releases it only after the TBCCL Work
 is terminal.
@@ -105,23 +105,31 @@ def borrow(array: object, stats: CopyStats | None = None, *, writable: bool = Fa
         kind, device, label = _kind_for(device_type, device_id)
         if arr.size == 0:
             return Borrow(arr, None, None, 0, 0, kind, device, label)
-        contiguous = mx.contiguous(arr)
-        if contiguous is not arr:
+        uint = {1: mx.uint8, 2: mx.uint16, 4: mx.uint32, 8: mx.uint64}[arr.dtype.size]
+        # A same-width unsigned view is metadata-only and keeps the strides, so the native consumer can tell whether `arr` is row-contiguous
+        # and hands back the array's real storage pointer (bfloat16 cannot go through __dlpack__ directly; its uint16 alias can).
+        owner: object = arr
+        probe = arr.view(uint)
+        mx.eval(probe)
+        try:
+            exp = native.Export(probe)
+        except native.NotContiguousError:
             if writable:
-                raise TbcclInvalidArgumentError(native.TBCCL_INVALID_ARGUMENT, "bridge", "receive destination must be row-contiguous")
+                raise TbcclInvalidArgumentError(native.TBCCL_INVALID_ARGUMENT, "bridge", "receive destination must be row-contiguous") from None
             if stats is not None:
                 stats.materialized_copies += 1
-            mx.eval(contiguous)
-        flat = contiguous.reshape(-1).view(mx.uint8)
-        mx.eval(flat)
-        exp = native.Export(flat)
+            owner = mx.contiguous(arr)
+            mx.eval(owner)
+            probe = owner.view(uint)
+            mx.eval(probe)
+            exp = native.Export(probe)
         if exp.device != (device_type, device_id):
             exp.release()
             raise TbcclInvalidArgumentError(native.TBCCL_INVALID_ARGUMENT, "bridge", f"device changed while borrowing: {exp.device} vs {(device_type, device_id)}")
         if exp.nbytes != arr.nbytes:
             exp.release()
             raise TbcclInvalidArgumentError(native.TBCCL_INVALID_ARGUMENT, "bridge", f"byte count mismatch: view {exp.nbytes} vs array {arr.nbytes}")
-        return Borrow((arr, contiguous), flat, exp, exp.ptr, exp.nbytes, kind, device, label)
+        return Borrow((arr, owner), probe, exp, exp.ptr, exp.nbytes, kind, device, label)
 
     exp = native.Export(array)
     device_type, device_id = exp.device

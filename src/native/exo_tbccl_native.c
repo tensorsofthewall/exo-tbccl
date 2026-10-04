@@ -16,6 +16,7 @@
 #include "dlpack.h"
 
 static PyObject *g_error_factory = NULL;
+static PyObject *g_not_contiguous = NULL;
 
 static void raise_result(tbcclResult_t code, const char *op, const char *detail) {
     PyObject *exc = NULL;
@@ -165,7 +166,7 @@ static PyObject *export_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
         goto fail;
     }
     if (!dl_is_c_contiguous(t)) {
-        PyErr_SetString(PyExc_ValueError, "DLPack tensor is not C-contiguous; materialize it first");
+        PyErr_SetString(g_not_contiguous, "DLPack tensor is not C-contiguous; materialize it first");
         goto fail;
     }
     if (self->nbytes > 0 && t->data == NULL) {
@@ -720,6 +721,9 @@ static int module_exec(PyObject *m) {
     CommType = (PyTypeObject *)PyType_FromSpec(&comm_spec);
     BootstrapType = (PyTypeObject *)PyType_FromSpec(&bootstrap_spec);
     if (!ExportType || !WorkType || !CommType || !BootstrapType) return -1;
+    g_not_contiguous = PyErr_NewException("exo_tbccl._native.NotContiguousError", PyExc_ValueError, NULL);
+    if (g_not_contiguous == NULL) return -1;
+    if (PyModule_AddObjectRef(m, "NotContiguousError", g_not_contiguous) < 0) return -1;
     if (PyModule_AddObjectRef(m, "Export", (PyObject *)ExportType) < 0) return -1;
     if (PyModule_AddObjectRef(m, "Work", (PyObject *)WorkType) < 0) return -1;
     if (PyModule_AddObjectRef(m, "Comm", (PyObject *)CommType) < 0) return -1;
