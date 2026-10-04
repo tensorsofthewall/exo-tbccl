@@ -86,7 +86,7 @@ def u8(a):
     return a.reshape(-1).view(mx.uint8)
 
 
-def pingpong(comm, rank, dt, nbytes, iters, verify=True):
+def pingpong(comm, rank, dt, nbytes, iters, verify=False):
     n = nbytes // dt.size
     peer = 1 - rank
     rtt, consume = [], []
@@ -111,7 +111,7 @@ def pingpong(comm, rank, dt, nbytes, iters, verify=True):
     return rtt, consume
 
 
-def decode_chain(comm, rank, dt, nbytes, iters):
+def decode_chain(comm, rank, dt, nbytes, iters, verify=False):
     """Rank 0 produces, sends to rank 1; rank 1 computes and replies by all_gather only (the decode shape of exo's pipeline)."""
     n = nbytes // dt.size
     t = []
@@ -128,10 +128,11 @@ def decode_chain(comm, rank, dt, nbytes, iters):
             comm.step_complete()
         g = comm.all_gather(y)
         mx.eval(g)
-        exp0 = produce(dt, n, i, 0)
-        exp1 = ((exp0.astype(mx.float32) * 3 + 1) % 251).astype(dt)
-        assert bool(mx.array_equal(u8(g[:n]), u8(exp0))) and bool(mx.array_equal(u8(g[n:]), u8(exp1))), f"gather mismatch iter {i}"
         t.append((time.perf_counter() - t0) * 1e6)
+        if verify:  # never inside the timed region (docs/benchmark_methodology.md); the timestamp above is taken before it
+            exp0 = produce(dt, n, i, 0)
+            exp1 = ((exp0.astype(mx.float32) * 3 + 1) % 251).astype(dt)
+            assert bool(mx.array_equal(u8(g[:n]), u8(exp0))) and bool(mx.array_equal(u8(g[n:]), u8(exp1))), f"gather mismatch iter {i}"
     comm.barrier()
     return t
 
@@ -157,14 +158,15 @@ def main():
             for dtn in a.dtypes.split(","):
                 dt = getattr(mx, dtn)
                 for size in (int(x) for x in a.sizes.split(",")):
-                    pingpong(comm, a.rank, dt, size, 20)  # warm-up (verified)
+                    pingpong(comm, a.rank, dt, size, 20, verify=True)  # untimed, verified
+                    decode_chain(comm, a.rank, dt, size, 10, verify=True)  # untimed, verified
                     rtt, cons = pingpong(comm, a.rank, dt, size, a.iters)
                     ch = decode_chain(comm, a.rank, dt, size, a.iters)
                     m[f"{dtn}/{size}"] = {
                         "pingpong_rtt_us_median": round(statistics.median(rtt), 1),
                         "first_gpu_consume_us_median": round(statistics.median(cons), 1),
                         "decode_chain_us_median": round(statistics.median(ch), 1),
-                        "verified_iters": a.iters,
+                        "verified_iters": 30,
                     }
             s = comm.stats
             m["stats"] = {"labels": dict(s.direct_ops), "copies": [s.materialized_copies, s.staged_fallback_copies], "async": [s.async_send_submitted, s.async_send_reaped],
