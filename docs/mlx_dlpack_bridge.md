@@ -18,6 +18,7 @@ Spike scripts: `docs/spikes/dl_spike.py`, `dl_spike2.py` (ctypes view of the DLP
    strides are not C-order, take `view(uint8)`, evaluate it, export DLPack, key the TBCCL memory kind off
    `__dlpack_device__` (1 -> HOST, 13 -> CUDA, 8 -> METAL_SHARED), keep the array, the view and the capsule alive
    until the TBCCL Work is terminal.
-5. Not yet verified (next steps): TBCCL `METAL_SHARED` acceptance of this pointer end to end, CUDA-managed
-   pointer as `TBCCL_MEMORY_CUDA` end to end, whether the CPU-visible bytes are coherent with prior GPU writes
-   after `mx.eval` on both platforms (the byte-equality check above ran after `mx.eval` and passed).
+5. Verified since: TBCCL `METAL_SHARED` and `CUDA` (managed pointer) accept these pointers end to end (bit-exact over loopback and over the
+   real Mac Metal <-> Linux CUDA link, fp32/fp16/bf16, odd byte counts), and the CPU-visible bytes are coherent after `mx.eval` on both
+   platforms. The final design uses a same-width unsigned view (not a uint8 view) so row-contiguity is detected from the exported strides.
+   Planned follow-up (not done in Phase 53): treat CUDA managed storage as host memory; a diagnostic showed about 10x lower loopback latency.
