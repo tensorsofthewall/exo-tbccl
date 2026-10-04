@@ -25,7 +25,7 @@ TEXT = (
 )
 
 
-def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=0):
+def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=0, host="127.0.0.1"):
     os.environ.update(env)
     import mlx.core as mx
     from mlx_lm import load
@@ -67,7 +67,7 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
     ref = greedy_reference() if rank == 0 else None  # one reference at a time: two unsharded long prefills do not fit an 8 GiB GPU
     mx.clear_cache()
 
-    comm = TbcclPipelineComm.create(rank, world, ex, bind_host="127.0.0.1", advertise_host="127.0.0.1", timeout_ms=1800000)
+    comm = TbcclPipelineComm.create(rank, world, ex, bind_host=host, advertise_host=host, timeout_ms=1800000)
     try:
         n_layers = len(model.layers)
         bounds = [(0, split), (split, n_layers)]
