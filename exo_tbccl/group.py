@@ -335,12 +335,12 @@ class TbcclPipelineComm:
     def recv_like(self, template: "mx.array", src: int) -> "mx.array":
         import mlx.core as mx
 
+        if self._act is not None:
+            self._act.on_recv_begin()
         if not self.config.recv_reuse:
             dest = self._alloc(template.shape, template.dtype)
             mx.eval(dest)
             self.wait(self.recv_into_async(dest, src))
-            if self._act is not None:
-                self._act.on_recv_complete()
             return dest
         slot = self.pool.acquire(tuple(template.shape), template.dtype)
         t = self.recv_into_async(slot.array, src)
@@ -351,8 +351,6 @@ class TbcclPipelineComm:
             self.pool.discard(slot)
             raise
         self.pool.mark_received(slot, ptr)
-        if self._act is not None:
-            self._act.on_recv_complete()
         return slot.array
 
     def step_complete(self) -> None:

@@ -90,12 +90,12 @@ def test_repeated_windows_and_shutdown_while_active_leak_no_thread():
 def test_policy_windows_follow_the_communicator_pattern():
     p = MetalActivityPolicy(max_window_ms=5000, duty=1.0)
     a = p.activity
-    p.on_recv_complete()  # prefill receive: not armed, no window
+    p.on_recv_begin()  # prefill receive: not armed, no window
     assert a.windows == 0
     p.on_gather_submit()
     p.on_gather_complete()  # first decode gather: the previous step had a receive -> no window at the gather
     assert a.windows == 0 and p._armed
-    p.on_recv_complete()  # a receiving stage opens its window at the receive
+    p.on_recv_begin()  # a receiving stage opens its window when it posts the receive
     assert a.windows == 1 and a.is_open
     p.on_gather_submit()
     assert not a.is_open

@@ -4,7 +4,8 @@ Phase 62/63 measured on the real Linux<->Mac link (orientation A) that TBCCL's b
 busy-polling worker keeps the Mac fast; a helper thread that burns CPU while the pipeline does its own work restored the speed (first-use 1.1 -> 0.13 ms, stage
 4.3 -> 2.2 ms, TPOT 12.0 -> 6.6 ms). See docs/mac_activity_policy.md. The window is defined only by communicator events (no model, rank, split or orientation input):
 
-    opens   when a ``recv`` completes (the receiving rank's local compute follows), or, in a pipeline whose previous step had no receive, when an ``all_gather`` completes
+    opens   when a ``recv_like`` is posted (the receiving stage's wait for its input and the local compute that follows), or, in a pipeline whose previous step
+            had no receive, when an ``all_gather`` completes
     closes  when the next ``all_gather`` is submitted, or at barrier / any_true / abort / close
 
 Windows only open after the first ``all_gather`` has completed (the decode loop), so prefill is untouched. A hard bound (``EXO_TBCCL_ACTIVITY_MAX_MS``, default 100)
@@ -111,7 +112,7 @@ class MetalActivityPolicy:
         self._recv_since_gather = False
         self._step_had_recv = False  # what the previous step looked like (a receiving pipeline stage opens its window at the receive)
 
-    def on_recv_complete(self) -> None:
+    def on_recv_begin(self) -> None:
         self._recv_since_gather = True
         if self._armed:
             self.activity.open()
