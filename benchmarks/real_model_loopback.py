@@ -190,6 +190,8 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         if sync_rec:
             if sync_rec.activity is not None:
                 sync_rec.activity.close()
+            stats = getattr(getattr(comm, "_comm", comm), "activity_stats", None) or getattr(comm, "activity_stats", None)
+            sync_rec.runtime_activity = stats() if stats else None  # Phase 64: the runtime policy's own counters (TbcclPipelineComm only)
             sync_rec.dump(f"{sync_prefix}.rank{rank}.json")
             sync_rec.uninstall()
         if backend in ("ring", "null"):
