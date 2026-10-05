@@ -78,6 +78,10 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         comm = NullPipelineComm.create(rank, world, ex)
     else:
         comm = TbcclPipelineComm.create(rank, world, ex, bind_host=host, advertise_host=host, timeout_ms=1800000)
+    if os.environ.get("EXO_TBCCL_BENCH_QOS"):  # test-only: scope a macOS QoS class to THIS (main) thread: 0x21 user-interactive, 0x19 user-initiated, 0x15 default, 0x11 utility
+        import ctypes
+
+        ctypes.CDLL("/usr/lib/libSystem.B.dylib").pthread_set_qos_class_self_np(int(os.environ["EXO_TBCCL_BENCH_QOS"], 0), 0)
     sync_prefix = os.environ.get("EXO_TBCCL_BENCH_SYNC_RECORD")  # Record every eval / communication call with a semantic label (path prefix); measurement only
     sync_rec = None
     if sync_prefix:
