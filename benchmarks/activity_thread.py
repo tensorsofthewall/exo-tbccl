@@ -42,6 +42,8 @@ WINDOWS = {
     "graph": ([("begin", "layer", "layer:TransformerBlock")], [("end", "layer", "layer:TransformerBlock")]),
     "stage": ([("begin", "eval", "model_output_eval")], [("end", "eval", "model_output_eval")]),
     "sampler": ([("begin", "eval", "real_model_loopback.py:worker#4")], [("end", "eval", "real_model_loopback.py:worker#4")]),
+    # Phase 63 continuous positive control: from the first decode receive until the final barrier (spans the KV-digest windows too)
+    "decode": ([("begin", "comm", "recv_like")], [("begin", "comm", "barrier")]),
 }
 
 
@@ -60,12 +62,16 @@ class Activity:
         self.stop = threading.Event()
         self.outstanding = threading.Event()
         self.cpu_s = 0.0
+        self.native_id = None  # the helper's OS thread id (the libproc id the external sampler reports)
+        self.events = []  # (perf_counter_ns, "activity_begin" | "activity_end") as seen by the pipeline thread (Phase 63)
+        self.bursts = []  # (begin_ns, end_ns, helper thread CPU ns) per active period, measured by the helper itself
         self.thread = None
         if self.mode != "off":
             self.thread = threading.Thread(target=self._run, daemon=True, name="p59-activity")
             self.thread.start()
 
     def _run(self):
+        self.native_id = threading.get_native_id()
         t_start = time.thread_time()
         try:
             if self.mode == "spin":
@@ -78,8 +84,11 @@ class Activity:
                     else:
                         self.outstanding.wait(0.02)
             elif self.mode == "window":
+                burst = None
                 while not self.stop.is_set():
                     if self.outstanding.is_set():
+                        if burst is None:
+                            burst = (time.perf_counter_ns(), time.thread_time_ns())
                         if self.duty >= 1.0:
                             _burn()
                         else:
@@ -87,6 +96,9 @@ class Activity:
                             _burn(t0 + int(self.duty * 1e6))
                             time.sleep(max(0.0, (1e6 - (time.perf_counter_ns() - t0)) / 1e9))
                     else:
+                        if burst is not None:
+                            self.bursts.append((burst[0], time.perf_counter_ns(), time.thread_time_ns() - burst[1]))
+                            burst = None
                         self.outstanding.wait(0.02)
             elif self.mode.startswith("duty:"):
                 duty = float(self.mode.split(":")[1]) / 100.0
@@ -97,16 +109,23 @@ class Activity:
         finally:
             self.cpu_s = time.thread_time() - t_start
 
-    def on_event(self, phase: str, kind: str, label: str) -> None:
-        """Recorder hook (window modes): open or close the window at the configured events. Costs two comparisons per recorded event."""
+    def on_event(self, phase: str, kind: str, label: str):
+        """Recorder hook (window modes): open or close the window at the configured events. Costs two comparisons per recorded event. Returns "activity_begin" /
+        "activity_end" when the state changed (the recorder stores it as an event with the step id), else None."""
         if self.window is None:
-            return
+            return None
         opens, closes = self.window
         key = (phase, kind, label)
         if key in closes or (phase, kind, label.split(":prefill")[0]) in closes:
-            self.outstanding.clear()
-        elif key in opens:
+            if self.outstanding.is_set():
+                self.outstanding.clear()
+                self.events.append((time.perf_counter_ns(), "activity_end"))
+                return "activity_end"
+        elif key in opens and not self.outstanding.is_set():
             self.outstanding.set()
+            self.events.append((time.perf_counter_ns(), "activity_begin"))
+            return "activity_begin"
+        return None
 
     def comm_begin(self):
         self.outstanding.set()
