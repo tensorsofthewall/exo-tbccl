@@ -352,3 +352,20 @@ def test_wait_spin_config_parsing(monkeypatch):
     assert FastPathConfig.from_env().wait_spin_ms == 0.0
     monkeypatch.setenv("EXO_TBCCL_WAIT_SPIN_MS", "2.5")
     assert FastPathConfig.from_env().wait_spin_ms == 2.5
+
+
+def test_metal_only_experiments_are_ignored_off_metal():
+    """Linux safety (the CPU-stream allocation was +29% on CUDA): every Metal-only experiment must be inert unless Metal is available."""
+    import mlx.core as mx
+
+    from exo_tbccl import bridge
+    from exo_tbccl.config import FastPathConfig
+    from exo_tbccl.group import TbcclPipelineComm
+
+    comm = TbcclPipelineComm(object(), 0, 1, FastPathConfig(alloc_cpu=True, wait_spin_ms=5.0))
+    metal = bool(mx.metal.is_available())
+    assert comm._spin_s == (0.005 if metal else 0.0)
+    probe = comm._alloc((1, 8), mx.float32)
+    assert probe.shape == (1, 8)
+    if not metal:
+        assert not (bridge.VIEW_CPU and mx.metal.is_available())
