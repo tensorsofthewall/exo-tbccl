@@ -1,0 +1,109 @@
+"""Per-token-window CPU activity from a recorder dump plus a mac_resource_sampler dump (same machine, same perf_counter_ns clock).
+
+    python benchmarks/resource_report.py --rec <run.rank1.json> --res <run.res.json> [--label X] [--json out.json]
+
+Per decode step (the first two skipped, KV-digest steps excluded) four windows on the Mac rank:
+  A  previous AllGather return -> this recv complete   (sampler + graph build + wait for the peer)
+  B  recv complete -> model_output_eval begin           (first use)
+  C  model_output_eval                                   (the Mac stage)
+  D  model_output_eval end -> AllGather return          (pre-gather + AllGather)
+For each window: process CPU cores (CPU seconds / wall seconds, interpolated between samples), the busiest ("main") thread's cores, the sum of all other threads'
+cores, involuntary context switches per ms, and the number of sampler rows inside. Medians over steps. Sampling limits are in the dump header (gap_ms_*); windows
+shorter than ~2x the sampling gap are noisy and are flagged by their row counts.
+"""
+import argparse
+import bisect
+import json
+import statistics
+import sys
+
+sys.path.insert(0, __file__.rsplit("/", 1)[0])
+import distributed_timeline as dt  # noqa: E402
+
+WINDOWS = ["A prev-AG->recv", "B first-use", "C stage", "D post-stage->AG"]
+
+
+def interp(ts, vals, t):
+    i = bisect.bisect_left(ts, t)
+    if i <= 0:
+        return vals[0]
+    if i >= len(ts):
+        return vals[-1]
+    f = (t - ts[i - 1]) / (ts[i] - ts[i - 1])
+    return vals[i - 1] + f * (vals[i] - vals[i - 1])
+
+
+def analyse(rec_path, res_path):
+    d, ev = dt.load(rec_path)
+    r = json.load(open(res_path))
+    rows = r["rows"]
+    ts = [x[0] for x in rows]
+    proc = [x[1] + x[2] for x in rows]
+    inv = [x[4] for x in rows]
+    vol = [x[3] for x in rows]
+    tids = sorted({t for x in rows for t in x[6]})
+    thr = {t: [(x[6].get(t, [0, 0])[0] + x[6].get(t, [0, 0])[1]) for x in rows] for t in tids}
+    tot = {t: thr[t][-1] - thr[t][0] for t in tids}
+    main = max(tot, key=tot.get)
+    steps = {}
+    for e in ev:
+        if e["step"] < 0 or e["label"].startswith("prefill:") or e["depth"] != 0:
+            continue
+        if dt.DIGEST in e["label"]:
+            continue
+        steps.setdefault(e["step"], {})[(e["kind"], e["label"])] = e
+    order = sorted(steps)
+    per = {w: [] for w in WINDOWS}
+    prev_ag = None
+    for s in order:
+        g = steps[s]
+        rc, mo, ag = g.get(("comm", "recv_like")), g.get(("eval", "model_output_eval")), g.get(("comm", "all_gather"))
+        if not (rc and mo and ag):
+            prev_ag = ag["t1"] if ag else prev_ag
+            continue
+        win = {WINDOWS[1]: (rc["t1"], mo["t0"]), WINDOWS[2]: (mo["t0"], mo["t1"]), WINDOWS[3]: (mo["t1"], ag["t1"])}
+        if prev_ag is not None:
+            win[WINDOWS[0]] = (prev_ag, rc["t1"])
+        prev_ag = ag["t1"]
+        if s < 2:
+            continue
+        for w, (a, b) in win.items():
+            if b <= a:
+                continue
+            wall = (b - a) / 1e9
+            pc = (interp(ts, proc, b) - interp(ts, proc, a)) / wall
+            mc = (interp(ts, thr[main], b) - interp(ts, thr[main], a)) / wall
+            iv = (interp(ts, inv, b) - interp(ts, inv, a)) / ((b - a) / 1e6)
+            vv = (interp(ts, vol, b) - interp(ts, vol, a)) / ((b - a) / 1e6)
+            n = bisect.bisect_right(ts, b) - bisect.bisect_left(ts, a)
+            per[w].append((wall * 1e6, pc, mc, pc - mc, iv, vv, n))
+    out = {"backend": d["backend"], "main_tid": main, "threads_cpu_s": {t: round(v, 4) for t, v in tot.items() if v > 0.002},
+           "sampler": {k: r[k] for k in ("interval_ms", "n", "gap_ms_median", "gap_ms_p95", "gap_ms_max")}, "windows": {}}
+    for w, v in per.items():
+        if v:
+            med = [statistics.median(x[i] for x in v) for i in range(7)]
+            out["windows"][w] = dict(steps=len(v), wall_us=med[0], proc_cores=med[1], main_cores=med[2], other_cores=med[3], invcs_per_ms=med[4], volcs_per_ms=med[5], rows=med[6])
+    tw = r["rows"][-1][0] - r["rows"][0][0]
+    out["run"] = {"wall_s": tw / 1e9, "cpu_s": (proc[-1] - proc[0]), "invcs": inv[-1] - inv[0], "volcs": vol[-1] - vol[0]}
+    return out
+
+
+def show(o, label):
+    print(f"{label}: backend {o['backend']} main tid {o['main_tid']} sampler gap median {o['sampler']['gap_ms_median']:.2f} ms p95 {o['sampler']['gap_ms_p95']:.2f} max {o['sampler']['gap_ms_max']:.1f}")
+    print(f"  threads with CPU (s over the whole sampled run): {o['threads_cpu_s']}")
+    print(f"  {'window':20}{'steps':>6}{'wall us':>9}{'proc':>7}{'main':>7}{'other':>7}{'inv/ms':>8}{'vol/ms':>8}{'rows':>6}")
+    for w, v in o["windows"].items():
+        print(f"  {w:20}{v['steps']:>6}{v['wall_us']:>9.0f}{v['proc_cores']:>7.2f}{v['main_cores']:>7.2f}{v['other_cores']:>7.2f}{v['invcs_per_ms']:>8.2f}{v['volcs_per_ms']:>8.2f}{v['rows']:>6.0f}")
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--rec", required=True)
+    ap.add_argument("--res", required=True)
+    ap.add_argument("--label", default="")
+    ap.add_argument("--json")
+    a = ap.parse_args()
+    o = analyse(a.rec, a.res)
+    show(o, a.label or a.rec)
+    if a.json:
+        json.dump(o, open(a.json, "w"), indent=1)
