@@ -50,6 +50,8 @@ class StepActivity:
         if self._stop.is_set() or self._go.is_set():
             return
         with self._lock:
+            if self._stop.is_set():  # shutdown won the race: never start a thread nobody will join
+                return
             if self._thread is None:
                 self._thread = threading.Thread(target=self._run, name="exo-tbccl-activity", daemon=True)
                 self._thread.start()
@@ -60,15 +62,21 @@ class StepActivity:
             self._go.set()
 
     def close_window(self) -> None:
-        if self._go.is_set():
-            self._go.clear()
-            self.active_s += min(time.perf_counter(), self._deadline) - self._opened_at
+        if not self._go.is_set():
+            return
+        with self._lock:
+            if self._stop.is_set():  # after shutdown the event must stay set: it is what wakes the helper so it can exit
+                return
+            if self._go.is_set():
+                self._go.clear()
+                self.active_s += min(time.perf_counter(), self._deadline) - self._opened_at
 
     def shutdown(self) -> None:
         self.close_window()
-        self._stop.set()
-        self._go.set()
-        t = self._thread
+        with self._lock:
+            self._stop.set()
+            self._go.set()
+            t = self._thread
         if t is not None and t is not threading.current_thread():
             t.join(timeout=2.0)
 
