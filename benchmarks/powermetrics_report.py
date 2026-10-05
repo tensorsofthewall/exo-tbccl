@@ -9,6 +9,7 @@ dump is written right after the target exits, i.e. at the sampler's last row). A
 these are run-level frequency/power states, not per-step values. Samples are weighted by their overlap with the window.
 """
 import argparse
+import gzip
 import calendar
 import json
 import re
@@ -19,11 +20,15 @@ import time
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import distributed_timeline as dt  # noqa: E402
 
+def _open(path):
+    return gzip.open(path, "rt", errors="replace") if path.endswith(".gz") else open(path, errors="replace")
+
+
 HDR = re.compile(r"\*\*\* Sampled system activity \((\w+ \w+ +\d+ \d+:\d+:\d+ \d+) ([+-]\d{4})\) \(([\d.]+)ms elapsed\)")
 
 
 def parse(path):
-    txt = open(path, errors="replace").read()
+    txt = _open(path).read()
     parts = HDR.split(txt)
     out = []
     for i in range(1, len(parts), 4):
@@ -62,7 +67,7 @@ def parse(path):
 
 def decode_window(rec_path, res_path, mtime_ns):
     d, ev = dt.load(rec_path)
-    r = json.load(open(res_path))
+    r = json.load(_open(res_path))
     t_last = r["rows"][-1][0]
     by = {}
     for e in ev:

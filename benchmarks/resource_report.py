@@ -12,6 +12,7 @@ cores, involuntary context switches per ms, and the number of sampler rows insid
 shorter than ~2x the sampling gap are noisy and are flagged by their row counts.
 """
 import argparse
+import gzip
 import bisect
 import json
 import statistics
@@ -35,7 +36,7 @@ def interp(ts, vals, t):
 
 def analyse(rec_path, res_path):
     d, ev = dt.load(rec_path)
-    r = json.load(open(res_path))
+    r = json.load(gzip.open(res_path, "rt") if res_path.endswith(".gz") else open(res_path))
     rows = r["rows"]
     ts = [x[0] for x in rows]
     proc = [x[1] + x[2] for x in rows]
