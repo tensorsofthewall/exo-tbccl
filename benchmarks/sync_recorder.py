@@ -246,7 +246,7 @@ class SyncRecorder:
             except Exception:  # noqa: BLE001
                 pass
             json.dump({"rank": self.rank, "backend": self.backend, "host": socket.gethostname(), "pid": __import__("os").getpid(), "clock": self.clock,
-                       "resources_decode": res, "qos": qos, "activity_cpu_s": getattr(self.activity, "cpu_s", None),
+                       "resources_decode": res, "qos": qos, "activity_cpu_s": getattr(self.activity, "cpu_s", None), "runtime_activity": getattr(self, "runtime_activity", None),
                        "activity": ({"mode": self.activity.mode, "duty": self.activity.duty, "native_id": self.activity.native_id, "bursts": self.activity.bursts} if self.activity is not None else None), "events": self.events}, f)
         with open(path[:-5] + ".jsonl" if path.endswith(".json") else path + ".jsonl", "w") as f:  # the same events, one JSON object per line
             f.write(json.dumps({"meta": {"rank": self.rank, "backend": self.backend, "host": socket.gethostname(), "pid": __import__("os").getpid(), "clock": self.clock}}) + "\n")

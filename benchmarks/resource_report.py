@@ -107,6 +107,12 @@ def analyse(rec_path, res_path):
         out["activity"] = {"mode": act["mode"], "duty": act["duty"], "steps": len(ivs), "active_ms_per_step": act_ns / n / 1e6, "helper_cpu_ms_per_step": cpu_ns / n / 1e6,
                            "active_fraction_of_step_time": act_ns / max(1, step_ns), "helper_cpu_s_total_run": sum(b[2] for b in act["bursts"]) / 1e9,
                            "sampler_helper_thread_cpu_s": (max(hs) - next((h for h in hs if h > 0), 0)) if hs else None}
+    ra = d.get("runtime_activity")
+    if ra and ra.get("activity_windows"):
+        tmo = ra["fallback_timeouts"]
+        mx = 100000.0  # the default watchdog (us): KV-digest windows of the benchmark driver run into it and are removed from the per-step figures
+        w = max(1, ra["activity_windows"] - tmo)
+        out["runtime_activity"] = dict(ra, per_window_ms=(ra["activity_us"] - tmo * mx) / w / 1e3, helper_cpu_ms_per_window=ra["helper_cpu_us"] / max(1, ra["activity_windows"]) / 1e3)
     tw = r["rows"][-1][0] - r["rows"][0][0]
     out["run"] = {"wall_s": tw / 1e9, "cpu_s": (proc[-1] - proc[0]), "invcs": inv[-1] - inv[0], "volcs": vol[-1] - vol[0]}
     return out
@@ -119,6 +125,9 @@ def show(o, label):
     if o.get("activity"):
         a = o["activity"]
         print(f"  activity {a['mode']} duty {a['duty']}: {a['steps']} steps, active {a['active_ms_per_step']:.2f} ms/step ({100 * a['active_fraction_of_step_time']:.0f} % of step time), helper CPU {a['helper_cpu_ms_per_step']:.2f} ms/step, run total {a['helper_cpu_s_total_run']:.2f} s (sampler view of the helper thread {a['sampler_helper_thread_cpu_s']:.2f} s)")
+    if o.get("runtime_activity"):
+        a = o["runtime_activity"]
+        print(f"  runtime activity: {a['activity_windows']} windows ({a['fallback_timeouts']} watchdog), duty {a['duty']}, ~{a['per_window_ms']:.2f} ms/window (watchdog windows removed), helper CPU total {a['helper_cpu_us'] / 1e6:.2f} s")
     for w, v in o["windows"].items():
         print(f"  {w:20}{v['steps']:>6}{v['wall_us']:>9.0f}{v['proc_cores']:>7.2f}{v['main_cores']:>7.2f}{v['other_cores']:>7.2f}{v['invcs_per_ms']:>8.2f}{v['volcs_per_ms']:>8.2f}{v['rows']:>6.0f}{v['main_running']:>8.2f}{v['other_running']:>7.2f}{v['main_sys_cores']:>8.2f}")
 
