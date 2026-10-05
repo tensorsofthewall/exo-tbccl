@@ -118,6 +118,8 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         except StopIteration as stop:
             model = stop.value
         cache = make_prompt_cache(model)
+        if sync_rec and os.environ.get("EXO_P59_LAYERS"):  # Phase 59: per-layer host (graph-build) timing
+            sync_rec.instrument_model(model)
 
         def prefix_digest(n):
             h = hashlib.sha256()

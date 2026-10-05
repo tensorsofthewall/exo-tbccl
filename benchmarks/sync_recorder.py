@@ -106,6 +106,25 @@ class SyncRecorder:
                 self._tl.op, self._tl.opid = outer_op, -1
             self.events.append((t0, t1, kind, label if self.phase == "decode" else "prefill:" + label, d, step, op, threading.get_ident()))
 
+    def instrument_model(self, model) -> None:
+        """Phase 59 first-use/graph-build breakdown: time every layer __call__ (host graph construction; lazy MLX returns before any GPU work) so evals nested in a
+        layer call, if any, are visible as depth>0 eval events inside it. Patches the layer CLASSES of the pipelined model; undone by uninstall()."""
+        rec = self
+        seen = set()
+        for layer in model.layers:
+            cls = type(layer)
+            if cls in seen or not hasattr(cls, "__call__"):
+                continue
+            seen.add(cls)
+            orig = cls.__call__
+
+            def make(orig, name):
+                def call(self_, *a, **kw):
+                    return rec.timed("layer", name, orig, self_, *a, **kw)
+                return call
+
+            self._patch(cls, "__call__", make(orig, f"layer:{cls.__name__}"))
+
     def add(self, kind: str, label: str, t0: int, t1: int, depth: int = 0) -> None:
         """Record a synthetic event (the emulator's modelled compute/sampler intervals) with the step the real pipeline would give it."""
         self.events.append((t0, t1, kind, label if self.phase == "decode" else "prefill:" + label, depth, self._step(kind, label), -1, threading.get_ident()))
