@@ -85,6 +85,10 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         from sync_recorder import SyncRecorder
 
         sync_rec = SyncRecorder(rank, backend)
+        if os.environ.get("EXO_TBCCL_BENCH_ACTIVITY"):  # test-only CPU-activity control (benchmarks/activity_thread.py)
+            from activity_thread import Activity
+
+            sync_rec.activity = Activity(os.environ["EXO_TBCCL_BENCH_ACTIVITY"])
         comm = sync_rec.install(comm)
     clock_sync = None
     if clock:  # cross-host clock alignment on its own socket (benchmarks/clock_sync.py), before the traced region
@@ -178,6 +182,8 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         if cadence:
             comm.dump(f"{cadence}.rank{rank}.json")
         if sync_rec:
+            if sync_rec.activity is not None:
+                sync_rec.activity.close()
             sync_rec.dump(f"{sync_prefix}.rank{rank}.json")
             sync_rec.uninstall()
         if backend in ("ring", "null"):

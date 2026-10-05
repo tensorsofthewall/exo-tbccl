@@ -68,6 +68,7 @@ class SyncRecorder:
         self._orig: list[tuple[object, str, object]] = []
         self._completed = 0  # decode step_complete calls finished so far
         self._res0 = None
+        self.activity = None  # benchmarks/activity_thread.Activity (the emulator's control), set by the driver
         self._op = 0
 
     def _depth(self) -> int:
@@ -138,7 +139,15 @@ class SyncRecorder:
 
         @functools.wraps(orig_eval)
         def eval_(*args):
-            return rec.timed("eval", _label_for(sys._getframe(1)), orig_eval, *args)
+            lab = _label_for(sys._getframe(1))
+            act = getattr(rec, "activity", None)
+            if act is not None and lab in ("send_dependency_eval", "post_recv_eval", "post_allgather_eval"):
+                act.comm_begin()  # MlxRing executes its lazy transfers inside these evals: the transfer is outstanding here
+                try:
+                    return rec.timed("eval", lab, orig_eval, *args)
+                finally:
+                    act.comm_end()
+            return rec.timed("eval", lab, orig_eval, *args)
 
         @functools.wraps(orig_async)
         def async_eval_(*args):
@@ -192,8 +201,19 @@ class SyncRecorder:
                 if "threads" in r1:
                     res["threads"] = {tid: [round(v[0] - self._res0.get("threads", {}).get(tid, [0, 0])[0], 3), round(v[1] - self._res0.get("threads", {}).get(tid, [0, 0])[1], 3)]
                                       for tid, v in r1["threads"].items()}
+            qos = None
+            try:
+                import ctypes
+
+                lib = ctypes.CDLL("/usr/lib/libSystem.B.dylib")
+                cls, rel = ctypes.c_int(0), ctypes.c_int(0)
+                lib.pthread_self.restype = ctypes.c_void_p
+                lib.pthread_get_qos_class_np(ctypes.c_void_p(lib.pthread_self()), ctypes.byref(cls), ctypes.byref(rel))
+                qos = {"main_thread_qos_class": cls.value}  # 0x21 interactive, 0x19 user-initiated, 0x15 default, 0x11 utility, 0x09 background
+            except Exception:  # noqa: BLE001
+                pass
             json.dump({"rank": self.rank, "backend": self.backend, "host": socket.gethostname(), "pid": __import__("os").getpid(), "clock": self.clock,
-                       "resources_decode": res, "events": self.events}, f)
+                       "resources_decode": res, "qos": qos, "activity_cpu_s": getattr(self.activity, "cpu_s", None), "events": self.events}, f)
         with open(path[:-5] + ".jsonl" if path.endswith(".json") else path + ".jsonl", "w") as f:  # the same events, one JSON object per line
             f.write(json.dumps({"meta": {"rank": self.rank, "backend": self.backend, "host": socket.gethostname(), "pid": __import__("os").getpid(), "clock": self.clock}}) + "\n")
             for t0, t1, kind, label, depth, step, op, tid in self.events:
@@ -214,6 +234,15 @@ class _CommProxy:
     def __getattr__(self, name):
         attr = getattr(self._comm, name)
         if name in _COMM_OPS and callable(attr):
+            act = getattr(self._rec, "activity", None)
+            if act is not None and name in ("send", "recv_like", "all_gather", "barrier", "any_true", "flush_sends"):
+                def with_activity(*a, **kw):
+                    act.comm_begin()
+                    try:
+                        return self._rec.timed("comm", name, attr, *a, **kw)
+                    finally:
+                        act.comm_end()
+                return with_activity
             return lambda *a, **kw: self._rec.timed("comm", name, attr, *a, **kw)
         return attr
 

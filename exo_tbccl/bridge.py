@@ -54,6 +54,9 @@ class CopyStats:
 
 
 TRACE = os.environ.get("EXO_TBCCL_TRACE", "") not in ("", "0")
+# experiment (default off, Metal only): run the same-width unsigned view on the CPU stream. The view is metadata-only (it shares the buffer), but on the
+# default GPU stream evaluating it is a scheduled Metal task; on a cold GPU that is a ~0.2 ms wake. Ignored when Metal is not available (CUDA keeps GPU-stream views).
+VIEW_CPU = os.environ.get("EXO_TBCCL_VIEW_STREAM", "gpu").lower() == "cpu"
 
 
 class Borrow:
@@ -116,7 +119,7 @@ def borrow(array: object, stats: CopyStats | None = None, *, writable: bool = Fa
         # A same-width unsigned view is metadata-only and keeps the strides, so the native consumer can tell whether `arr` is row-contiguous
         # and hands back the array's real storage pointer (bfloat16 cannot go through __dlpack__ directly; its uint16 alias can).
         owner: object = arr
-        probe = arr.view(uint)
+        probe = arr.view(uint, stream=mx.cpu) if VIEW_CPU and mx.metal.is_available() else arr.view(uint)
         mx.eval(probe)
         try:
             exp = native.Export(probe)
