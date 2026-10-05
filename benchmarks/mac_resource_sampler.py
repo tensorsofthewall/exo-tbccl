@@ -5,7 +5,7 @@
 Runs as a SEPARATE process (no GIL contention with the pipeline, no change to the target's behaviour). It finds the target process by an argv substring (never
 itself), then samples until the target exits: time.perf_counter_ns() (the recorder's clock, same machine), process user/system CPU, voluntary/involuntary
 context switches, RSS, thread count and per-thread user/system CPU (stable thread ids; macOS exposes no thread names or per-thread context switches through
-psutil). Nothing is written to the target and no privileged tool is used. The dump is a list of rows [t_ns, utime, stime, nvcsw, nivcsw, rss, {tid: [u, s]}]
+psutil). Nothing is written to the target and no privileged tool is used. The dump is a list of rows [t_ns, utime, stime, nvcsw, nivcsw, rss, {tid: [user_s, sys_s, run_state, priority]}]
 plus the achieved sampling statistics.
 """
 import argparse
@@ -14,7 +14,34 @@ import os
 import sys
 import time
 
+import ctypes
+
 import psutil
+
+_lib = ctypes.CDLL("/usr/lib/libproc.dylib", use_errno=True)
+
+
+class _TI(ctypes.Structure):  # struct proc_threadinfo (112 bytes)
+    _fields_ = [("user", ctypes.c_uint64), ("sys", ctypes.c_uint64), ("cpu", ctypes.c_int32), ("pol", ctypes.c_int32), ("state", ctypes.c_int32), ("flags", ctypes.c_int32),
+                ("sleep", ctypes.c_int32), ("curpri", ctypes.c_int32), ("prio", ctypes.c_int32), ("maxprio", ctypes.c_int32), ("name", ctypes.c_char * 64)]
+
+
+_ids = (ctypes.c_uint64 * 512)()
+
+
+def threads(pid, names):
+    """per-thread [user_s, sys_s, run_state, current_priority] through libproc PROC_PIDLISTTHREADIDS (28) + PROC_PIDTHREADID64INFO (15): works for a same-user process
+    (psutil's threads() needs task_for_pid and is denied). run_state: 1 running, 2 stopped, 3 waiting, 4 uninterruptible, 5 halted."""
+    n = _lib.proc_pidinfo(pid, 28, 0, _ids, ctypes.sizeof(_ids)) // 8
+    out = {}
+    for i in range(n):
+        ti = _TI()
+        if _lib.proc_pidinfo(pid, 15, _ids[i], ctypes.byref(ti), ctypes.sizeof(ti)) == ctypes.sizeof(ti):
+            k = str(_ids[i])
+            out[k] = [ti.user / 1e9, ti.sys / 1e9, ti.state, ti.curpri]
+            if k not in names:
+                names[k] = ti.name.decode(errors="replace")
+    return out
 
 
 def find(match, also, deadline_s):
@@ -40,13 +67,13 @@ def main():
     p = find(a.match, a.also, a.find_timeout_s)
     if p is None:
         sys.exit("target not found")
-    rows, gap = [], []
+    rows, gap, names = [], [], {}
     iv = a.interval_ms / 1000.0
     prev = time.perf_counter_ns()
     try:
         while True:
             t = time.perf_counter_ns()
-            th = {str(x.id): [x.user_time, x.system_time] for x in p.threads()}
+            th = threads(p.pid, names)
             ct = p.cpu_times()
             cs = p.num_ctx_switches()
             rows.append([t, ct.user, ct.system, cs.voluntary, cs.involuntary, p.memory_info().rss, th])
@@ -56,7 +83,7 @@ def main():
     except (psutil.NoSuchProcess, psutil.ZombieProcess):
         pass
     gs = sorted(gap[1:]) or [0.0]
-    json.dump({"pid": p.pid, "interval_ms": a.interval_ms, "n": len(rows), "gap_ms_median": gs[len(gs) // 2], "gap_ms_p95": gs[int(0.95 * len(gs))], "gap_ms_max": gs[-1],
+    json.dump({"pid": p.pid, "interval_ms": a.interval_ms, "n": len(rows), "gap_ms_median": gs[len(gs) // 2], "gap_ms_p95": gs[int(0.95 * len(gs))], "gap_ms_max": gs[-1], "thread_names": names,
                "rows": rows}, open(a.out, "w"))
 
 

@@ -75,14 +75,17 @@ def analyse(rec_path, res_path):
             mc = (interp(ts, thr[main], b) - interp(ts, thr[main], a)) / wall
             iv = (interp(ts, inv, b) - interp(ts, inv, a)) / ((b - a) / 1e6)
             vv = (interp(ts, vol, b) - interp(ts, vol, a)) / ((b - a) / 1e6)
-            n = bisect.bisect_right(ts, b) - bisect.bisect_left(ts, a)
-            per[w].append((wall * 1e6, pc, mc, pc - mc, iv, vv, n))
-    out = {"backend": d["backend"], "main_tid": main, "threads_cpu_s": {t: round(v, 4) for t, v in tot.items() if v > 0.002},
+            i0, i1 = bisect.bisect_left(ts, a), bisect.bisect_right(ts, b)
+            n = i1 - i0
+            mr = statistics.mean((rows[i][6].get(main, [0, 0, 0])[2] == 1) for i in range(i0, i1)) if n else float("nan")
+            orun = statistics.mean(sum(1 for t, v in rows[i][6].items() if t != main and v[2] == 1) for i in range(i0, i1)) if n else float("nan")
+            per[w].append((wall * 1e6, pc, mc, pc - mc, iv, vv, n, mr, orun))
+    out = {"backend": d["backend"], "main_tid": main, "threads_cpu_s": {f"{t}:{r.get('thread_names', {}).get(t, '')}": round(v, 4) for t, v in tot.items() if v > 0.002},
            "sampler": {k: r[k] for k in ("interval_ms", "n", "gap_ms_median", "gap_ms_p95", "gap_ms_max")}, "windows": {}}
     for w, v in per.items():
         if v:
-            med = [statistics.median(x[i] for x in v) for i in range(7)]
-            out["windows"][w] = dict(steps=len(v), wall_us=med[0], proc_cores=med[1], main_cores=med[2], other_cores=med[3], invcs_per_ms=med[4], volcs_per_ms=med[5], rows=med[6])
+            med = [statistics.median(x[i] for x in v) for i in range(9)]
+            out["windows"][w] = dict(steps=len(v), wall_us=med[0], proc_cores=med[1], main_cores=med[2], other_cores=med[3], invcs_per_ms=med[4], volcs_per_ms=med[5], rows=med[6], main_running=med[7], other_running=med[8])
     tw = r["rows"][-1][0] - r["rows"][0][0]
     out["run"] = {"wall_s": tw / 1e9, "cpu_s": (proc[-1] - proc[0]), "invcs": inv[-1] - inv[0], "volcs": vol[-1] - vol[0]}
     return out
@@ -91,9 +94,9 @@ def analyse(rec_path, res_path):
 def show(o, label):
     print(f"{label}: backend {o['backend']} main tid {o['main_tid']} sampler gap median {o['sampler']['gap_ms_median']:.2f} ms p95 {o['sampler']['gap_ms_p95']:.2f} max {o['sampler']['gap_ms_max']:.1f}")
     print(f"  threads with CPU (s over the whole sampled run): {o['threads_cpu_s']}")
-    print(f"  {'window':20}{'steps':>6}{'wall us':>9}{'proc':>7}{'main':>7}{'other':>7}{'inv/ms':>8}{'vol/ms':>8}{'rows':>6}")
+    print(f"  {'window':20}{'steps':>6}{'wall us':>9}{'proc':>7}{'main':>7}{'other':>7}{'inv/ms':>8}{'vol/ms':>8}{'rows':>6}{'mainRun':>8}{'othRun':>7}")
     for w, v in o["windows"].items():
-        print(f"  {w:20}{v['steps']:>6}{v['wall_us']:>9.0f}{v['proc_cores']:>7.2f}{v['main_cores']:>7.2f}{v['other_cores']:>7.2f}{v['invcs_per_ms']:>8.2f}{v['volcs_per_ms']:>8.2f}{v['rows']:>6.0f}")
+        print(f"  {w:20}{v['steps']:>6}{v['wall_us']:>9.0f}{v['proc_cores']:>7.2f}{v['main_cores']:>7.2f}{v['other_cores']:>7.2f}{v['invcs_per_ms']:>8.2f}{v['volcs_per_ms']:>8.2f}{v['rows']:>6.0f}{v['main_running']:>8.2f}{v['other_running']:>7.2f}")
 
 
 if __name__ == "__main__":
