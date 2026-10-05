@@ -42,9 +42,9 @@ def interp(ts, vals, t):
 def run_metrics(r, base, powers):
     d = f"{base}/{r['dir']}/phys_{r['name']}"
     out = {"name": r["name"], "orient": r["orient"], "mode": r["mode"], "rep": r["rep"]}
-    txt = open(f"{base}/{r['dir']}/{r['name']}.linux.out").read()
-    out["tpot_ms"] = float(re.search(r'"tpot_ms": ([\d.]+)', txt)[1])
-    out["match_ref"] = '"match_ref": true' in txt
+    txts = [open(f"{base}/{r['dir']}/{r['name']}.{h}.out").read() for h in ("linux", "mac")]  # the reference check runs on the rank that holds it (Linux in A, the Mac in B)
+    out["tpot_ms"] = float(re.search(r'"tpot_ms": ([\d.]+)', txts[0])[1])
+    out["match_ref"] = any('"match_ref": true' in t for t in txts) and not any('"match_ref": false' in t for t in txts)
     steps, al = cr.steps(d + ".rank0.json", d + ".rank1.json")
     out["clock_unc_us"] = al["unc"] / 1000
     med = lambda k: st.median(c[k] for c in steps.values())

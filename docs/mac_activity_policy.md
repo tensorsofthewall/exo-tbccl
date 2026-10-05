@@ -12,18 +12,20 @@ On the real Mac<->Linux link a blocking TBCCL wait leaves the Mac's pipeline thr
 - **Closes** at the next `all_gather` submission, at `barrier` / `any_true` / `abort` / `close`, and by the **watchdog**: any single window ends by itself after `MAX_MS` (a lost end event, an exception, peer death or an idle gap between requests cannot leave a core burning). Decode steps here are 7-12 ms; windows are ~4-6 ms.
 - State machine: IDLE (helper blocked on an event, zero CPU) -> window open (helper burns in libc `memset` calls with the GIL released, optionally duty-cycled) -> IDLE. The helper starts lazily at the first window and is joined by `close()`; it never touches tensors, Work, borrows or communicator state.
 
-## B waits and `WAIT_SPIN_MS`
+## B waits and `WAIT_SPIN_MS` (corrected by the Phase 65 physical Orientation-B validation)
 
-In a pipeline whose stage has no receive (orientation B: the Mac sends then waits at the AllGather for the slow remote stage) the window opens at the previous AllGather completion and closes at the next submit, so the Mac's own compute is covered but the AllGather wait is not. Local B emulator (10 pairs, `docs/data/phase64/local_B/`): TBCCL +3.96 ms vs Ring; spin8 +0.13; activity +0.12; both +0.25 (worse than either alone); activity at duty 0.5 +0.72. The activity policy alone matches `WAIT_SPIN_MS=8` in B and the combination adds nothing, so `WAIT_SPIN_MS` is **redundant** with the policy on every measured case; it is kept unchanged for comparison and marked for Phase 65 cleanup.
+In a pipeline whose stage has no receive (orientation B: the Mac sends then waits at the AllGather for the slow remote stage) the window opens at the previous AllGather completion and closes at the next submit. The local B emulator predicted a full fix (policy +0.12..+0.20 ms vs Ring, spin8 +0.10..+0.13, both +0.18..+0.25), but **the real link did not agree**: 3 interleaved repetitions closed only 37-41 % of the baseline-to-Ring gap (policy 11.58 ms vs baseline 12.99 vs Ring 9.33; `docs/phase65_final_validation.md`), while Phase 60 measured `WAIT_SPIN_MS=8` closing 56-59 % in one run. The two mechanisms are therefore **not interchangeable**: the activity policy is validated for the receiving-stage case (orientation A), `WAIT_SPIN_MS` remains the only mechanism with physical evidence of helping B. `WAIT_SPIN_MS` is kept supported and not deprecated; there is no automatic selection by rank or orientation (the plan forbids it); using both together was not measured on the link.
 
-## Cost (physical, Orientation A)
+## Cost (physical, repeated in Phase 65)
 
-Helper ~4.3 ms of CPU per ~6.8 ms step (about 0.6 core); process 0.72-0.77 cores (baseline 0.58); CPU power 1.0-1.2 W (baseline ~0.1 W, benchmark `stepwork` helper 2.7 W, MlxRing 5.4-6.2 W). Ring's own process CPU reads 0.4 cores in the external sampler, which under-reports a spinning thread.
+Orientation A, 3 repetitions: helper ~3.9 ms of CPU per ~6.8 ms step (~0.57 core); process 0.77 cores (baseline 0.58, Ring ~0.4 by the external sampler); CPU power ~0.4 W (run-level mean; Phase 64 measured 1.0-1.2 W; baseline ~0.15 W, MlxRing 5.4-5.6 W). Orientation B: ~1 core of helper CPU with only 39 % of the gap closed (not recommended there). See `docs/phase65_power_efficiency.md`.
 
 ## Metal only / safety
 
 Inert unless `mx.metal.is_available()` (no helper on Linux CUDA or CPU-only hosts; stats zero). Lifecycle tests: idle zero CPU, repeated create/start/stop/shutdown with no leaked thread, close during an open window, peer death with an open window, an exception inside a window ended by the watchdog, concurrent state transitions while shutting down, exact `all_gather` results with the flag on and off. The helper is pure Python + libc `memset` (no native runtime code), so TSan/ASan/UBSan do not apply to it; the concurrency stress test stands in for the focused TSan the plan asks for.
 
-## Status
+## Status (Phase 65)
 
-Opt-in, not default (single physical runs per configuration so far; Phase 65 needs repeats, both orientations on the real link, and the decision about `WAIT_SPIN_MS`). Supersedes `docs/mac_step_activity.md` (the Phase 63 whole-step window).
+**Supported experimental, opt-in, not default, not renamed.** Orientation A repeats cleanly (3/3 repetitions: 109-118 % of the gap closed, 0.60 ms below Ring, first-use and stage at or better than Ring, ~0.4 W CPU power, tokens identical); orientation B fails the plan's >= 70 % gate on the real link (37-41 %). Per the plan, a policy that fails B is not default-enabled, is not promoted to a supported config name (`EXO_TBCCL_ACTIVITY_MODE`/`_DUTY`/`_MAX_MS` stay as they are; duty 1.0 is the only validated value), and does not displace `WAIT_SPIN_MS`. Recommended use: a Metal rank that *receives* its stage input (the Mac as a downstream pipeline stage), duty 1.0. Not recommended: a Mac stage that only sends and waits (B). Supported statement: same-process activity during the relevant pipeline window restores execution performance; the exact scheduler or frequency mechanism is not established.
+
+Supersedes `docs/mac_step_activity.md` (the Phase 63 whole-step window).
