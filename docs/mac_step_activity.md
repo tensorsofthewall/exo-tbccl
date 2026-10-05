@@ -1,3 +1,5 @@
+> **Superseded by `docs/mac_activity_policy.md` (Phase 64): the window is now "receive posted -> next AllGather submit" (the whole-step window below cost ~1.15 cores), and the config is `EXO_TBCCL_ACTIVITY_MODE`/`_DUTY`/`_MAX_MS`.**
+
 # `EXO_TBCCL_STEP_ACTIVITY` (experimental, opt-in, Metal only, default off)
 
 `EXO_TBCCL_STEP_ACTIVITY=1` (and `EXO_TBCCL_STEP_ACTIVITY_MAX_MS`, default 250) makes `TbcclPipelineComm` run one helper thread (`exo_tbccl/step_activity.py`) that burns CPU in `memset` calls (GIL released, private buffer, no tensor/Work/communicator access) **between two AllGathers**:
