@@ -88,6 +88,24 @@ def analyse(rec_path, res_path):
         if v:
             med = [statistics.median(x[i] for x in v) for i in range(10)]
             out["windows"][w] = dict(steps=len(v), wall_us=med[0], proc_cores=med[1], main_cores=med[2], other_cores=med[3], invcs_per_ms=med[4], volcs_per_ms=med[5], rows=med[6], main_running=med[7], other_running=med[8], main_sys_cores=med[9])
+    act = d.get("activity")
+    if act:  # The benchmark-only activity helper's own accounting, restricted to the decode steps (>=2, no digest steps, < 30 ms)
+        ivs = []
+        for st, v in steps.items():
+            es = [e for e in v.values() if e["kind"] != "activity"]
+            if st >= 2 and es and not any(dt.DIGEST in k[1] for k in v):
+                a0, a1 = min(e["t0"] for e in es), max(e["t1"] for e in es)
+                if a1 - a0 < 30e6:
+                    ivs.append((a0, a1))
+        ov = lambda b0, b1: sum(max(0, min(b1, y) - max(b0, x)) for x, y in ivs)
+        n = max(1, len(ivs))
+        step_ns = sum(y - x for x, y in ivs)
+        act_ns = sum(ov(b[0], b[1]) for b in act["bursts"])
+        cpu_ns = sum(b[2] * ov(b[0], b[1]) / max(1, b[1] - b[0]) for b in act["bursts"])
+        hs = [x[6].get(str(act["native_id"]), [0, 0])[0] + x[6].get(str(act["native_id"]), [0, 0])[1] for x in rows]
+        out["activity"] = {"mode": act["mode"], "duty": act["duty"], "steps": len(ivs), "active_ms_per_step": act_ns / n / 1e6, "helper_cpu_ms_per_step": cpu_ns / n / 1e6,
+                           "active_fraction_of_step_time": act_ns / max(1, step_ns), "helper_cpu_s_total_run": sum(b[2] for b in act["bursts"]) / 1e9,
+                           "sampler_helper_thread_cpu_s": hs[-1] - hs[0] if hs else None}
     tw = r["rows"][-1][0] - r["rows"][0][0]
     out["run"] = {"wall_s": tw / 1e9, "cpu_s": (proc[-1] - proc[0]), "invcs": inv[-1] - inv[0], "volcs": vol[-1] - vol[0]}
     return out
@@ -97,6 +115,9 @@ def show(o, label):
     print(f"{label}: backend {o['backend']} main tid {o['main_tid']} sampler gap median {o['sampler']['gap_ms_median']:.2f} ms p95 {o['sampler']['gap_ms_p95']:.2f} max {o['sampler']['gap_ms_max']:.1f}")
     print(f"  threads with CPU (s over the whole sampled run): {o['threads_cpu_s']}")
     print(f"  {'window':20}{'steps':>6}{'wall us':>9}{'proc':>7}{'main':>7}{'other':>7}{'inv/ms':>8}{'vol/ms':>8}{'rows':>6}{'mainRun':>8}{'othRun':>7}{'mainSys':>8}")
+    if o.get("activity"):
+        a = o["activity"]
+        print(f"  activity {a['mode']} duty {a['duty']}: {a['steps']} steps, active {a['active_ms_per_step']:.2f} ms/step ({100 * a['active_fraction_of_step_time']:.0f} % of step time), helper CPU {a['helper_cpu_ms_per_step']:.2f} ms/step, run total {a['helper_cpu_s_total_run']:.2f} s (sampler view of the helper thread {a['sampler_helper_thread_cpu_s']:.2f} s)")
     for w, v in o["windows"].items():
         print(f"  {w:20}{v['steps']:>6}{v['wall_us']:>9.0f}{v['proc_cores']:>7.2f}{v['main_cores']:>7.2f}{v['other_cores']:>7.2f}{v['invcs_per_ms']:>8.2f}{v['volcs_per_ms']:>8.2f}{v['rows']:>6.0f}{v['main_running']:>8.2f}{v['other_running']:>7.2f}{v['main_sys_cores']:>8.2f}")
 
