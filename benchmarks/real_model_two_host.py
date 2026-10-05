@@ -27,7 +27,7 @@ if __name__ == "__main__":
     ap.add_argument("--tokens", type=int, default=48)
     ap.add_argument("--chunk", type=int, default=512)
     ap.add_argument("--reps", type=int, default=0)
-    ap.add_argument("--backend", default="tbccl", choices=["tbccl", "ring"])
+    ap.add_argument("--backend", default="tbccl", choices=["tbccl", "ring", "null"])
     ap.add_argument("--ring-ips", default="192.168.3.2,192.168.3.1", help="rank-ordered TB ips for the ring hostfile")
     a = ap.parse_args()
     from real_model_loopback import worker
