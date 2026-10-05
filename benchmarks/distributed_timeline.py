@@ -130,6 +130,26 @@ def components(r0, r1, al, s):
     return comp
 
 
+def rank_profile(r0, r1, al, skip=3):
+    """Per-rank medians (us) used to compose an expected cross-host step from two single-machine runs (see compose_expected.py)."""
+    out = {k: [] for k in ("resume0", "sampler0", "pre_compute0", "compute0", "send_prep0", "resume1", "sampler1", "pre_recv1", "first_use1", "compute1", "pre_gather1", "transit", "ag_xfer", "period")}
+    for s_ in sorted(r0):
+        if s_ < skip or s_ not in r1 or s_ - 1 not in r0 or s_ - 1 not in r1:
+            continue
+        a, b, pa, pb = r0[s_], r1[s_], r0[s_ - 1], r1[s_ - 1]
+        c = components(r0, r1, al, s_)
+        if not c or not (pb["sampler"] and b["pre_recv"] and pb["ag_end"]):
+            continue
+        t = lambda x: to_rank0(al, x)
+        out["resume0"].append(c["resume"]); out["sampler0"].append(c["sampler"]); out["pre_compute0"].append(c["pre-compute"]); out["compute0"].append(c["compute0"])
+        out["send_prep0"].append(c["send-prep"]); out["first_use1"].append(c["first-use"]); out["compute1"].append(c["compute1"]); out["pre_gather1"].append(c["pre-gather"])
+        out["transit"].append(c["transit"] + c["peer-late"]); out["ag_xfer"].append(c["ag-xfer"]); out["period"].append(c["period"])
+        out["resume1"].append((pb["sampler"]["t0"] - pb["ag_end"]) / 1000.0 if "ag_end" in pb and pb["ag_end"] else 0.0)
+        out["sampler1"].append((pb["sampler"]["t1"] - pb["sampler"]["t0"]) / 1000.0)
+        out["pre_recv1"].append((b["pre_recv"]["t1"] - pb["sampler"]["t1"]) / 1000.0)  # sampler end -> receive posted (graph build + pre-recv eval)
+    return {k: statistics.median(v) for k, v in out.items() if v}
+
+
 def q(xs, p):
     s = sorted(xs)
     return s[min(len(s) - 1, int(p * len(s)))]
@@ -142,6 +162,7 @@ def main():
     ap.add_argument("--skip", type=int, default=3)
     ap.add_argument("--steps", default="")
     ap.add_argument("--csv", default="")
+    ap.add_argument("--profile", default="", help="write the per-rank medians (for compose_expected.py) to this JSON file")
     a = ap.parse_args()
     d0, e0 = load(a.rank0)
     d1, e1 = load(a.rank1)
@@ -166,6 +187,8 @@ def main():
     for k in keys + ["ag-entry-skew", "send-call"]:
         v = [r[k] for r in rows]
         print(f"  {k:14}{statistics.median(v):9.0f}{q(v, .25):9.0f}{q(v, .75):9.0f}{q(v, .95):9.0f}" + ("   <- not part of the sum" if k in ("ag-entry-skew", "send-call") else ""))
+    if a.profile:
+        json.dump(rank_profile(r0, r1, al, a.skip), open(a.profile, "w"), indent=1)
     if a.steps:
         for s in [int(x) for x in a.steps.split(",")]:
             r = next((r for r in rows if r["step"] == s), None)
