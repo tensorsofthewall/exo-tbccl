@@ -25,6 +25,7 @@ SITES: dict[tuple[str, str], list[str]] = {
     ("bridge.py", "borrow"): ["borrow_array_eval", "borrow_view_eval", "borrow_contiguous_eval", "borrow_contiguous_view_eval"],
     ("group.py", "recv_like"): ["recv_destination_eval"],
     ("group.py", "all_gather"): ["allgather_destination_eval"],
+    ("group.py", "TbcclPipelineComm._alloc"): ["destination_alloc_eval"],
     ("pipeline_comm.py", "MlxPipelineComm.flush_sends"): ["flush_async_eval"],
 }
 
