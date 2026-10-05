@@ -97,6 +97,9 @@ class SyncRecorder:
             self._tl.op = label
             self._op += 1
             op = self._tl.opid = self._op
+        act = self.activity
+        if act is not None and act.window is not None and self.phase == "decode":
+            act.on_event("begin", kind, label)
         t0 = time.perf_counter_ns()
         try:
             if kind == "comm" and label == "step_complete" and self.phase == "decode":
@@ -104,6 +107,8 @@ class SyncRecorder:
             return fn(*args, **kw)
         finally:
             t1 = time.perf_counter_ns()
+            if act is not None and act.window is not None and self.phase == "decode":
+                act.on_event("end", kind, label)
             self._tl.d = d
             step = self._step(kind, label)
             if kind == "comm" and d == 0 and label in ("send", "recv_like", "all_gather", "barrier", "any_true"):
