@@ -12,6 +12,7 @@ import os
 import threading
 import time
 from collections import deque
+from dataclasses import dataclass
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING
 
@@ -54,6 +55,18 @@ def _metal_available() -> bool:
         return False
 
 
+@dataclass
+class WaitStats:
+    """Lightweight counters of the caller-side wait policy (the wait-policy work): no per-wait logging, only totals. A wait 'spun' when it polled before blocking."""
+
+    waits_total: int = 0
+    waits_spun: int = 0
+    waits_completed_during_spin: int = 0
+    waits_fell_back: int = 0  # the spin budget expired and the wait blocked
+    total_spin_us: float = 0.0
+    max_spin_us: float = 0.0
+
+
 class Transfer:
     """One submitted TBCCL operation plus everything that must stay alive until it is terminal."""
 
@@ -81,6 +94,7 @@ class Transfer:
 class TbcclPipelineComm:
     def __init__(self, comm: object, rank: int, size: int, config: FastPathConfig | None = None):
         self.config = config or FastPathConfig.from_env()
+        self.wait_stats = WaitStats()
         self._spin_s = self.config.wait_spin_ms / 1000.0 if self.config.wait_spin_ms > 0 and _metal_available() else 0.0
         self._managed_verified: dict[int, bool] = {}
         poison = os.environ.get("EXO_TBCCL_RECV_POISON")
@@ -237,14 +251,25 @@ class TbcclPipelineComm:
         """Wait for one transfer (GIL released). Returns True when terminal; raises the structured error of a failed operation."""
         try:
             done, result = False, 0
+            ws = self.wait_stats
+            ws.waits_total += 1
             if timeout_ms is None and self._spin_s > 0:
                 # Experiment (Metal only): keep this thread active while the transfer is pending, like MlxRing's
                 # busy-polling worker, then block
-                deadline = time.perf_counter() + self._spin_s
+                t_start = time.perf_counter()
+                deadline = t_start + self._spin_s
                 while time.perf_counter() < deadline:
                     done, result = t.work.wait(0)  # pyright: ignore[reportAttributeAccessIssue]
                     if done:
                         break
+                spun_us = (time.perf_counter() - t_start) * 1e6
+                ws.waits_spun += 1
+                ws.total_spin_us += spun_us
+                ws.max_spin_us = max(ws.max_spin_us, spun_us)
+                if done:
+                    ws.waits_completed_during_spin += 1
+                else:
+                    ws.waits_fell_back += 1
             if not done:
                 done, result = t.work.wait(timeout_ms)  # pyright: ignore[reportAttributeAccessIssue]
         except TbcclError as e:
