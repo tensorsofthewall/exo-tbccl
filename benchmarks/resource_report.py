@@ -3,11 +3,11 @@
     python benchmarks/resource_report.py --rec <run.rank1.json> --res <run.res.json> [--label X] [--json out.json]
 
 Per decode step (the first two skipped, KV-digest steps excluded) four windows on the Mac rank:
-  A  previous AllGather return -> this recv complete   (sampler + graph build + wait for the peer)
+  A  previous post-AllGather eval end -> post_recv_eval end (recv complete; sampler + graph build + wait for the peer)
   B  recv complete -> model_output_eval begin           (first use)
   C  model_output_eval                                   (the Mac stage)
-  D  model_output_eval end -> AllGather return          (pre-gather + AllGather)
-For each window: process CPU cores (CPU seconds / wall seconds, interpolated between samples), the busiest ("main") thread's cores, the sum of all other threads'
+  D  model_output_eval end -> post_allgather_eval end    (pre-gather + AllGather + its eval)
+For each window: process CPU cores (CPU seconds / wall seconds, interpolated between samples), the Python main thread (lowest thread id)'s cores, the sum of all other threads'
 cores, involuntary context switches per ms, and the number of sampler rows inside. Medians over steps. Sampling limits are in the dump header (gap_ms_*); windows
 shorter than ~2x the sampling gap are noisy and are flagged by their row counts.
 """
@@ -43,8 +43,9 @@ def analyse(rec_path, res_path):
     vol = [x[3] for x in rows]
     tids = sorted({t for x in rows for t in x[6]})
     thr = {t: [(x[6].get(t, [0, 0])[0] + x[6].get(t, [0, 0])[1]) for x in rows] for t in tids}
+    msys = [x[6].get(min(tids, key=int), [0, 0])[1] for x in rows]
     tot = {t: thr[t][-1] - thr[t][0] for t in tids}
-    main = max(tot, key=tot.get)
+    main = min(tids, key=int)  # the Python main thread is the first (lowest) thread id; the Ring worker / TBCCL workers are later threads
     steps = {}
     for e in ev:
         if e["step"] < 0 or e["label"].startswith("prefill:") or e["depth"] != 0:
@@ -57,7 +58,7 @@ def analyse(rec_path, res_path):
     prev_ag = None
     for s in order:
         g = steps[s]
-        rc, mo, ag = g.get(("comm", "recv_like")), g.get(("eval", "model_output_eval")), g.get(("comm", "all_gather"))
+        rc, mo, ag = g.get(("eval", "post_recv_eval")), g.get(("eval", "model_output_eval")), g.get(("eval", "post_allgather_eval"))
         if not (rc and mo and ag):
             prev_ag = ag["t1"] if ag else prev_ag
             continue
@@ -79,13 +80,14 @@ def analyse(rec_path, res_path):
             n = i1 - i0
             mr = statistics.mean((rows[i][6].get(main, [0, 0, 0])[2] == 1) for i in range(i0, i1)) if n else float("nan")
             orun = statistics.mean(sum(1 for t, v in rows[i][6].items() if t != main and v[2] == 1) for i in range(i0, i1)) if n else float("nan")
-            per[w].append((wall * 1e6, pc, mc, pc - mc, iv, vv, n, mr, orun))
+            ms = (interp(ts, msys, b) - interp(ts, msys, a)) / wall
+            per[w].append((wall * 1e6, pc, mc, pc - mc, iv, vv, n, mr, orun, ms))
     out = {"backend": d["backend"], "main_tid": main, "threads_cpu_s": {f"{t}:{r.get('thread_names', {}).get(t, '')}": round(v, 4) for t, v in tot.items() if v > 0.002},
            "sampler": {k: r[k] for k in ("interval_ms", "n", "gap_ms_median", "gap_ms_p95", "gap_ms_max")}, "windows": {}}
     for w, v in per.items():
         if v:
-            med = [statistics.median(x[i] for x in v) for i in range(9)]
-            out["windows"][w] = dict(steps=len(v), wall_us=med[0], proc_cores=med[1], main_cores=med[2], other_cores=med[3], invcs_per_ms=med[4], volcs_per_ms=med[5], rows=med[6], main_running=med[7], other_running=med[8])
+            med = [statistics.median(x[i] for x in v) for i in range(10)]
+            out["windows"][w] = dict(steps=len(v), wall_us=med[0], proc_cores=med[1], main_cores=med[2], other_cores=med[3], invcs_per_ms=med[4], volcs_per_ms=med[5], rows=med[6], main_running=med[7], other_running=med[8], main_sys_cores=med[9])
     tw = r["rows"][-1][0] - r["rows"][0][0]
     out["run"] = {"wall_s": tw / 1e9, "cpu_s": (proc[-1] - proc[0]), "invcs": inv[-1] - inv[0], "volcs": vol[-1] - vol[0]}
     return out
@@ -94,9 +96,9 @@ def analyse(rec_path, res_path):
 def show(o, label):
     print(f"{label}: backend {o['backend']} main tid {o['main_tid']} sampler gap median {o['sampler']['gap_ms_median']:.2f} ms p95 {o['sampler']['gap_ms_p95']:.2f} max {o['sampler']['gap_ms_max']:.1f}")
     print(f"  threads with CPU (s over the whole sampled run): {o['threads_cpu_s']}")
-    print(f"  {'window':20}{'steps':>6}{'wall us':>9}{'proc':>7}{'main':>7}{'other':>7}{'inv/ms':>8}{'vol/ms':>8}{'rows':>6}{'mainRun':>8}{'othRun':>7}")
+    print(f"  {'window':20}{'steps':>6}{'wall us':>9}{'proc':>7}{'main':>7}{'other':>7}{'inv/ms':>8}{'vol/ms':>8}{'rows':>6}{'mainRun':>8}{'othRun':>7}{'mainSys':>8}")
     for w, v in o["windows"].items():
-        print(f"  {w:20}{v['steps']:>6}{v['wall_us']:>9.0f}{v['proc_cores']:>7.2f}{v['main_cores']:>7.2f}{v['other_cores']:>7.2f}{v['invcs_per_ms']:>8.2f}{v['volcs_per_ms']:>8.2f}{v['rows']:>6.0f}{v['main_running']:>8.2f}{v['other_running']:>7.2f}")
+        print(f"  {w:20}{v['steps']:>6}{v['wall_us']:>9.0f}{v['proc_cores']:>7.2f}{v['main_cores']:>7.2f}{v['other_cores']:>7.2f}{v['invcs_per_ms']:>8.2f}{v['volcs_per_ms']:>8.2f}{v['rows']:>6.0f}{v['main_running']:>8.2f}{v['other_running']:>7.2f}{v['main_sys_cores']:>8.2f}")
 
 
 if __name__ == "__main__":

@@ -61,6 +61,9 @@ class Clock:
 
     def wait_until(self, deadline_ns: int) -> None:
         rem = deadline_ns - now()
+        if os.environ.get("EMU_NOSPIN") and rem > 0:  # Phase 62: no busy tail (the emulator then leaves the P-cluster idle between events); timing error is a few hundred us
+            time.sleep(rem / 1e9 / self.ratio)
+            return
         if rem > 600_000:
             time.sleep(max(0.0, (rem - 400_000) / 1e9 / self.ratio))
         while now() < deadline_ns:
