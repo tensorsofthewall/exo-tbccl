@@ -7,7 +7,7 @@ Environment overrides (benchmarking/debugging, read once at ``FastPathConfig.fro
 ``EXO_TBCCL_MANAGED_MAX_BYTES``   integer                   largest payload ``auto`` maps to host (default 16384; ``host`` ignores it)
 ``EXO_TBCCL_RECV``               fresh | reuse             receive destination policy (default fresh)
 ``EXO_TBCCL_ASYNC_SEND``         0 | 1                     decode sends are not waited for immediately (default 0)
-``EXO_TBCCL_ALLOC_STREAM``        gpu | cpu                 stream that allocates fresh receive/all_gather destinations (experiment, default gpu)
+``EXO_TBCCL_ALLOC_STREAM``        gpu | cpu                 stream that allocates fresh receive/all_gather destinations (the per-token timeline work experiment, default gpu; honoured on Metal only, ignored on CUDA)
 """
 
 from __future__ import annotations
