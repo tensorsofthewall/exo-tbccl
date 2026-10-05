@@ -22,7 +22,8 @@ def main():
     ap.add_argument("--nbytes", type=int, default=2048)
     a = ap.parse_args()
     n = a.nbytes // 2
-    res = {k: [] for k in ("zeros+eval gpu", "zeros+eval cpu", "view+eval gpu (evaluated src)", "view+eval cpu (evaluated src)")}
+    res = {k: [] for k in ("zeros+eval gpu", "zeros+eval cpu", "view+eval gpu (evaluated src)", "view+eval cpu (evaluated src)",
+                           "TOTAL alloc(gpu)+consumer", "TOTAL alloc(cpu)+consumer", "consumer of gpu-allocated", "consumer of cpu-allocated")}
     bad = 0
     src = mx.random.normal((1, n)).astype(mx.bfloat16)
     mx.eval(src)
@@ -31,13 +32,17 @@ def main():
         t2 = time.perf_counter_ns(); zc = mx.zeros((1, n), dtype=mx.bfloat16, stream=mx.cpu); mx.eval(zc); t3 = time.perf_counter_ns()
         t4 = time.perf_counter_ns(); v = src.view(mx.uint16); mx.eval(v); t5 = time.perf_counter_ns()
         t6 = time.perf_counter_ns(); vc = src.view(mx.uint16, stream=mx.cpu); mx.eval(vc); t7 = time.perf_counter_ns()
-        y = (zc.astype(mx.float32) + 3.0)  # a GPU consumer of the CPU-stream allocation
-        mx.eval(y)
+        t8 = time.perf_counter_ns(); yg = z.astype(mx.float32) + 3.0; mx.eval(yg); t9 = time.perf_counter_ns()  # a GPU consumer of the GPU-stream allocation
+        t10 = time.perf_counter_ns(); y = zc.astype(mx.float32) + 3.0; mx.eval(y); t11 = time.perf_counter_ns()  # ... and of the CPU-stream allocation
         bad += 0 if float(y.sum().item()) == 3.0 * n else 1
         bad += 0 if bool((vc == v).all().item()) else 1
         if it >= 100:
             for k, (x, y_) in zip(res, ((t0, t1), (t2, t3), (t4, t5), (t6, t7))):
                 res[k].append((y_ - x) / 1000)
+            res["TOTAL alloc(gpu)+consumer"].append(((t1 - t0) + (t9 - t8)) / 1000)
+            res["TOTAL alloc(cpu)+consumer"].append(((t3 - t2) + (t11 - t10)) / 1000)
+            res["consumer of gpu-allocated"].append((t9 - t8) / 1000)
+            res["consumer of cpu-allocated"].append((t11 - t10) / 1000)
     print(f"{mx.default_device()}, {a.nbytes} B, {a.iters} iterations; microseconds median (p25..p75); GPU consumer of CPU-stream allocation wrong results: {bad}")
     for k, v in res.items():
         print(f"  {k:34s} {med(v)}")
