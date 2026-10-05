@@ -17,7 +17,7 @@ BLOCK_US = 20.0
 
 def load(path):
     d = json.load(open(path))
-    ev = [dict(t0=a, t1=b, kind=k, label=l, depth=dp) for a, b, k, l, dp in d["events"]]
+    ev = [dict(t0=a, t1=b, kind=k, label=l, depth=dp) for a, b, k, l, dp, *_ in d["events"]]
     return d["rank"], d["backend"], ev
 
 

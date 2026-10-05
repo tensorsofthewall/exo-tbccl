@@ -25,7 +25,7 @@ TEXT = (
 )
 
 
-def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=0, host="127.0.0.1", backend="tbccl"):
+def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=0, host="127.0.0.1", backend="tbccl", clock=None):
     os.environ.update(env)
     import mlx.core as mx
     from mlx_lm import load
@@ -86,6 +86,13 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
 
         sync_rec = SyncRecorder(rank, backend)
         comm = sync_rec.install(comm)
+    clock_sync = None
+    if clock:  # Phase 58: cross-host clock alignment on its own socket (benchmarks/clock_sync.py), before the traced region
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from clock_sync import ClockSync
+
+        clock_sync = ClockSync(rank, clock["host"], clock["peer"], clock["port"], clock.get("n", 200))
+        clock_sync.measure("pre")
     cadence = os.environ.get("EXO_P56_CADENCE")  # Phase 56: record the communication cadence (path prefix); measurement only
     if cadence:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -161,6 +168,11 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
             step_s.append(time.perf_counter() - ts)
         stable = all(prefix_digest(n) == d for n, d in snaps.items())  # earlier KV entries unchanged by everything that followed
         comm.barrier()
+        if clock_sync:
+            clock_sync.measure("post")
+            if sync_rec:
+                sync_rec.clock = clock_sync.results
+            clock_sync.close()
         if cadence:
             comm.dump(f"{cadence}.rank{rank}.json")
         if sync_rec:
