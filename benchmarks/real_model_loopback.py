@@ -73,6 +73,12 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         comm = MlxPipelineComm(mx.distributed.init(backend="ring", strict=True))
     else:
         comm = TbcclPipelineComm.create(rank, world, ex, bind_host=host, advertise_host=host, timeout_ms=1800000)
+    cadence = os.environ.get("EXO_P56_CADENCE")  # Phase 56: record the communication cadence (path prefix); measurement only
+    if cadence:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from cadence_recorder import CadenceRecorder
+
+        comm = CadenceRecorder(comm, rank)
     try:
         n_layers = len(model.layers)
         bounds = [(0, split), (split, n_layers)]
@@ -114,6 +120,8 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
             mx.clear_cache()
         set_pipeline_queue_sends(model, False)
         set_pipeline_prefill(model, False)
+        if cadence:
+            comm.phase = "decode"
         logits = model(p[-1:].reshape(1, 1), cache=cache)
         t = mx.argmax(logits[0, -1])
         ttft = time.perf_counter() - t0
@@ -140,6 +148,8 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
             step_s.append(time.perf_counter() - ts)
         stable = all(prefix_digest(n) == d for n, d in snaps.items())  # earlier KV entries unchanged by everything that followed
         comm.barrier()
+        if cadence:
+            comm.dump(f"{cadence}.rank{rank}.json")
         if backend == "ring":
             return {"match_ref": (toks == ref) if rank == 0 else None, "all_tokens": toks, "ref_tokens": ref, "tokens": toks[:8], "prompt_tokens": len(prompt),
                     "ttft_s": round(ttft, 3), "tpot_ms": round(1e3 * sorted(step_s)[len(step_s) // 2], 3), "kv_prefix_stable": stable,
