@@ -1,0 +1,212 @@
+{
+ "orientation": "A",
+ "backend": "tbccl",
+ "emulated_rank": 0,
+ "source": [
+  "phys_A_tbccl.rank0.json",
+  "phys_A_tbccl2.rank0.json"
+ ],
+ "n_steps": 24,
+ "median_us": {
+  "resume_us": 80.4,
+  "sampler_us": 587.8,
+  "graph_us": 540.5,
+  "compute_us": 2132.7,
+  "prep_us": 12.8,
+  "total_us": 3368.2
+ },
+ "steps": [
+  {
+   "resume_us": 88.3,
+   "sampler_us": 671.7,
+   "graph_us": 562.9,
+   "compute_us": 2090.8,
+   "prep_us": 13.3,
+   "total_us": 3427.0
+  },
+  {
+   "resume_us": 77.1,
+   "sampler_us": 563.6,
+   "graph_us": 524.5,
+   "compute_us": 2053.1,
+   "prep_us": 11.9,
+   "total_us": 3230.2
+  },
+  {
+   "resume_us": 81.0,
+   "sampler_us": 595.3,
+   "graph_us": 533.4,
+   "compute_us": 2037.6,
+   "prep_us": 12.4,
+   "total_us": 3259.6
+  },
+  {
+   "resume_us": 82.5,
+   "sampler_us": 627.6,
+   "graph_us": 561.5,
+   "compute_us": 2188.9,
+   "prep_us": 12.5,
+   "total_us": 3473.0
+  },
+  {
+   "resume_us": 74.1,
+   "sampler_us": 569.9,
+   "graph_us": 534.0,
+   "compute_us": 2062.4,
+   "prep_us": 21.6,
+   "total_us": 3262.0
+  },
+  {
+   "resume_us": 73.3,
+   "sampler_us": 576.4,
+   "graph_us": 527.7,
+   "compute_us": 2049.5,
+   "prep_us": 12.7,
+   "total_us": 3239.7
+  },
+  {
+   "resume_us": 90.3,
+   "sampler_us": 455.4,
+   "graph_us": 572.7,
+   "compute_us": 2137.8,
+   "prep_us": 12.1,
+   "total_us": 3268.3
+  },
+  {
+   "resume_us": 81.4,
+   "sampler_us": 571.1,
+   "graph_us": 538.1,
+   "compute_us": 2063.5,
+   "prep_us": 14.1,
+   "total_us": 3268.1
+  },
+  {
+   "resume_us": 76.8,
+   "sampler_us": 601.8,
+   "graph_us": 523.8,
+   "compute_us": 2085.5,
+   "prep_us": 14.2,
+   "total_us": 3302.0
+  },
+  {
+   "resume_us": 76.1,
+   "sampler_us": 562.9,
+   "graph_us": 535.7,
+   "compute_us": 2045.5,
+   "prep_us": 12.2,
+   "total_us": 3232.5
+  },
+  {
+   "resume_us": 79.8,
+   "sampler_us": 567.7,
+   "graph_us": 520.0,
+   "compute_us": 1975.4,
+   "prep_us": 12.3,
+   "total_us": 3155.3
+  },
+  {
+   "resume_us": 55.0,
+   "sampler_us": 508.3,
+   "graph_us": 530.8,
+   "compute_us": 2023.7,
+   "prep_us": 12.8,
+   "total_us": 3130.6
+  },
+  {
+   "resume_us": 96.2,
+   "sampler_us": 602.2,
+   "graph_us": 617.0,
+   "compute_us": 2178.8,
+   "prep_us": 14.2,
+   "total_us": 3508.4
+  },
+  {
+   "resume_us": 81.3,
+   "sampler_us": 566.1,
+   "graph_us": 567.9,
+   "compute_us": 2143.7,
+   "prep_us": 12.9,
+   "total_us": 3372.0
+  },
+  {
+   "resume_us": 83.2,
+   "sampler_us": 584.9,
+   "graph_us": 559.2,
+   "compute_us": 2154.2,
+   "prep_us": 21.9,
+   "total_us": 3403.4
+  },
+  {
+   "resume_us": 78.0,
+   "sampler_us": 664.1,
+   "graph_us": 541.6,
+   "compute_us": 2160.1,
+   "prep_us": 12.8,
+   "total_us": 3456.5
+  },
+  {
+   "resume_us": 82.9,
+   "sampler_us": 612.6,
+   "graph_us": 542.1,
+   "compute_us": 2260.9,
+   "prep_us": 13.2,
+   "total_us": 3511.6
+  },
+  {
+   "resume_us": 82.1,
+   "sampler_us": 662.5,
+   "graph_us": 559.1,
+   "compute_us": 2146.0,
+   "prep_us": 12.8,
+   "total_us": 3462.5
+  },
+  {
+   "resume_us": 99.1,
+   "sampler_us": 691.9,
+   "graph_us": 562.8,
+   "compute_us": 2162.7,
+   "prep_us": 12.4,
+   "total_us": 3528.9
+  },
+  {
+   "resume_us": 76.9,
+   "sampler_us": 735.3,
+   "graph_us": 541.1,
+   "compute_us": 2127.7,
+   "prep_us": 12.7,
+   "total_us": 3493.7
+  },
+  {
+   "resume_us": 76.9,
+   "sampler_us": 632.3,
+   "graph_us": 538.5,
+   "compute_us": 2160.6,
+   "prep_us": 12.1,
+   "total_us": 3420.4
+  },
+  {
+   "resume_us": 77.3,
+   "sampler_us": 564.1,
+   "graph_us": 532.2,
+   "compute_us": 2138.7,
+   "prep_us": 12.3,
+   "total_us": 3324.6
+  },
+  {
+   "resume_us": 77.7,
+   "sampler_us": 566.1,
+   "graph_us": 539.9,
+   "compute_us": 2167.7,
+   "prep_us": 13.0,
+   "total_us": 3364.4
+  },
+  {
+   "resume_us": 88.5,
+   "sampler_us": 590.6,
+   "graph_us": 591.9,
+   "compute_us": 2109.5,
+   "prep_us": 27.2,
+   "total_us": 3407.8
+  }
+ ]
+}
