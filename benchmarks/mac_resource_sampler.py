@@ -17,13 +17,13 @@ import time
 import psutil
 
 
-def find(match, deadline_s):
+def find(match, also, deadline_s):
     me = os.getpid()
     t_end = time.time() + deadline_s
     while time.time() < t_end:
         for p in psutil.process_iter(["pid", "cmdline"]):
             c = p.info["cmdline"] or []
-            if p.info["pid"] != me and any("python" in a for a in c[:1]) and any(match in a for a in c):
+            if p.info["pid"] != me and any("python" in a for a in c[:1]) and any(match in a for a in c) and any(also in a for a in c):
                 return psutil.Process(p.info["pid"])
         time.sleep(0.01)
     return None
@@ -32,11 +32,12 @@ def find(match, deadline_s):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--match", required=True)
+    ap.add_argument("--also", default="", help="a second argv substring that must also be present (e.g. the port)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--interval-ms", type=float, default=2.0)
     ap.add_argument("--find-timeout-s", type=float, default=600.0)
     a = ap.parse_args()
-    p = find(a.match, a.find_timeout_s)
+    p = find(a.match, a.also, a.find_timeout_s)
     if p is None:
         sys.exit("target not found")
     rows, gap = [], []
