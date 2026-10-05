@@ -128,10 +128,12 @@ class Activity:
         return None
 
     def comm_begin(self):
-        self.outstanding.set()
+        if self.mode == "comm":  # window modes are driven only by on_event (Phase 63: comm_end used to clear an open window)
+            self.outstanding.set()
 
     def comm_end(self):
-        self.outstanding.clear()
+        if self.mode == "comm":
+            self.outstanding.clear()
 
     def close(self):
         self.stop.set()
