@@ -146,10 +146,11 @@ class TbcclPipelineComm:
 
     def _alloc(self, shape, dtype) -> "mx.array":
         """A fresh zeroed destination. With ``alloc_cpu`` it is created on the CPU stream: arrays have no device in MLX, so the storage is the same
-        unified/managed memory, but on Metal the GPU-stream fill costs a command-buffer round trip (~150 us) that the CPU stream does not."""
+        unified memory, and on Metal the GPU-stream fill costs a command-buffer round trip (~150 us) that the CPU stream does not. **Metal only**: on CUDA the
+        same setting measured +1.7 ms per token (+29%: host-initialized managed pages migrate on the GPU's first read), so it is ignored there."""
         import mlx.core as mx
 
-        dest = mx.zeros(shape, dtype=dtype, stream=mx.cpu) if self.config.alloc_cpu else mx.zeros(shape, dtype=dtype)
+        dest = mx.zeros(shape, dtype=dtype, stream=mx.cpu) if self.config.alloc_cpu and mx.metal.is_available() else mx.zeros(shape, dtype=dtype)
         mx.eval(dest)
         return dest
 
