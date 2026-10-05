@@ -197,3 +197,62 @@ def test_peer_death_with_an_open_window_still_fails_promptly_and_leaves_no_threa
     name, dt, alive, has = res[0]
     assert name != "no error", res
     assert dt < 20 and not alive, res
+
+
+def test_concurrent_open_close_and_shutdown_is_race_free():
+    """State transitions from several threads while the helper runs, then shutdown during activity: no exception, no leaked thread, counters consistent."""
+    p = MetalActivityPolicy(max_window_ms=30, duty=0.5)
+    errors = []
+    stop = threading.Event()
+
+    def hammer(fn):
+        try:
+            while not stop.is_set():
+                fn()
+        except Exception as e:  # noqa: BLE001
+            errors.append(e)
+
+    ts = [threading.Thread(target=hammer, args=(f,)) for f in (p.on_gather_complete, p.on_gather_submit, p.on_recv_begin, p.on_boundary, p.stats)]
+    for t in ts:
+        t.start()
+    time.sleep(0.5)
+    p.shutdown()  # while windows are opening and closing
+    stop.set()
+    for t in ts:
+        t.join()
+    assert not errors and not p.activity.thread_alive
+    s = p.stats()
+    assert s["activity_windows"] > 0 and s["activity_us"] >= 0 and s["helper_cpu_us"] >= 0
+
+
+def _w_exception_in_window(rank, world, ex):
+    import os as _os
+
+    import mlx.core as mx_
+    import numpy as np
+
+    _os.environ["EXO_TBCCL_ACTIVITY_MODE"] = "step"
+    from exo_tbccl.group import TbcclPipelineComm
+
+    comm = TbcclPipelineComm.create(rank, world, ex, bind_host=ADV, advertise_host=ADV, timeout_ms=20000)
+    g = comm.all_gather(mx_.array(np.ones((1, 64), dtype=np.float32)))
+    mx_.eval(g)
+    try:
+        comm.recv_like(mx_.zeros((1, 64), dtype=mx_.float32), 7)  # invalid peer: raises with the window open
+        raised = False
+    except Exception:  # noqa: BLE001
+        raised = True
+    act = comm._act
+    was_open = bool(act and act.activity.is_open)
+    time.sleep(0.25)  # the watchdog (100 ms) must end the window although the end event never comes
+    still_open = bool(act and act.activity.is_open)
+    comm.close()
+    return raised, was_open, still_open, (act.activity.thread_alive if act else False), (act is not None)
+
+
+def test_exception_inside_a_window_is_bounded_by_the_watchdog():
+    res = run_world(2, _w_exception_in_window)
+    for raised, was_open, still_open, alive, has in res:
+        assert raised and not still_open and not alive
+        if has:
+            assert was_open

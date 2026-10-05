@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "exo-tbccl"
-version = "0.2.0"
+version = "0.2.1"
 description = "TBCCL pipeline communication backend for exo (MLX arrays over the TBCCL C ABI v1)"
 requires-python = ">=3.13"
 dependencies = []
