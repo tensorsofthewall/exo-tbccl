@@ -100,7 +100,10 @@ class SyncRecorder:
             op = self._tl.opid = self._op
         act = self.activity
         if act is not None and act.window is not None and self.phase == "decode":
-            act.on_event("begin", kind, label)
+            ch = act.on_event("begin", kind, label)
+            if ch:
+                tn = time.perf_counter_ns()
+                self.events.append((tn, tn, "activity", ch, 0, self._completed, -1, threading.get_ident()))
         t0 = time.perf_counter_ns()
         try:
             if kind == "comm" and label == "step_complete" and self.phase == "decode":
@@ -109,7 +112,9 @@ class SyncRecorder:
         finally:
             t1 = time.perf_counter_ns()
             if act is not None and act.window is not None and self.phase == "decode":
-                act.on_event("end", kind, label)
+                ch = act.on_event("end", kind, label)
+                if ch:
+                    self.events.append((t1, t1, "activity", ch, 0, self._completed, -1, threading.get_ident()))
             self._tl.d = d
             step = self._step(kind, label)
             if kind == "comm" and d == 0 and label in ("send", "recv_like", "all_gather", "barrier", "any_true"):
@@ -241,7 +246,8 @@ class SyncRecorder:
             except Exception:  # noqa: BLE001
                 pass
             json.dump({"rank": self.rank, "backend": self.backend, "host": socket.gethostname(), "pid": __import__("os").getpid(), "clock": self.clock,
-                       "resources_decode": res, "qos": qos, "activity_cpu_s": getattr(self.activity, "cpu_s", None), "events": self.events}, f)
+                       "resources_decode": res, "qos": qos, "activity_cpu_s": getattr(self.activity, "cpu_s", None),
+                       "activity": ({"mode": self.activity.mode, "duty": self.activity.duty, "native_id": self.activity.native_id, "bursts": self.activity.bursts} if self.activity is not None else None), "events": self.events}, f)
         with open(path[:-5] + ".jsonl" if path.endswith(".json") else path + ".jsonl", "w") as f:  # the same events, one JSON object per line
             f.write(json.dumps({"meta": {"rank": self.rank, "backend": self.backend, "host": socket.gethostname(), "pid": __import__("os").getpid(), "clock": self.clock}}) + "\n")
             for t0, t1, kind, label, depth, step, op, tid in self.events:
