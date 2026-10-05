@@ -222,3 +222,54 @@ def test_enable_disable_abort_stress_leaves_threads_at_baseline():
             t.join()
         assert not errs and not p.activity.thread_alive
     assert threading.active_count() == base
+
+
+def _w_exact(rank, world, ex, mode):
+    import os as _os
+
+    import mlx.core as mx_
+    import numpy as np
+
+    _os.environ["EXO_TBCCL_ACTIVITY_MODE"] = mode
+    from exo_tbccl.group import TbcclPipelineComm
+
+    comm = TbcclPipelineComm.create(rank, world, ex, bind_host=ADV, advertise_host=ADV, timeout_ms=30000)
+    out = {}
+    for name, dt in (("float32", mx_.float32), ("bfloat16", mx_.bfloat16)):
+        for i in range(4):  # several steps so windows open and close between the collectives
+            vals = (np.arange(256, dtype=np.float32) * 0.37 + rank * 11.0 + i) % 97.0
+            x = mx_.array(vals).astype(dt).reshape(1, 256)
+            g = comm.all_gather(x)
+            mx_.eval(g)
+            out[f"{name}_gather_{i}"] = np.array(g.astype(mx_.float32)).tobytes()
+            if world > 1:  # a point-to-point ring pass as well (rank r -> r+1), bit-exact
+                nxt, prv = (rank + 1) % world, (rank - 1) % world
+                ts = [comm.send_async(x, nxt)]
+                got = comm.recv_like(x, prv)
+                mx_.eval(got)
+                comm.wait_all(ts)
+                out[f"{name}_ring_{i}"] = np.array(got.astype(mx_.float32)).tobytes()
+            time.sleep(0.002)
+    act = comm._act
+    comm.close()
+    return out, (act.activity.windows if act else 0)
+
+
+@pytest.mark.parametrize("world", [2, 3, 4])
+def test_collectives_are_bit_exact_and_identical_with_activity_on_and_off(world):
+    import numpy as np
+
+    off = run_world(world, _w_exact, "off", timeout=300)
+    on = run_world(world, _w_exact, "step", timeout=300)
+    for rank in range(world):
+        assert off[rank][0].keys() == on[rank][0].keys()
+        for k, v in on[rank][0].items():
+            assert v == off[rank][0][k], (world, rank, k)  # activity never changes a single byte
+            if "_gather_" in k:
+                i = int(k.rsplit("_", 1)[1])
+                dt = np.float32
+                expect = np.concatenate([((np.arange(256, dtype=np.float32) * 0.37 + r * 11.0 + i) % 97.0).astype(dt).reshape(1, 256) for r in range(world)])
+                got = np.frombuffer(v, dtype=np.float32).reshape(world, 256)
+                if k.startswith("float32"):
+                    assert np.array_equal(got, expect), (world, rank, k)
+        assert (on[rank][1] > 0) if METAL else (on[rank][1] == 0)  # windows opened on Metal, none elsewhere
