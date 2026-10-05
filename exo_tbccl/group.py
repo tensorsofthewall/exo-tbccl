@@ -20,6 +20,7 @@ from . import _cuda_caps
 from ._loader import native
 from .bridge import TRACE, Borrow, CopyStats, borrow
 from .recv_pool import ReceivePool
+from .step_activity import StepActivity
 from .config import MANAGED_AUTO, MANAGED_CUDA, MANAGED_HOST, FastPathConfig
 from .errors import TbcclAbortedError, TbcclError, TbcclInvalidArgumentError, error_for
 
@@ -95,6 +96,9 @@ class TbcclPipelineComm:
         self.config = config or FastPathConfig.from_env()
         self.wait_stats = WaitStats()
         self._spin_s = self.config.wait_spin_ms / 1000.0 if self.config.wait_spin_ms > 0 and _metal_available() else 0.0
+        self._act: StepActivity | None = None
+        if self.config.step_activity and _metal_available():
+            self._act = StepActivity(self.config.step_activity_max_ms)
         self._managed_verified: dict[int, bool] = {}
         poison = os.environ.get("EXO_TBCCL_RECV_POISON")
         self.pool = ReceivePool(poison=int(poison, 0) & 0xFF if poison else None)
@@ -368,18 +372,27 @@ class TbcclPipelineComm:
             sb.release()
             raise
         self._trace("all_gather", None, sb)
+        act = self._act
+        if act is not None:
+            act.close_window()
         t = self._submit("all_gather", None, [sb, rb], lambda: self._comm.all_gather(sb.ptr, sb.nbytes, rb.ptr, rb.nbytes, sb.kind, sb.device))  # pyright: ignore[reportAttributeAccessIssue]
         self.wait(t)
         self._drain_async_sends()
+        if act is not None:
+            act.open()
         return dest
 
     def barrier(self) -> None:
+        if self._act is not None:
+            self._act.close_window()
         self._reap()
         self.wait(self._submit("barrier", None, [], lambda: self._comm.barrier()))  # pyright: ignore[reportAttributeAccessIssue]
         self._drain_async_sends()
 
     def any_true(self, value: bool) -> bool:
         """All-gather of one byte per rank, then a local OR (exact, no reduction collective)."""
+        if self._act is not None:
+            self._act.close_window()
         self._reap()
         send = (ctypes.c_uint8 * 1)(1 if value else 0)
         recv = (ctypes.c_uint8 * self._size)()
@@ -393,6 +406,8 @@ class TbcclPipelineComm:
     # ---- lifecycle --------------------------------------------------------------------------------------------------------------------
 
     def abort(self, reason: str = "aborted") -> None:
+        if self._act is not None:
+            self._act.close_window()
         if not self._closed:
             self._comm.abort(reason)  # pyright: ignore[reportAttributeAccessIssue]
 
@@ -408,6 +423,8 @@ class TbcclPipelineComm:
         if self._closed:
             return
         self._closed = True
+        if self._act is not None:
+            self._act.shutdown()
         self._reap_for_close()
         with self._lock:
             pending = list(self._pending)
