@@ -27,6 +27,10 @@ SITES: dict[tuple[str, str], list[str]] = {
     ("group.py", "all_gather"): ["allgather_destination_eval"],
     ("group.py", "TbcclPipelineComm._alloc"): ["destination_alloc_eval"],
     ("pipeline_comm.py", "MlxPipelineComm.flush_sends"): ["flush_async_eval"],
+    # Phase 59 remote-peer emulator: one eval per helper, named like the real pipeline's evals so distributed_timeline.py reads both
+    ("remote_peer_emulator.py", "do_send"): ["send_dependency_eval"],
+    ("remote_peer_emulator.py", "do_recv"): ["post_recv_eval"],
+    ("remote_peer_emulator.py", "do_gather"): ["post_allgather_eval"],
 }
 
 _site_cache: dict[object, dict[int, str]] = {}
@@ -100,6 +104,10 @@ class SyncRecorder:
             if kind == "comm" and d == 0 and label in ("send", "recv_like", "all_gather", "barrier", "any_true"):
                 self._tl.op, self._tl.opid = outer_op, -1
             self.events.append((t0, t1, kind, label if self.phase == "decode" else "prefill:" + label, d, step, op, threading.get_ident()))
+
+    def add(self, kind: str, label: str, t0: int, t1: int, depth: int = 0) -> None:
+        """Record a synthetic event (the emulator's modelled compute/sampler intervals) with the step the real pipeline would give it."""
+        self.events.append((t0, t1, kind, label if self.phase == "decode" else "prefill:" + label, depth, self._step(kind, label), -1, threading.get_ident()))
 
     def _patch(self, obj, name, new):
         self._orig.append((obj, name, getattr(obj, name)))
