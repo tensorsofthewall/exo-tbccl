@@ -67,14 +67,17 @@ def main():
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     spec = {"A": ("phys_A_{b}*.rank0.json", "rank0"), "B": ("phys_B7_{b}*.rank1.json", "rank1")}
+    if os.environ.get("PHASE") == "60":  # Phase 61 A-v2: the Phase 60 physical A runs (A1 = TBCCL baseline, A3 = Ring)
+        a.data = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs", "data", "phase60", "physical")
+        spec = {"A": ("phys_A{n}_{b}.rank0.json", "rank0")}
     for orient, (pat, role) in spec.items():
         for backend in ("tbccl", "ring"):
-            files = sorted(f for f in glob.glob(os.path.join(a.data, pat.format(b=backend))) if not f.endswith("jsonl"))
+            files = sorted(f for f in glob.glob(os.path.join(a.data, pat.format(b=backend, n="1" if backend == "tbccl" else "3"))) if not f.endswith("jsonl"))
             steps = [s for f in files for s in steps_for(f, role)]
             med = {k: round(statistics.median(x[k] for x in steps), 1) for k in steps[0]}
             prof = {"orientation": orient, "backend": backend, "emulated_rank": 0 if orient == "A" else 1, "source": [os.path.basename(f) for f in files],
                     "n_steps": len(steps), "median_us": med, "steps": [{k: round(v, 1) for k, v in x.items()} for x in steps]}
-            path = os.path.join(a.out, f"profile_{orient}_{backend}.json")
+            path = os.path.join(a.out, f"profile_{orient}_{backend}.json" if os.environ.get("PHASE") != "60" else f"phase60_A_physical_v2_{backend}.json")
             json.dump(prof, open(path, "w"), indent=1)
             print(path, len(steps), "steps; median", {k: v for k, v in med.items() if k.endswith("total_us") or k in ("post_us",)})
 

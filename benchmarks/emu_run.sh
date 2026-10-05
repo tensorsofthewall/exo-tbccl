@@ -12,7 +12,7 @@ if [ -n "$EXO_P59_EXT_SPIN" ]; then  # Phase 59 control: a CPU-burning process O
   python3 -c "import time,sys\nt=time.time()\nwhile time.time()-t<600: pass" &
   SPID=$!
 fi
-$PY benchmarks/remote_peer_emulator.py --orientation $O --backend $B --profile $PROFILES/profile_${O}_$B.json $COMMON --tokens $TOK --out $OUT > $OUT.emu.out 2>&1 &
+$PY benchmarks/remote_peer_emulator.py --orientation $O --backend $B --profile $PROFILES/profile_${O}_$B.json $COMMON --tokens $TOK ${EMU_ARGS} --out $OUT > $OUT.emu.out 2>&1 &
 EP=$!
 if [ -n "$SYNTH_MS" ]; then  # Phase 59 control: a synthetic Metal stage (orientation B only) instead of Qwen
   $PY benchmarks/synthetic_mac_stage.py --backend $B --stage-ms $SYNTH_MS --sampler-ms $SYNTH_MS --tokens $TOK $COMMON --out $OUT > $OUT.real.out 2>&1
