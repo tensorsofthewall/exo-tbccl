@@ -28,6 +28,10 @@ SITES: dict[tuple[str, str], list[str]] = {
     ("group.py", "TbcclPipelineComm._alloc"): ["destination_alloc_eval"],
     ("pipeline_comm.py", "MlxPipelineComm.flush_sends"): ["flush_async_eval"],
     # Phase 59 remote-peer emulator: one eval per helper, named like the real pipeline's evals so distributed_timeline.py reads both
+    ("synthetic_mac_stage.py", "sampler_eval"): ["real_model_loopback.py:worker#4"],
+    ("synthetic_mac_stage.py", "stage_eval"): ["model_output_eval"],
+    ("synthetic_mac_stage.py", "do_send"): ["send_dependency_eval"],
+    ("synthetic_mac_stage.py", "do_gather"): ["post_allgather_eval"],
     ("remote_peer_emulator.py", "do_send"): ["send_dependency_eval"],
     ("remote_peer_emulator.py", "do_recv"): ["post_recv_eval"],
     ("remote_peer_emulator.py", "do_gather"): ["post_allgather_eval"],

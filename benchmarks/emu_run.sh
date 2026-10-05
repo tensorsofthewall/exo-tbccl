@@ -10,6 +10,10 @@ if [ "$O" = A ]; then REAL=1; SPLIT=21; else REAL=0; SPLIT=7; fi
 COMMON="--host 127.0.0.1 --peer 127.0.0.1 --port $PORT"
 $PY benchmarks/remote_peer_emulator.py --orientation $O --backend $B --profile $PROFILES/profile_${O}_$B.json $COMMON --tokens $TOK --out $OUT > $OUT.emu.out 2>&1 &
 EP=$!
-EXO_P57_SYNC=$OUT $PY benchmarks/real_model_two_host.py --rank $REAL $COMMON --split $SPLIT --prompt medium --tokens $TOK --chunk 512 --backend $B --ring-ips 127.0.0.1,127.0.0.1 "$@" > $OUT.real.out 2>&1
+if [ -n "$SYNTH_MS" ]; then  # Phase 59 control: a synthetic Metal stage (orientation B only) instead of Qwen
+  $PY benchmarks/synthetic_mac_stage.py --backend $B --stage-ms $SYNTH_MS --sampler-ms $SYNTH_MS --tokens $TOK $COMMON --out $OUT > $OUT.real.out 2>&1
+else
+  EXO_P57_SYNC=$OUT $PY benchmarks/real_model_two_host.py --rank $REAL $COMMON --split $SPLIT --prompt medium --tokens $TOK --chunk 512 --backend $B --ring-ips 127.0.0.1,127.0.0.1 "$@" > $OUT.real.out 2>&1
+fi
 wait $EP
-grep -o '"tpot_ms": [0-9.]*' $OUT.real.out | head -1
+grep -o '"tpot_ms": [0-9.]*' $OUT.real.out | head -1 | sed "s/.*: //" | sed "s/^/\"tpot_ms\": /"
