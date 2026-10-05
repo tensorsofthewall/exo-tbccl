@@ -9,6 +9,7 @@ TbcclPipelineComm blocks. Enable with EXO_TBCCL_BENCH_ACTIVITY (read by benchmar
     win:<name>[@<duty>]   the windowed activity-controller work step windows, gated by recorder events (benchmarks/sync_recorder.py calls on_event for every recorded call/eval/layer):
                   step       from the end of an all_gather to the begin of the next one (everything the Mac does between collectives)
                   compute    from the end of recv_like to the begin of the next all_gather (orientation A: recv complete -> AllGather submission)
+                  stepwork   (the step-activity work) from the begin of the pre-receive eval to the begin of the next all_gather
                   graphstage from the begin of the first TransformerBlock call of a step to the end of model_output_eval (graph build + Metal stage)
                   graph      only while a TransformerBlock.__call__ runs (needs EXO_TBCCL_BENCH_LAYERS=1)
                   stage      only around mx.eval(model_output_eval)
@@ -42,6 +43,9 @@ WINDOWS = {
     "graph": ([("begin", "layer", "layer:TransformerBlock")], [("end", "layer", "layer:TransformerBlock")]),
     "stage": ([("begin", "eval", "model_output_eval")], [("end", "eval", "model_output_eval")]),
     "sampler": ([("begin", "eval", "real_model_loopback.py:worker#4")], [("end", "eval", "real_model_loopback.py:worker#4")]),
+    # The step-activity work step-scoped candidate: the Mac's own per-step work, from the start of the pre-receive eval (after the sampler) to the
+    # AllGather submission
+    "stepwork": ([("begin", "eval", "pre_recv_template_eval")], [("begin", "comm", "all_gather")]),
     # The step-activity work continuous positive control: from the first decode receive until the final barrier (spans the
     # KV-digest windows too)
     "decode": ([("begin", "comm", "recv_like")], [("begin", "comm", "barrier")]),
