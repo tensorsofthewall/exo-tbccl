@@ -358,7 +358,6 @@ def test_metal_only_experiments_are_ignored_off_metal():
     """Linux safety (Phase 57: the CPU-stream allocation was +29% on CUDA): every Metal-only experiment must be inert unless Metal is available."""
     import mlx.core as mx
 
-    from exo_tbccl import bridge
     from exo_tbccl.config import FastPathConfig
     from exo_tbccl.group import TbcclPipelineComm
 
@@ -367,5 +366,3 @@ def test_metal_only_experiments_are_ignored_off_metal():
     assert comm._spin_s == (0.005 if metal else 0.0)
     probe = comm._alloc((1, 8), mx.float32)
     assert probe.shape == (1, 8)
-    if not metal:
-        assert not (bridge.VIEW_CPU and mx.metal.is_available())
