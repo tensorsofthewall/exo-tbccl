@@ -39,23 +39,25 @@ def test_default_off_and_env_parse(monkeypatch):
 
 
 def test_helper_idle_busy_idle_and_joined():
+    base = _cores(0.2)  # other tests of a full run can leave threads behind: compare against the process' own baseline
     a = StepActivity(max_window_ms=5000)
-    assert not a.thread_alive and _cores(0.2) < 0.15  # lazily started: no thread before the first window
+    assert not a.thread_alive and _cores(0.2) < base + 0.15  # lazily started: no thread before the first window
     a.open()
-    assert _cores(0.3) > 0.8  # ~1 core while the window is open
+    assert _cores(0.3) > base + 0.8  # ~1 core while the window is open
     a.close_window()
     time.sleep(0.05)
-    assert _cores(0.3) < 0.15  # parked on the event: idle again
+    assert _cores(0.3) < base + 0.15  # parked on the event: idle again
     a.shutdown()
     assert not a.thread_alive
 
 
 def test_hard_bound_ends_a_window_by_itself():
+    base = _cores(0.2)
     a = StepActivity(max_window_ms=60)
     a.open()
     time.sleep(0.3)
     assert a.timed_out == 1
-    assert _cores(0.3) < 0.15  # the lost-event case: no core left burning
+    assert _cores(0.3) < base + 0.15  # the lost-event case: no core left burning
     a.shutdown()
 
 
