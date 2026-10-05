@@ -121,6 +121,7 @@ def main():
     ap.add_argument("--prompt-tokens", type=int, default=577)
     ap.add_argument("--chunk", type=int, default=512)
     ap.add_argument("--prefill-ms", type=float, default=150.0)
+    ap.add_argument("--advance-us", type=float, default=0.0, help="orientation A: shorten the emulated Linux stage compute by this much so its send is ready BEFORE the Mac posts its receive (the Mac stays the critical path; 0 = no advance)")
     ap.add_argument("--out", required=True, help="prefix for <out>.rank<R>.json (the recorder dump) and <out>.fidelity.json")
     a = ap.parse_args()
     prof = json.load(open(a.profile))
@@ -150,7 +151,7 @@ def main():
         for i in range(a.tokens + 1):
             st = steps[i % len(steps)]
             if rank == 0:  # A
-                req = [("resume", st["resume_us"]), ("sampler", st["sampler_us"]), ("graph", st["graph_us"]), ("compute", st["compute_us"]), ("prep", st["prep_us"])]
+                req = [("resume", st["resume_us"]), ("sampler", st["sampler_us"]), ("graph", st["graph_us"]), ("compute", max(0.0, st["compute_us"] - a.advance_us)), ("prep", st["prep_us"])]
                 t = t_ref
                 for name, us in req:
                     t0 = t
