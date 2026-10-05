@@ -15,6 +15,11 @@ import threading
 import time
 
 import mlx.core as mx
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from activity_thread import Activity  # noqa: E402
 
 
 def main():
@@ -50,17 +55,23 @@ def main():
 
     print(f"{mx.default_device()}, {a.layers} layers, {a.iters} iterations per mode; microseconds median (p25..p75): host graph build | eval")
     for gap_ms in [float(g) for g in a.gaps_ms.split(",")]:
-        res = {m: ([], []) for m in ("none", "sleep", "block", "spin")}
+        res = {m: ([], []) for m in ("none", "sleep", "block", "block+spinner", "spin")}
+        act = Activity("comm")
         ev, stop = threading.Event(), threading.Event()
         th = threading.Thread(target=feeder, args=(gap_ms / 1000, stop), daemon=True)
         th.start()
         for it in range(a.iters + 20):
-            for mode in ("none", "sleep", "block", "spin"):
+            for mode in ("none", "sleep", "block", "block+spinner", "spin"):
                 if mode == "sleep":
                     time.sleep(gap_ms / 1000)
                 elif mode == "block":
                     ev.set()
                     s1.recv(1)
+                elif mode == "block+spinner":
+                    act.comm_begin()
+                    ev.set()
+                    s1.recv(1)
+                    act.comm_end()
                 elif mode == "spin":
                     end = time.perf_counter_ns() + int(gap_ms * 1e6)
                     while time.perf_counter_ns() < end:
@@ -69,7 +80,7 @@ def main():
                 if it >= 20:
                     res[mode][0].append(b)
                     res[mode][1].append(e)
-        stop.set(); ev.set()
+        stop.set(); ev.set(); act.close()
         for mode, (bs, es) in res.items():
             f = lambda v: f"{statistics.median(v):7.0f} ({sorted(v)[len(v)//4]:.0f}..{sorted(v)[3*len(v)//4]:.0f})"
             print(f"  gap {gap_ms:4.1f} ms  {mode:6s} build {f(bs)} | eval {f(es)}")
