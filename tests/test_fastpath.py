@@ -312,3 +312,24 @@ def test_repeated_create_close_cycles_with_every_fast_path_do_not_grow_threads_o
     env = {"EXO_TBCCL_ASYNC_SEND": "1", "EXO_TBCCL_RECV": "reuse", "EXO_TBCCL_CUDA_MANAGED_MODE": "host"}
     for series in run_world(2, _w_instance_cycles, env, 8):
         assert series[-1][0] <= series[1][0] and series[-1][1] <= series[1][1] + 2, series
+
+
+@pytest.mark.parametrize("world", [2, 3, 4])
+@pytest.mark.parametrize("dtype", ["float32", "bfloat16"])
+def test_cpu_stream_destination_allocation_is_bit_exact_vs_gpu_stream(world, dtype):
+    """Phase 57 experiment: EXO_TBCCL_ALLOC_STREAM=cpu allocates fresh receive/all_gather destinations on the CPU stream. Every gathered stage output
+    (computed on the GPU from the received storage) must hash identically to the default path."""
+    base = run_world(world, _w_chain, {}, 200, dtype)
+    cpu = run_world(world, _w_chain, {"EXO_TBCCL_ALLOC_STREAM": "cpu"}, 200, dtype)
+    assert [r[0] for r in cpu] == [r[0] for r in base]
+
+
+def test_alloc_stream_config_parsing(monkeypatch):
+    from exo_tbccl.config import FastPathConfig
+
+    monkeypatch.delenv("EXO_TBCCL_ALLOC_STREAM", raising=False)
+    assert FastPathConfig.from_env().alloc_cpu is False
+    monkeypatch.setenv("EXO_TBCCL_ALLOC_STREAM", "cpu")
+    assert FastPathConfig.from_env().alloc_cpu is True
+    monkeypatch.setenv("EXO_TBCCL_ALLOC_STREAM", "gpu")
+    assert FastPathConfig.from_env().alloc_cpu is False

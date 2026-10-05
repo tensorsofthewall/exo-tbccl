@@ -144,6 +144,15 @@ class TbcclPipelineComm:
             self._managed_verified[ordinal] = bool(caps and _AUTO_ALLOWED(caps))
         return self._managed_verified[ordinal]
 
+    def _alloc(self, shape, dtype) -> "mx.array":
+        """A fresh zeroed destination. With ``alloc_cpu`` it is created on the CPU stream: arrays have no device in MLX, so the storage is the same
+        unified/managed memory, but on Metal the GPU-stream fill costs a command-buffer round trip (~150 us) that the CPU stream does not."""
+        import mlx.core as mx
+
+        dest = mx.zeros(shape, dtype=dtype, stream=mx.cpu) if self.config.alloc_cpu else mx.zeros(shape, dtype=dtype)
+        mx.eval(dest)
+        return dest
+
     def _check_open(self) -> None:
         if self._closed:
             raise TbcclAbortedError(native.TBCCL_ABORTED, "comm", "communicator is closed", rank=self._rank)
@@ -277,7 +286,7 @@ class TbcclPipelineComm:
         import mlx.core as mx
 
         if not self.config.recv_reuse:
-            dest = mx.zeros(template.shape, dtype=template.dtype)
+            dest = self._alloc(template.shape, template.dtype)
             mx.eval(dest)
             self.wait(self.recv_into_async(dest, src))
             return dest
@@ -303,7 +312,7 @@ class TbcclPipelineComm:
         self._reap()
         shape = tuple(array.shape)
         out_shape = (self._size,) if len(shape) == 0 else (self._size * shape[0], *shape[1:])
-        dest = mx.zeros(out_shape, dtype=array.dtype)
+        dest = self._alloc(out_shape, array.dtype)
         mx.eval(dest)
         as_host = self._managed_as_host(True, True, array)
         sb = borrow(array, self.stats, managed_as_host=as_host)
