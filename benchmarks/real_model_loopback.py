@@ -71,6 +71,11 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         from exo.worker.engines.mlx.pipeline_comm import MlxPipelineComm
 
         comm = MlxPipelineComm(mx.distributed.init(backend="ring", strict=True))
+    elif backend == "null":  # Phase 57 control: shared-memory transport, same call semantics (benchmarks/null_comm.py)
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from null_comm import NullPipelineComm
+
+        comm = NullPipelineComm.create(rank, world, ex)
     else:
         comm = TbcclPipelineComm.create(rank, world, ex, bind_host=host, advertise_host=host, timeout_ms=1800000)
     sync_prefix = os.environ.get("EXO_P57_SYNC")  # Phase 57: record every eval / communication call with a semantic label (path prefix); measurement only
@@ -161,7 +166,7 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         if sync_rec:
             sync_rec.dump(f"{sync_prefix}.rank{rank}.json")
             sync_rec.uninstall()
-        if backend == "ring":
+        if backend in ("ring", "null"):
             return {"match_ref": (toks == ref) if rank == 0 else None, "all_tokens": toks, "ref_tokens": ref, "tokens": toks[:8], "prompt_tokens": len(prompt),
                     "ttft_s": round(ttft, 3), "tpot_ms": round(1e3 * sorted(step_s)[len(step_s) // 2], 3), "kv_prefix_stable": stable,
                     "copies": (0, 0), "labels": {"ring": 1}, "pool": {}, "async": (0, 0), "pending_end": 0}
