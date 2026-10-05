@@ -8,6 +8,10 @@ PY=${PY:-../exo/.venv/bin/python}; PROFILES=${PROFILES:-benchmarks/emulator_prof
 export HF_HUB_OFFLINE=1 EXO_OFFLINE=true
 if [ "$O" = A ]; then REAL=1; SPLIT=21; else REAL=0; SPLIT=7; fi
 COMMON="--host 127.0.0.1 --peer 127.0.0.1 --port $PORT"
+if [ -n "$EXO_TBCCL_BENCH_EXT_SPIN" ]; then  # control: a CPU-burning process OUTSIDE the pipeline process (a different thread group)
+  python3 -c "import time,sys\nt=time.time()\nwhile time.time()-t<600: pass" &
+  SPID=$!
+fi
 $PY benchmarks/remote_peer_emulator.py --orientation $O --backend $B --profile $PROFILES/profile_${O}_$B.json $COMMON --tokens $TOK --out $OUT > $OUT.emu.out 2>&1 &
 EP=$!
 if [ -n "$SYNTH_MS" ]; then  # control: a synthetic Metal stage (orientation B only) instead of Qwen
@@ -16,4 +20,5 @@ else
   EXO_TBCCL_BENCH_SYNC_RECORD=$OUT $PY benchmarks/real_model_two_host.py --rank $REAL $COMMON --split $SPLIT --prompt medium --tokens $TOK --chunk 512 --backend $B --ring-ips 127.0.0.1,127.0.0.1 "$@" > $OUT.real.out 2>&1
 fi
 wait $EP
+[ -n "$SPID" ] && kill $SPID 2>/dev/null
 grep -o '"tpot_ms": [0-9.]*' $OUT.real.out | head -1 | sed "s/.*: //" | sed "s/^/\"tpot_ms\": /"
