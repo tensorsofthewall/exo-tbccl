@@ -20,7 +20,7 @@ from . import _cuda_caps
 from ._loader import native
 from .bridge import TRACE, Borrow, CopyStats, borrow
 from .recv_pool import ReceivePool
-from .step_activity import StepActivity
+from .step_activity import MetalActivityPolicy
 from .config import MANAGED_AUTO, MANAGED_CUDA, MANAGED_HOST, FastPathConfig
 from .errors import TbcclAbortedError, TbcclError, TbcclInvalidArgumentError, error_for
 
@@ -97,9 +97,9 @@ class TbcclPipelineComm:
         self.config = config or FastPathConfig.from_env()
         self.wait_stats = WaitStats()
         self._spin_s = self.config.wait_spin_ms / 1000.0 if self.config.wait_spin_ms > 0 and _metal_available() else 0.0
-        self._act: StepActivity | None = None
-        if self.config.step_activity and _metal_available():
-            self._act = StepActivity(self.config.step_activity_max_ms)
+        self._act: MetalActivityPolicy | None = None
+        if self.config.activity_mode == "step" and _metal_available():
+            self._act = MetalActivityPolicy(self.config.activity_max_ms, self.config.activity_duty)
         self._managed_verified: dict[int, bool] = {}
         poison = os.environ.get("EXO_TBCCL_RECV_POISON")
         self.pool = ReceivePool(poison=int(poison, 0) & 0xFF if poison else None)
@@ -341,6 +341,8 @@ class TbcclPipelineComm:
             dest = self._alloc(template.shape, template.dtype)
             mx.eval(dest)
             self.wait(self.recv_into_async(dest, src))
+            if self._act is not None:
+                self._act.on_recv_complete()
             return dest
         slot = self.pool.acquire(tuple(template.shape), template.dtype)
         t = self.recv_into_async(slot.array, src)
@@ -351,6 +353,8 @@ class TbcclPipelineComm:
             self.pool.discard(slot)
             raise
         self.pool.mark_received(slot, ptr)
+        if self._act is not None:
+            self._act.on_recv_complete()
         return slot.array
 
     def step_complete(self) -> None:
@@ -376,17 +380,17 @@ class TbcclPipelineComm:
         self._trace("all_gather", None, sb)
         act = self._act
         if act is not None:
-            act.close_window()
+            act.on_gather_submit()
         t = self._submit("all_gather", None, [sb, rb], lambda: self._comm.all_gather(sb.ptr, sb.nbytes, rb.ptr, rb.nbytes, sb.kind, sb.device))  # pyright: ignore[reportAttributeAccessIssue]
         self.wait(t)
         self._drain_async_sends()
         if act is not None:
-            act.open()
+            act.on_gather_complete()
         return dest
 
     def barrier(self) -> None:
         if self._act is not None:
-            self._act.close_window()
+            self._act.on_boundary()
         self._reap()
         self.wait(self._submit("barrier", None, [], lambda: self._comm.barrier()))  # pyright: ignore[reportAttributeAccessIssue]
         self._drain_async_sends()
@@ -394,7 +398,7 @@ class TbcclPipelineComm:
     def any_true(self, value: bool) -> bool:
         """All-gather of one byte per rank, then a local OR (exact, no reduction collective)."""
         if self._act is not None:
-            self._act.close_window()
+            self._act.on_boundary()
         self._reap()
         send = (ctypes.c_uint8 * 1)(1 if value else 0)
         recv = (ctypes.c_uint8 * self._size)()
@@ -409,9 +413,13 @@ class TbcclPipelineComm:
 
     def abort(self, reason: str = "aborted") -> None:
         if self._act is not None:
-            self._act.close_window()
+            self._act.on_boundary()
         if not self._closed:
             self._comm.abort(reason)  # pyright: ignore[reportAttributeAccessIssue]
+
+    def activity_stats(self) -> dict:
+        """Counters of the Metal activity policy (zeros when it is off or inert): activity_windows, activity_us, helper_cpu_us, duty, fallback_timeouts."""
+        return self._act.stats() if self._act is not None else {"activity_windows": 0, "activity_us": 0.0, "helper_cpu_us": 0.0, "duty": 0.0, "fallback_timeouts": 0}
 
     def is_aborted(self) -> bool:
         return self._closed or bool(self._comm.is_aborted())  # pyright: ignore[reportAttributeAccessIssue]

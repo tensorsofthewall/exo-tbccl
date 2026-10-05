@@ -9,8 +9,10 @@ Environment overrides (benchmarking/debugging, read once at ``FastPathConfig.fro
 ``EXO_TBCCL_ASYNC_SEND``         0 | 1                     decode sends are not waited for immediately (default 0)
 ``EXO_TBCCL_WAIT_SPIN_MS``        float                     the remote-peer emulator work experiment: poll a pending Work for up to this many ms (the caller spins, GIL released per poll) before blocking;
                                                           honoured on Metal only, ignored on CUDA (default 0 = block)
-``EXO_TBCCL_STEP_ACTIVITY``       0 | 1                     experiment: a helper burns CPU between two AllGathers (see exo_tbccl/step_activity.py); Metal only, ignored elsewhere (default 0)
-``EXO_TBCCL_STEP_ACTIVITY_MAX_MS`` float                    hard bound of one activity window (default 250)
+``EXO_TBCCL_ACTIVITY_MODE``       off | step                the activity-policy work Metal activity policy: a helper burns CPU during the pipeline's own local work (exo_tbccl/step_activity.py,
+                                                          docs/mac_activity_policy.md); Metal only, ignored elsewhere (default off). ``EXO_TBCCL_STEP_ACTIVITY=1`` is the step-activity alias of ``step``
+``EXO_TBCCL_ACTIVITY_DUTY``       0 < float <= 1            fraction of each 1 ms period the helper burns inside an open window (default 1.0)
+``EXO_TBCCL_ACTIVITY_MAX_MS``     float                     hard bound of one activity window (default 100)
 ``EXO_TBCCL_ALLOC_STREAM``        gpu | cpu                 stream that allocates fresh receive/all_gather destinations (the per-token timeline work experiment, default gpu; honoured on Metal only, ignored on CUDA)
 """
 
@@ -34,8 +36,9 @@ class FastPathConfig:
     async_send: bool = False
     alloc_cpu: bool = False
     wait_spin_ms: float = 0.0
-    step_activity: bool = False
-    step_activity_max_ms: float = 250.0
+    activity_mode: str = "off"
+    activity_duty: float = 1.0
+    activity_max_ms: float = 100.0
 
     @classmethod
     def from_env(cls) -> "FastPathConfig":
@@ -49,4 +52,10 @@ class FastPathConfig:
         recv = env.get("EXO_TBCCL_RECV", "fresh").lower()
         if recv not in ("fresh", "reuse"):
             raise ValueError(f"EXO_TBCCL_RECV must be fresh|reuse, got {recv!r}")
-        return cls(mode, "send" in dirs, "recv" in dirs, int(env.get("EXO_TBCCL_MANAGED_MAX_BYTES", "16384")), recv == "reuse", env.get("EXO_TBCCL_ASYNC_SEND", "0") not in ("", "0"), env.get("EXO_TBCCL_ALLOC_STREAM", "gpu").lower() == "cpu", float(env.get("EXO_TBCCL_WAIT_SPIN_MS", "0") or 0), env.get("EXO_TBCCL_STEP_ACTIVITY", "0") not in ("", "0"), float(env.get("EXO_TBCCL_STEP_ACTIVITY_MAX_MS", "250") or 250))
+        activity_mode = env.get("EXO_TBCCL_ACTIVITY_MODE", "").lower() or ("step" if env.get("EXO_TBCCL_STEP_ACTIVITY", "0") not in ("", "0") else "off")
+        if activity_mode not in ("off", "step"):
+            raise ValueError(f"EXO_TBCCL_ACTIVITY_MODE must be off|step, got {activity_mode!r}")
+        activity_duty = float(env.get("EXO_TBCCL_ACTIVITY_DUTY", "1.0") or 1.0)
+        if not 0.0 < activity_duty <= 1.0:
+            raise ValueError(f"EXO_TBCCL_ACTIVITY_DUTY must be in (0, 1], got {activity_duty}")
+        return cls(mode, "send" in dirs, "recv" in dirs, int(env.get("EXO_TBCCL_MANAGED_MAX_BYTES", "16384")), recv == "reuse", env.get("EXO_TBCCL_ASYNC_SEND", "0") not in ("", "0"), env.get("EXO_TBCCL_ALLOC_STREAM", "gpu").lower() == "cpu", float(env.get("EXO_TBCCL_WAIT_SPIN_MS", "0") or 0), activity_mode, activity_duty, float(env.get("EXO_TBCCL_ACTIVITY_MAX_MS", "100") or 100))

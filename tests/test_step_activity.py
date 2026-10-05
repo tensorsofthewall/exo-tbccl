@@ -8,7 +8,7 @@ import time
 import pytest
 
 from exo_tbccl.config import FastPathConfig
-from exo_tbccl.step_activity import StepActivity
+from exo_tbccl.step_activity import MetalActivityPolicy, StepActivity
 from tests.harness import run_world
 from tests.test_group import ADV
 
@@ -28,14 +28,25 @@ def _cores(seconds):
 
 
 def test_default_off_and_env_parse(monkeypatch):
-    monkeypatch.delenv("EXO_TBCCL_STEP_ACTIVITY", raising=False)
-    assert FastPathConfig.from_env().step_activity is False
-    monkeypatch.setenv("EXO_TBCCL_STEP_ACTIVITY", "1")
-    monkeypatch.setenv("EXO_TBCCL_STEP_ACTIVITY_MAX_MS", "40")
+    for k in ("EXO_TBCCL_ACTIVITY_MODE", "EXO_TBCCL_ACTIVITY_DUTY", "EXO_TBCCL_ACTIVITY_MAX_MS", "EXO_TBCCL_STEP_ACTIVITY"):
+        monkeypatch.delenv(k, raising=False)
     c = FastPathConfig.from_env()
-    assert c.step_activity is True and c.step_activity_max_ms == 40.0
-    monkeypatch.setenv("EXO_TBCCL_STEP_ACTIVITY", "0")
-    assert FastPathConfig.from_env().step_activity is False
+    assert (c.activity_mode, c.activity_duty, c.activity_max_ms) == ("off", 1.0, 100.0)
+    monkeypatch.setenv("EXO_TBCCL_ACTIVITY_MODE", "step")
+    monkeypatch.setenv("EXO_TBCCL_ACTIVITY_DUTY", "0.5")
+    monkeypatch.setenv("EXO_TBCCL_ACTIVITY_MAX_MS", "40")
+    c = FastPathConfig.from_env()
+    assert (c.activity_mode, c.activity_duty, c.activity_max_ms) == ("step", 0.5, 40.0)
+    monkeypatch.delenv("EXO_TBCCL_ACTIVITY_MODE")
+    monkeypatch.setenv("EXO_TBCCL_STEP_ACTIVITY", "1")  # the step-activity alias
+    assert FastPathConfig.from_env().activity_mode == "step"
+    monkeypatch.setenv("EXO_TBCCL_ACTIVITY_MODE", "bogus")
+    with pytest.raises(ValueError):
+        FastPathConfig.from_env()
+    monkeypatch.setenv("EXO_TBCCL_ACTIVITY_MODE", "step")
+    monkeypatch.setenv("EXO_TBCCL_ACTIVITY_DUTY", "0")
+    with pytest.raises(ValueError):
+        FastPathConfig.from_env()
 
 
 def test_helper_idle_busy_idle_and_joined():
@@ -76,13 +87,54 @@ def test_repeated_windows_and_shutdown_while_active_leak_no_thread():
     assert threading.active_count() == n0
 
 
+def test_policy_windows_follow_the_communicator_pattern():
+    p = MetalActivityPolicy(max_window_ms=5000, duty=1.0)
+    a = p.activity
+    p.on_recv_complete()  # prefill receive: not armed, no window
+    assert a.windows == 0
+    p.on_gather_submit()
+    p.on_gather_complete()  # first decode gather: the previous step had a receive -> no window at the gather
+    assert a.windows == 0 and p._armed
+    p.on_recv_complete()  # a receiving stage opens its window at the receive
+    assert a.windows == 1 and a.is_open
+    p.on_gather_submit()
+    assert not a.is_open
+    p.on_gather_complete()
+    assert a.windows == 1
+    p.shutdown()
+    q = MetalActivityPolicy(max_window_ms=5000, duty=1.0)  # a stage that never receives opens at the gather completion
+    q.on_gather_submit()
+    q.on_gather_complete()
+    assert q.activity.windows == 1 and q.activity.is_open
+    q.on_boundary()
+    assert not q.activity.is_open
+    q.shutdown()
+    assert q.stats()["activity_windows"] == 1 and not q.activity.thread_alive
+
+
+def test_duty_scales_helper_cpu_and_stats_report_it():
+    cpu = {}
+    for duty in (1.0, 0.5, 0.25):
+        a = StepActivity(max_window_ms=5000, duty=duty)
+        a.open()
+        time.sleep(0.4)
+        a.close_window()
+        time.sleep(0.05)
+        a.shutdown()
+        cpu[duty] = a.cpu_s
+        assert abs(a.active_s - 0.4) < 0.15 and a.windows == 1
+    assert 0.3 < cpu[1.0] / 0.4 < 1.15
+    assert 0.35 < cpu[0.5] / cpu[1.0] < 0.7
+    assert 0.12 < cpu[0.25] / cpu[1.0] < 0.4
+
+
 def _w_gathers(rank, world, ex, enabled):
     import os as _os
 
     import mlx.core as mx_
     import numpy as np
 
-    _os.environ["EXO_TBCCL_STEP_ACTIVITY"] = "1" if enabled else "0"
+    _os.environ["EXO_TBCCL_ACTIVITY_MODE"] = "step" if enabled else "off"
     from exo_tbccl.group import TbcclPipelineComm
 
     comm = TbcclPipelineComm.create(rank, world, ex, bind_host=ADV, advertise_host=ADV, timeout_ms=20000)
@@ -94,19 +146,22 @@ def _w_gathers(rank, world, ex, enabled):
         ok &= bool(np.array_equal(np.array(g), np.concatenate([np.full((1, 512), r * 100 + i, dtype=np.float32) for r in range(world)])))
         time.sleep(0.005)
     act = comm._act
-    info = (act is not None, act.windows if act else 0, act.thread_alive if act else False)
+    info = (act is not None, act.activity.windows if act else 0, act.activity.thread_alive if act else False)
+    stats = comm.activity_stats()
     comm.close()  # closed while a window is open
-    return ok, info, (act.thread_alive if act else False)
+    return ok, info, (act.activity.thread_alive if act else False), stats
 
 
 @pytest.mark.parametrize("enabled", [True, False])
 def test_all_gather_exact_and_helper_follows_the_communicator(enabled):
     res = run_world(2, _w_gathers, enabled)
-    for ok, (has_act, windows, alive), alive_after_close in res:
+    for ok, (has_act, windows, alive), alive_after_close, stats in res:
         assert ok
         assert has_act == (enabled and METAL)  # inert off Metal and when disabled
         if has_act:
-            assert windows == 20 and alive
+            assert windows >= 19 and alive and stats["activity_windows"] == windows
+        else:
+            assert stats["activity_windows"] == 0 and stats["helper_cpu_us"] == 0 and stats["activity_us"] == 0
         assert not alive_after_close
 
 
@@ -116,7 +171,7 @@ def _w_peer_death_in_window(rank, world, ex):
     import mlx.core as mx_
     import numpy as np
 
-    _os.environ["EXO_TBCCL_STEP_ACTIVITY"] = "1"
+    _os.environ["EXO_TBCCL_ACTIVITY_MODE"] = "step"
     from exo_tbccl.errors import TbcclError
     from exo_tbccl.group import TbcclPipelineComm
 
@@ -134,7 +189,7 @@ def _w_peer_death_in_window(rank, world, ex):
         name = type(e).__name__
     act = comm._act
     comm.close()
-    return name, time.time() - t0, (act.thread_alive if act else False), (act is not None)
+    return name, time.time() - t0, (act.activity.thread_alive if act else False), (act is not None)
 
 
 def test_peer_death_with_an_open_window_still_fails_promptly_and_leaves_no_thread():
