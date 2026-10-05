@@ -36,7 +36,7 @@ def _w_cycles(rank, world, ex, cycles):
 def test_twenty_create_destroy_cycles_do_not_leak_fds_or_threads():
     res = run_world(2, _w_cycles, 20, timeout=300)
     for fds, os_threads, py_threads in res:
-        assert fds == 0 and os_threads == 0 and py_threads == 0, res
+        assert fds == 0 and os_threads <= 0 and py_threads == 0, res  # growth is a leak; a runtime helper thread exiting during the cycles (seen on macOS) is not
 
 
 def _w_flush_and_gil(rank, world, ex):
@@ -47,7 +47,7 @@ def _w_flush_and_gil(rank, world, ex):
 
     comm = _create(rank, world, ex)
     try:
-        n = 64 * 1024
+        n = 1024 * 1024  # 40 MiB in total: far more than the socket buffers absorb, so the flush really waits for the receiver
         if rank == 0:
             sends = [(np.full(n, i, dtype=np.uint8), 1) for i in range(40)]
             ticks = {"n": 0}
