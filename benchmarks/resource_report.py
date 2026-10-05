@@ -105,7 +105,7 @@ def analyse(rec_path, res_path):
         hs = [x[6].get(str(act["native_id"]), [0, 0])[0] + x[6].get(str(act["native_id"]), [0, 0])[1] for x in rows]
         out["activity"] = {"mode": act["mode"], "duty": act["duty"], "steps": len(ivs), "active_ms_per_step": act_ns / n / 1e6, "helper_cpu_ms_per_step": cpu_ns / n / 1e6,
                            "active_fraction_of_step_time": act_ns / max(1, step_ns), "helper_cpu_s_total_run": sum(b[2] for b in act["bursts"]) / 1e9,
-                           "sampler_helper_thread_cpu_s": hs[-1] - hs[0] if hs else None}
+                           "sampler_helper_thread_cpu_s": (max(hs) - next((h for h in hs if h > 0), 0)) if hs else None}
     tw = r["rows"][-1][0] - r["rows"][0][0]
     out["run"] = {"wall_s": tw / 1e9, "cpu_s": (proc[-1] - proc[0]), "invcs": inv[-1] - inv[0], "volcs": vol[-1] - vol[0]}
     return out
