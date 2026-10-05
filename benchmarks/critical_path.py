@@ -24,7 +24,7 @@ import statistics
 
 def load(path):
     d = json.load(open(path))
-    ev = [dict(t0=a, t1=b, kind=k, label=l, depth=dp) for a, b, k, l, dp in d["events"]]
+    ev = [dict(t0=a, t1=b, kind=k, label=l, depth=dp) for a, b, k, l, dp, *_ in d["events"]]
     dec = [e for e in ev if not e["label"].startswith("prefill:")]
     marks = [i for i, e in enumerate(dec) if e["kind"] == "comm" and e["label"] == "step_complete"]
     spans = [dec[a: b + 1] for a, b in zip(marks, marks[1:])][3:]

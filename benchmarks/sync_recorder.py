@@ -55,25 +55,50 @@ class SyncRecorder:
     def __init__(self, rank: int, backend: str):
         self.rank = rank
         self.backend = backend
-        self.events: list[tuple[int, int, str, str, int]] = []  # (t0, t1, kind, label, depth)
+        # (t0, t1, kind, label, depth, step, op, tid): step = decode forward-step index (-1 outside decode), op = per-rank communication-call number (-1 outside one)
+        self.events: list[tuple[int, int, str, str, int, int, int, int]] = []
         self.phase = "prefill"
+        self.clock: dict = {}  # filled by the driver (benchmarks/clock_sync.py results)
         self._tl = threading.local()
         self._orig: list[tuple[object, str, object]] = []
+        self._completed = 0  # decode step_complete calls finished so far
+        self._op = 0
 
     def _depth(self) -> int:
         return getattr(self._tl, "d", 0)
 
+    def _step(self, kind: str, label: str) -> int:
+        """The forward step an event belongs to. exo's step is [compute][step_complete][send][all_gather] on rank 0 and
+        [pre_recv eval][recv][compute][step_complete][all_gather] on rank 1, followed by the sampler eval: events before the step's step_complete
+        belong to step `completed`, events after it (and the sampler, which samples that step's logits) to step `completed - 1`."""
+        if self.phase != "decode":
+            return -1
+        cur = getattr(self._tl, "op", None)
+        if cur == "recv_like" or label in ("pre_recv_template_eval", "post_recv_eval", "model_output_eval", "recv_like", "wait:recv"):
+            return self._completed
+        return self._completed - 1
+
     def timed(self, kind: str, label: str, fn, *args, **kw):
         d = self._depth()
         self._tl.d = d + 1
+        outer_op = getattr(self._tl, "op", None)
+        op = getattr(self._tl, "opid", -1)
+        if kind == "comm" and d == 0 and label in ("send", "recv_like", "all_gather", "barrier", "any_true"):
+            self._tl.op = label
+            self._op += 1
+            op = self._tl.opid = self._op
         t0 = time.perf_counter_ns()
         try:
+            if kind == "comm" and label == "step_complete" and self.phase == "decode":
+                self._completed += 1
             return fn(*args, **kw)
         finally:
             t1 = time.perf_counter_ns()
             self._tl.d = d
-            self.events.append((t0, t1, kind, label, d))
-            self.events[-1] = (t0, t1, kind, label if self.phase == "decode" else "prefill:" + label, d)
+            step = self._step(kind, label)
+            if kind == "comm" and d == 0 and label in ("send", "recv_like", "all_gather", "barrier", "any_true"):
+                self._tl.op, self._tl.opid = outer_op, -1
+            self.events.append((t0, t1, kind, label if self.phase == "decode" else "prefill:" + label, d, step, op, threading.get_ident()))
 
     def _patch(self, obj, name, new):
         self._orig.append((obj, name, getattr(obj, name)))
@@ -115,6 +140,12 @@ class SyncRecorder:
                 return rec.timed("tbccl_wait", f"wait:{t.op}", orig_wait, self_, t, *a, **kw)
 
             self._patch(group.TbcclPipelineComm, "wait", wait_)
+            orig_submit = group.TbcclPipelineComm._submit
+
+            def submit_(self_, op, peer, borrows, call):
+                return rec.timed("tbccl_submit", f"submit:{op}", orig_submit, self_, op, peer, borrows, call)
+
+            self._patch(group.TbcclPipelineComm, "_submit", submit_)
         return _CommProxy(comm, self)
 
     def uninstall(self) -> None:
@@ -123,8 +154,16 @@ class SyncRecorder:
         self._orig.clear()
 
     def dump(self, path: str) -> None:
+        import socket
+
         with open(path, "w") as f:
-            json.dump({"rank": self.rank, "backend": self.backend, "events": self.events}, f)
+            json.dump({"rank": self.rank, "backend": self.backend, "host": socket.gethostname(), "pid": __import__("os").getpid(), "clock": self.clock,
+                       "events": self.events}, f)
+        with open(path[:-5] + ".jsonl" if path.endswith(".json") else path + ".jsonl", "w") as f:  # the same events, one JSON object per line
+            f.write(json.dumps({"meta": {"rank": self.rank, "backend": self.backend, "host": socket.gethostname(), "pid": __import__("os").getpid(), "clock": self.clock}}) + "\n")
+            for t0, t1, kind, label, depth, step, op, tid in self.events:
+                f.write(json.dumps({"timestamp_ns": t0, "end_ns": t1, "host": socket.gethostname(), "rank": self.rank, "pid": __import__("os").getpid(), "thread_id": tid,
+                                    "token_id": step, "operation_id": op, "event": f"{kind}:{label}", "kind": kind, "label": label, "depth": depth, "backend": self.backend}) + "\n")
 
 
 _COMM_OPS = ("send", "recv_like", "all_gather", "barrier", "any_true", "flush_sends", "step_complete")
