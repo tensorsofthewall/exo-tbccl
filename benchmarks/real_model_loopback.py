@@ -142,6 +142,8 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         set_pipeline_prefill(model, False)
         if cadence or sync_rec:
             comm.phase = "decode"
+        if sync_rec:
+            sync_rec.mark_decode_start()
         logits = model(p[-1:].reshape(1, 1), cache=cache)
         t = mx.argmax(logits[0, -1])
         ttft = time.perf_counter() - t0

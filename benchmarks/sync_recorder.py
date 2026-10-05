@@ -62,6 +62,7 @@ class SyncRecorder:
         self._tl = threading.local()
         self._orig: list[tuple[object, str, object]] = []
         self._completed = 0  # decode step_complete calls finished so far
+        self._res0 = None
         self._op = 0
 
     def _depth(self) -> int:
@@ -103,6 +104,24 @@ class SyncRecorder:
     def _patch(self, obj, name, new):
         self._orig.append((obj, name, getattr(obj, name)))
         setattr(obj, name, new)
+
+    @staticmethod
+    def _resources():
+        import resource
+
+        r = resource.getrusage(resource.RUSAGE_SELF)
+        out = {"utime_s": r.ru_utime, "stime_s": r.ru_stime, "nvcsw": r.ru_nvcsw, "nivcsw": r.ru_nivcsw, "t_ns": time.perf_counter_ns()}
+        try:
+            import psutil
+
+            out["threads"] = {str(t.id): [t.user_time, t.system_time] for t in psutil.Process().threads()}
+        except Exception:  # noqa: BLE001
+            pass
+        return out
+
+    def mark_decode_start(self):
+        """Snapshot process CPU time / context switches / per-thread CPU at the start of decode (driver calls it); dump() adds the deltas."""
+        self._res0 = self._resources()
 
     def install(self, comm) -> object:
         orig_eval, orig_async = mx.eval, mx.async_eval
@@ -157,8 +176,15 @@ class SyncRecorder:
         import socket
 
         with open(path, "w") as f:
+            res = None
+            if self._res0 is not None:
+                r1 = self._resources()
+                res = {k: r1[k] - self._res0[k] for k in ("utime_s", "stime_s", "nvcsw", "nivcsw", "t_ns")}
+                if "threads" in r1:
+                    res["threads"] = {tid: [round(v[0] - self._res0.get("threads", {}).get(tid, [0, 0])[0], 3), round(v[1] - self._res0.get("threads", {}).get(tid, [0, 0])[1], 3)]
+                                      for tid, v in r1["threads"].items()}
             json.dump({"rank": self.rank, "backend": self.backend, "host": socket.gethostname(), "pid": __import__("os").getpid(), "clock": self.clock,
-                       "events": self.events}, f)
+                       "resources_decode": res, "events": self.events}, f)
         with open(path[:-5] + ".jsonl" if path.endswith(".json") else path + ".jsonl", "w") as f:  # the same events, one JSON object per line
             f.write(json.dumps({"meta": {"rank": self.rank, "backend": self.backend, "host": socket.gethostname(), "pid": __import__("os").getpid(), "clock": self.clock}}) + "\n")
             for t0, t1, kind, label, depth, step, op, tid in self.events:
