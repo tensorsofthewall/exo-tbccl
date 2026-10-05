@@ -333,3 +333,22 @@ def test_alloc_stream_config_parsing(monkeypatch):
     assert FastPathConfig.from_env().alloc_cpu is True
     monkeypatch.setenv("EXO_TBCCL_ALLOC_STREAM", "gpu")
     assert FastPathConfig.from_env().alloc_cpu is False
+
+
+@pytest.mark.parametrize("world", [2, 3, 4])
+@pytest.mark.parametrize("dtype", ["float32", "bfloat16"])
+def test_wait_spin_is_bit_exact_vs_blocking_wait(world, dtype):
+    """Phase 59 experiment: EXO_TBCCL_WAIT_SPIN_MS polls a pending Work before blocking (Metal only; a no-op on CUDA). Every gathered stage output must hash
+    identically to the blocking path, and the receive-pool bookkeeping must stay bounded."""
+    base = run_world(world, _w_chain, {}, 200, dtype)
+    spin = run_world(world, _w_chain, {"EXO_TBCCL_WAIT_SPIN_MS": "50"}, 200, dtype)
+    assert [r[0] for r in spin] == [r[0] for r in base]
+
+
+def test_wait_spin_config_parsing(monkeypatch):
+    from exo_tbccl.config import FastPathConfig
+
+    monkeypatch.delenv("EXO_TBCCL_WAIT_SPIN_MS", raising=False)
+    assert FastPathConfig.from_env().wait_spin_ms == 0.0
+    monkeypatch.setenv("EXO_TBCCL_WAIT_SPIN_MS", "2.5")
+    assert FastPathConfig.from_env().wait_spin_ms == 2.5

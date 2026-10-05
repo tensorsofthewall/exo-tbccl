@@ -10,6 +10,7 @@ import ctypes
 import logging
 import os
 import threading
+import time
 from collections import deque
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING
@@ -43,6 +44,15 @@ def _AUTO_ALLOWED(caps: "_cuda_caps.DeviceCaps") -> bool:
     return any(all(caps.attrs.get(k) == v for k, v in sig.items()) for sig in _PROVEN_MANAGED_HOST_SIGNATURES)
 
 
+def _metal_available() -> bool:
+    try:
+        import mlx.core as mx
+
+        return bool(mx.metal.is_available())
+    except Exception:  # noqa: BLE001
+        return False
+
+
 class Transfer:
     """One submitted TBCCL operation plus everything that must stay alive until it is terminal."""
 
@@ -70,6 +80,7 @@ class Transfer:
 class TbcclPipelineComm:
     def __init__(self, comm: object, rank: int, size: int, config: FastPathConfig | None = None):
         self.config = config or FastPathConfig.from_env()
+        self._spin_s = self.config.wait_spin_ms / 1000.0 if self.config.wait_spin_ms > 0 and _metal_available() else 0.0
         self._managed_verified: dict[int, bool] = {}
         poison = os.environ.get("EXO_TBCCL_RECV_POISON")
         self.pool = ReceivePool(poison=int(poison, 0) & 0xFF if poison else None)
@@ -224,7 +235,16 @@ class TbcclPipelineComm:
     def wait(self, t: Transfer, timeout_ms: int | None = None) -> bool:
         """Wait for one transfer (GIL released). Returns True when terminal; raises the structured error of a failed operation."""
         try:
-            done, result = t.work.wait(timeout_ms)  # pyright: ignore[reportAttributeAccessIssue]
+            done, result = False, 0
+            if timeout_ms is None and self._spin_s > 0:
+                # Phase 59 experiment (Metal only): keep this thread active while the transfer is pending, like MlxRing's busy-polling worker, then block
+                deadline = time.perf_counter() + self._spin_s
+                while time.perf_counter() < deadline:
+                    done, result = t.work.wait(0)  # pyright: ignore[reportAttributeAccessIssue]
+                    if done:
+                        break
+            if not done:
+                done, result = t.work.wait(timeout_ms)  # pyright: ignore[reportAttributeAccessIssue]
         except TbcclError as e:
             raise e.with_context(rank=self._rank, peer=t.peer) from None
         if not done:
