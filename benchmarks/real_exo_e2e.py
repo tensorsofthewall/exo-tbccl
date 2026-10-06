@@ -147,7 +147,7 @@ def main():
         for p in r["previews"]:
             inst = p.get("instance")
             lay = None
-            if inst:
+            if inst and "PipelineShardMetadata" in json.dumps(inst):
                 kind, sh = layout_of(inst)
                 lay = [(s["device_rank"], s["start_layer"], s["end_layer"], s["node"][:8]) for s in sh]
             print(p["sharding"], p["instance_meta"], "layout", lay, "delta", p.get("memory_delta_by_node"), "error", p.get("error"))
