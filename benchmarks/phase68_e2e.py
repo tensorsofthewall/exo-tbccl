@@ -31,9 +31,13 @@ def state():
 
 def prompts():
     short = "Count from one to five in words."
-    medium = "Summarize the following in two sentences. " + " ".join(f"Item {i}: the quick brown fox number {i} jumps over lazy dog number {i * 3}." for i in range(1, 18))
+    # Phase 68: "medium" = 6 items (~140 prompt tokens): the largest that the 8 GB GPU prefills with the exo-selected 21-layer shard (12 items ~266 tokens and the Phase 53
+    # 17-item ~375-token prompt OOM in mlx-lm's CUDA gated-delta fallback, ~3.4 MB per token per linear layer; see docs/phase68_large_model_loading.md)
+    medium = "Summarize the following in two sentences. " + " ".join(f"Item {i}: the quick brown fox number {i} jumps over lazy dog number {i * 3}." for i in range(1, 7))
+    medium12 = "Summarize the following in two sentences. " + " ".join(f"Item {i}: the quick brown fox number {i} jumps over lazy dog number {i * 3}." for i in range(1, 13))
+    medium17 = "Summarize the following in two sentences. " + " ".join(f"Item {i}: the quick brown fox number {i} jumps over lazy dog number {i * 3}." for i in range(1, 18))
     long = "Read the log and report the last line number. " + " ".join(f"Line {i}: alpha beta gamma delta epsilon {i % 17}." for i in range(1, 520))
-    return {"short": short, "medium": medium, "long": long}
+    return {"short": short, "medium": medium, "medium12": medium12, "medium17": medium17, "long": long}
 
 
 def place(meta, model, min_nodes=2):
@@ -98,8 +102,9 @@ def chat_stream(model, prompt, max_tokens):
     t0 = time.time()
     req = urllib.request.Request(API + "/v1/chat/completions", method="POST", headers={"content-type": "application/json"},
                                  data=json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0, "max_tokens": max_tokens, "stream": True,
-                                                  "logprobs": True, "top_logprobs": 1, "enable_thinking": False}).encode())
+                                                  "logprobs": True, "top_logprobs": 5, "enable_thinking": False}).encode())
     text, toks, times, usage, finish, error = "", [], [], None, None, None
+    lps = []  # per generated token: chosen logprob and the top-5 alternatives (token, logprob)
     with urllib.request.urlopen(req, timeout=1800) as r:
         for raw in r:
             line = raw.decode().strip()
@@ -122,9 +127,10 @@ def chat_stream(model, prompt, max_tokens):
                     times.append(time.time() - t0)
                 lp = (ch.get("logprobs") or {}).get("content") or []
                 toks += [x["token"] for x in lp]
+                lps += [{"token": x["token"], "logprob": x.get("logprob"), "top": [(t.get("token"), t.get("logprob")) for t in (x.get("top_logprobs") or [])]} for x in lp]
     gaps = [b - a for a, b in zip(times, times[1:])]
     q = lambda p: sorted(gaps)[min(len(gaps) - 1, int(p * len(gaps)))] if gaps else None
-    return {"text": text, "tokens": toks, "ttft": times[0] if times else None, "token_times": times, "tpot_median": statistics.median(gaps) if gaps else None, "tpot_p25": q(0.25),
+    return {"text": text, "tokens": toks, "logprobs": lps[:8], "ttft": times[0] if times else None, "token_times": times, "tpot_median": statistics.median(gaps) if gaps else None, "tpot_p25": q(0.25),
             "tpot_p75": q(0.75), "tpot_p95": q(0.95), "tpot_mean": (times[-1] - times[0]) / len(gaps) if gaps else None,
             "prefill_est": (times[0] - statistics.median(gaps)) if gaps else None, "total": time.time() - t0, "usage": usage, "finish": finish, "error": error}
 
