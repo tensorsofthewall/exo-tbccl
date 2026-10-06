@@ -100,6 +100,7 @@ def delete(iid):
 
 def chat_stream(model, prompt, max_tokens):
     t0 = time.time()
+    t_abs0 = t0
     req = urllib.request.Request(API + "/v1/chat/completions", method="POST", headers={"content-type": "application/json"},
                                  data=json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0, "max_tokens": max_tokens, "stream": True,
                                                   "logprobs": True, "top_logprobs": 5, "enable_thinking": False}).encode())
@@ -130,9 +131,29 @@ def chat_stream(model, prompt, max_tokens):
                 lps += [{"token": x["token"], "logprob": x.get("logprob"), "top": [(t.get("token"), t.get("logprob")) for t in (x.get("top_logprobs") or [])]} for x in lp]
     gaps = [b - a for a, b in zip(times, times[1:])]
     q = lambda p: sorted(gaps)[min(len(gaps) - 1, int(p * len(gaps)))] if gaps else None
-    return {"text": text, "tokens": toks, "logprobs": lps[:8], "ttft": times[0] if times else None, "token_times": times, "tpot_median": statistics.median(gaps) if gaps else None, "tpot_p25": q(0.25),
+    return {"t_abs_start": t_abs0, "t_abs_end": time.time(), "text": text, "tokens": toks, "logprobs": lps[:8], "ttft": times[0] if times else None, "token_times": times, "tpot_median": statistics.median(gaps) if gaps else None, "tpot_p25": q(0.25),
             "tpot_p75": q(0.75), "tpot_p95": q(0.95), "tpot_mean": (times[-1] - times[0]) / len(gaps) if gaps else None,
             "prefill_est": (times[0] - statistics.median(gaps)) if gaps else None, "total": time.time() - t0, "usage": usage, "finish": finish, "error": error}
+
+
+def cancel_test(model, prompt, drop_after=10, max_tokens=200):
+    """Stream a long generation, abandon the HTTP connection after `drop_after` tokens (exo cancels the task on disconnect), wait, then check the instance still serves a request."""
+    req = urllib.request.Request(API + "/v1/chat/completions", method="POST", headers={"content-type": "application/json"},
+                                 data=json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0, "max_tokens": max_tokens, "stream": True, "enable_thinking": False}).encode())
+    n, t0 = 0, time.time()
+    r = urllib.request.urlopen(req, timeout=600)
+    for raw in r:
+        line = raw.decode().strip()
+        if line.startswith("data:") and line[5:].strip() != "[DONE]":
+            ev = json.loads(line[5:].strip())
+            n += sum(1 for ch in ev.get("choices", []) if (ch.get("delta") or {}).get("content"))
+            if n >= drop_after:
+                break
+    r.close()
+    t_drop = time.time() - t0
+    time.sleep(4)
+    after = chat_stream(model, prompts()["short"], 8)
+    return {"tokens_before_drop": n, "t_drop_s": t_drop, "after": {k: after[k] for k in ("text", "tokens", "ttft", "tpot_median", "finish", "error", "usage")}}
 
 
 def main():
@@ -143,6 +164,7 @@ def main():
     ap.add_argument("--reps", type=int, default=1)
     ap.add_argument("--out")
     ap.add_argument("--keep", action="store_true")
+    ap.add_argument("--cancel-test", action="store_true")
     a = ap.parse_args()
     if a.cmd == "state":
         st = state()
@@ -170,6 +192,7 @@ def main():
     try:
         t_load, tags = wait_ready(iid)
         out["load_s"] = t_load
+        out["t_abs_ready"] = time.time()
         print(f"ready after {t_load:.1f}s", flush=True)
         P = prompts()
         for spec in a.prompts.split(","):
@@ -180,6 +203,9 @@ def main():
                 res.append(r)
                 print(f"  {name} n={n}: ttft {r['ttft']}, tpot median {r['tpot_median']}, p95 {r['tpot_p95']}, usage {r['usage']}, finish {r['finish']}, error {r['error']}, text {r['text'][:80]!r}", flush=True)
             out["runs"][f"{name}:{n}"] = res
+        if a.cancel_test:
+            out["cancel_test"] = cancel_test(model, P["medium"])
+            print("  cancel test:", json.dumps(out["cancel_test"])[:400], flush=True)
     finally:
         if not a.keep:
             try:
