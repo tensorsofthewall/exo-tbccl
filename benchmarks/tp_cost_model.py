@@ -251,16 +251,19 @@ def main():
     prof = lambda n, r: json.load(open(os.path.join(a.data, "profiles", f"{n}.rank{r}.json")))["ops"]
     print("\nValidation: model of the replay (sum over collectives of max(gap) + AllReduce latency at the real curve) vs measured replay token time, us")
     ratios = []
-    for sc in ("decode_comm_only", "decode_equal", "decode_asym25", "decode_asym375"):
-        f = os.path.join(a.data, "physical", f"R_{sc}.linux.out")
+    for sc in ("decode_comm_only", "decode_equal", "decode_asym25", "decode_asym375", "decode_asym375#2", "decode_attn_replicated", "prefill_comm_only", "prefill_equal", "prefill_asym25"):
+        base = sc.split("#")[0]
+        f = os.path.join(a.data, "physical", f"R_{base}.linux.out" if "#" not in sc and sc != "decode_attn_replicated" else f"R2_{base}.linux.out")
         if not os.path.exists(f):
             continue
+        prof_name = base
         meas = json.loads(open(f).read().strip().splitlines()[-1])["token_wall_median_us"]
-        o0, o1 = prof(sc, 0), prof(sc, 1)
-        pred = sum(max(x["gap_us"], y["gap_us"]) + (comm.real(x["bytes"]) if x["op"] == "allreduce" else comm.gather(max(x["bytes"], 8))) for x, y in zip(o0, o1))
+        o0, o1 = prof(prof_name, 0), prof(prof_name, 1)
+        pred = sum(max(x["gap_us"], y["gap_us"]) + (comm.real(x["bytes"]) * (CADENCE if sc.startswith("prefill") else 1.0) if x["op"] == "allreduce" else comm.gather(max(x["bytes"], 8))) for x, y in zip(o0, o1))
         pred_hot = sum(max(x["gap_us"], y["gap_us"]) + (comm.hot(x["bytes"]) if x["op"] == "allreduce" else comm.gather(max(x["bytes"], 8))) for x, y in zip(o0, o1))
         gaps = sum(max(x["gap_us"], y["gap_us"]) for x, y in zip(o0, o1))
-        ratios.append(meas / pred)
+        if sc.startswith("decode") and sc != "decode_comm_only":
+            ratios.append(meas / pred)
         res["validation"].append({"scenario": sc, "replay_us": meas, "model_us": pred, "model_hot_us": pred_hot, "diff_pct": 100 * (meas - pred) / pred, "sum_max_gaps_us": gaps,
                                   "replay_minus_gaps_us": meas - gaps, "collectives": len(o0)})
         print(f"  {sc:20} replay {meas:8.0f}  model {pred:8.0f} ({100 * (meas - pred) / pred:+5.1f} %)  [hot-curve model {pred_hot:8.0f}]  max-gap sum {gaps:7.0f}  extra over gaps {meas - gaps:7.0f} us = {(meas - gaps) / len(o0):.0f} us per collective")
