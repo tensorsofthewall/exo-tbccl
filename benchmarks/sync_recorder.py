@@ -207,9 +207,30 @@ class SyncRecorder:
             orig_wait = group.TbcclPipelineComm.wait
 
             def wait_(self_, t, *a, **kw):
-                return rec.timed("tbccl_wait", f"wait:{t.op}", orig_wait, self_, t, *a, **kw)
+                s0 = self_.wait_stats.total_spin_us
+                t_in = time.perf_counter_ns()
+                try:
+                    return rec.timed("tbccl_wait", f"wait:{t.op}", orig_wait, self_, t, *a, **kw)
+                finally:
+                    spun = self_.wait_stats.total_spin_us - s0
+                    if spun > 0 and rec.phase == "decode":  # The caller's WAIT_SPIN interval (starts at wait entry, lasts `spun`)
+                        rec.events.append((t_in, t_in + int(spun * 1e3), "wait_spin", f"wait_spin:{t.op}", 0, rec._completed, -1, threading.get_ident()))
 
             self._patch(group.TbcclPipelineComm, "wait", wait_)
+            policy = getattr(comm, "_act", None)
+            if policy is not None:  # The runtime helper's open/close instants (it burns from an open to the next close)
+                sa = policy.activity
+
+                def wrap(orig, nm):
+                    def f(*a, **kw):
+                        if rec.phase == "decode":
+                            tn = time.perf_counter_ns()
+                            rec.events.append((tn, tn, "helper", nm, 0, rec._completed, -1, threading.get_ident()))
+                        return orig(*a, **kw)
+                    return f
+
+                for nm in ("open", "close_window"):
+                    setattr(sa, nm, wrap(getattr(sa, nm), nm))
             orig_submit = group.TbcclPipelineComm._submit
 
             def submit_(self_, op, peer, borrows, call):
