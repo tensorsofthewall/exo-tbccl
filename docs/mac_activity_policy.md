@@ -29,3 +29,7 @@ Inert unless `mx.metal.is_available()` (no helper on Linux CUDA or CPU-only host
 **Supported experimental, opt-in, not default, not renamed.** Orientation A repeats cleanly (3/3 repetitions: 109-118 % of the gap closed, 0.60 ms below Ring, first-use and stage at or better than Ring, ~0.4 W CPU power, tokens identical); orientation B fails the plan's >= 70 % gate on the real link (37-41 %). Per the plan, a policy that fails B is not default-enabled, is not promoted to a supported config name (`EXO_TBCCL_ACTIVITY_MODE`/`_DUTY`/`_MAX_MS` stay as they are; duty 1.0 is the only validated value), and does not displace `WAIT_SPIN_MS`. Recommended use: a Metal rank that *receives* its stage input (the Mac as a downstream pipeline stage), duty 1.0. Not recommended: a Mac stage that only sends and waits (B). Supported statement: same-process activity during the relevant pipeline window restores execution performance; the exact scheduler or frequency mechanism is not established.
 
 Supersedes `docs/mac_step_activity.md` (the Phase 63 whole-step window).
+
+## Status (Phase 66)
+
+Orientation B physical, 3 repetitions: STEP 31 % of the gap, WAIT_SPIN alone -3 %, STEP + `EXO_TBCCL_WAIT_SPIN_MS=8` 64 % (53-82 %; 0.70 W, 1.18 cores vs Ring ~6 W). The two mechanisms do not overlap in time (0.04 ms/step) and together cover ~99.6 % of the step, so the combination is the best known opt-in setting for a Mac stage that mostly waits, but it misses the 80 % gate and is 1.3 ms above Ring. No unified state machine, no default, no auto-selection. See `docs/phase66_results.md`.
