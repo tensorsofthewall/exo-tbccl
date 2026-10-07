@@ -10,4 +10,5 @@ building-docs
 release-process
 security-policy
 changelog
+documentation-versions
 ```
