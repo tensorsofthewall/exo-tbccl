@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Technical guidance for contributors and coding agents working in this repository. User documentation is in `README.md`; design notes are in `docs/architecture.md`, `docs/mlx_dlpack_bridge.md` and `docs/bootstrap.md`. Contribution workflow is in `CONTRIBUTING.md`.
+Technical guidance for contributors and coding agents working in this repository. User documentation is in `README.md`; design notes are in `docs/concepts/architecture.md`, `docs/concepts/bridge.md` and `docs/concepts/bootstrap.md`. Contribution workflow is in `CONTRIBUTING.md`.
 
 ## Purpose
 
