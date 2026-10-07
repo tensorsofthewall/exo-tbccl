@@ -1,4 +1,4 @@
-"""Phase 58: reconstruct one decode step across two hosts on a common clock and attribute its time.
+"""Reconstruct one decode step across two hosts on a common clock and attribute its time.
 
     python benchmarks/distributed_timeline.py rank0.json rank1.json [--steps 3,4] [--skip 3] [--csv out.csv]
 
@@ -52,8 +52,9 @@ def align(clock):
 
 
 def to_rank0(al, t1):
-    # t0 is in rank 0's clock frame, so the drift is applied to the elapsed rank-0 time (Phase 62: the earlier t1 - t0 mixed frames, an error of
-    # drift x |offset| that was ~0.1 ms when the hosts' monotonic clocks differed by ~30 s, and tens of ms when they differ by thousands of seconds)
+    # t0 is in rank 0's clock frame, so the drift is applied to the elapsed rank-0 time (the resource-sampler work: the earlier t1 - t0 mixed
+    # frames, an error of drift x |offset| that was ~0.1 ms when the hosts' monotonic clocks differed by ~30 s, and tens of ms when they differ by
+    # thousands of seconds)
     t = t1 - al["offset"]
     return t - al["drift"] * (t - al["t0"]) / 1e9
 

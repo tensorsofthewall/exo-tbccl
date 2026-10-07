@@ -71,37 +71,37 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         from exo.worker.engines.mlx.pipeline_comm import MlxPipelineComm
 
         comm = MlxPipelineComm(mx.distributed.init(backend="ring", strict=True))
-    elif backend == "null":  # Phase 57 control: shared-memory transport, same call semantics (benchmarks/null_comm.py)
+    elif backend == "null":  # the per-token timeline work control: shared-memory transport, same call semantics (benchmarks/null_comm.py)
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from null_comm import NullPipelineComm
 
         comm = NullPipelineComm.create(rank, world, ex)
     else:
         comm = TbcclPipelineComm.create(rank, world, ex, bind_host=host, advertise_host=host, timeout_ms=1800000)
-    if os.environ.get("EXO_P59_QOS"):  # Phase 59 test-only: scope a macOS QoS class to THIS (main) thread: 0x21 user-interactive, 0x19 user-initiated, 0x15 default, 0x11 utility
+    if os.environ.get("EXO_P59_QOS"):  # the remote-peer emulator work test-only: scope a macOS QoS class to THIS (main) thread: 0x21 user-interactive, 0x19 user-initiated, 0x15 default, 0x11 utility
         import ctypes
 
         ctypes.CDLL("/usr/lib/libSystem.B.dylib").pthread_set_qos_class_self_np(int(os.environ["EXO_P59_QOS"], 0), 0)
-    sync_prefix = os.environ.get("EXO_P57_SYNC")  # Phase 57: record every eval / communication call with a semantic label (path prefix); measurement only
+    sync_prefix = os.environ.get("EXO_P57_SYNC")  # Record every eval / communication call with a semantic label (path prefix); measurement only
     sync_rec = None
     if sync_prefix:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from sync_recorder import SyncRecorder
 
         sync_rec = SyncRecorder(rank, backend)
-        if os.environ.get("EXO_P59_ACTIVITY"):  # Phase 59 test-only CPU-activity control (benchmarks/activity_thread.py)
+        if os.environ.get("EXO_P59_ACTIVITY"):  # the remote-peer emulator work test-only CPU-activity control (benchmarks/activity_thread.py)
             from activity_thread import Activity
 
             sync_rec.activity = Activity(os.environ["EXO_P59_ACTIVITY"])
         comm = sync_rec.install(comm)
     clock_sync = None
-    if clock:  # Phase 58: cross-host clock alignment on its own socket (benchmarks/clock_sync.py), before the traced region
+    if clock:  # cross-host clock alignment on its own socket (benchmarks/clock_sync.py), before the traced region
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from clock_sync import ClockSync
 
         clock_sync = ClockSync(rank, clock["host"], clock["peer"], clock["port"], clock.get("n", 200))
         clock_sync.measure("pre")
-    cadence = os.environ.get("EXO_P56_CADENCE")  # Phase 56: record the communication cadence (path prefix); measurement only
+    cadence = os.environ.get("EXO_P56_CADENCE")  # Record the communication cadence (path prefix); measurement only
     if cadence:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from cadence_recorder import CadenceRecorder
@@ -122,7 +122,7 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         except StopIteration as stop:
             model = stop.value
         cache = make_prompt_cache(model)
-        if sync_rec and os.environ.get("EXO_P59_LAYERS"):  # Phase 59: per-layer host (graph-build) timing
+        if sync_rec and os.environ.get("EXO_P59_LAYERS"):  # per-layer host (graph-build) timing
             sync_rec.instrument_model(model)
 
         def prefix_digest(n):
@@ -191,7 +191,7 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
             if sync_rec.activity is not None:
                 sync_rec.activity.close()
             stats = getattr(getattr(comm, "_comm", comm), "activity_stats", None) or getattr(comm, "activity_stats", None)
-            sync_rec.runtime_activity = stats() if stats else None  # Phase 64: the runtime policy's own counters (TbcclPipelineComm only)
+            sync_rec.runtime_activity = stats() if stats else None  # The runtime policy's own counters (TbcclPipelineComm only)
             sync_rec.dump(f"{sync_prefix}.rank{rank}.json")
             sync_rec.uninstall()
         if backend in ("ring", "null"):

@@ -1,9 +1,9 @@
-"""Phase 59: a Mac-local emulator of the remote Linux pipeline peer, driven by the Phase 58 physical traces.
+"""A Mac-local emulator of the remote Linux pipeline peer, driven by the cross-host timeline physical traces.
 
     python benchmarks/remote_peer_emulator.py --orientation A --backend tbccl --profile docs/data/phase59/profiles/profile_A_tbccl.json \
         --host 127.0.0.1 --peer 127.0.0.1 --port 29900 --out /tmp/emu
 
-The real Mac stage (benchmarks/real_model_two_host.py, Qwen3-0.6B-8bit, the Phase 54 prompt) runs as the other rank over loopback with the SAME communication
+The real Mac stage (benchmarks/real_model_two_host.py, Qwen3-0.6B-8bit, the latency-attribution prompt) runs as the other rank over loopback with the SAME communication
 backend: TbcclPipelineComm (the real native binding) or MlxPipelineComm over the real MlxRing. Nothing is replaced by queues, pipes or shared memory, so each
 backend's own worker/thread behaviour on the Mac is preserved. The emulator itself does no model work and no GPU work (default device = CPU); it plays the
 Linux rank's HOST timeline:
@@ -16,10 +16,10 @@ Linux rank's HOST timeline:
       [wait the profile's sampler+pre-recv delay] recv (1,1,1024) [wait first-use+compute+pre-gather] step_complete  all_gather (1,1,1024)
 
 All delays are Linux-local intervals from docs/data/phase58 (see emulator_profile.py), replayed with calibrated sleeps plus a short spin (macOS timers run ~1.5x
-long: Phase 56). Requested and achieved delays are recorded for every step. The payloads are small deterministic bfloat16 values, so the Mac's tokens are NOT
+long: the cold-progress work). Requested and achieved delays are recorded for every step. The payloads are small deterministic bfloat16 values, so the Mac's tokens are NOT
 those of the real run (the activations are not the real model's): the experiment measures timing and communication behaviour, not text.
 
-Differences from the real Linux peer (also in docs/phase59_remote_peer_emulator.md): the wire is loopback, the peer's CPU/GPU is the Mac's (idle except for the
+Differences from the real Linux peer (also.md): the wire is loopback, the peer's CPU/GPU is the Mac's (idle except for the
 timers and, with MlxRing, the ring worker's own busy-polling while a transfer is pending, exactly as on Linux but now competing for the Mac's cores), and no
 Linux GPU work exists.
 """
@@ -61,7 +61,7 @@ class Clock:
 
     def wait_until(self, deadline_ns: int) -> None:
         rem = deadline_ns - now()
-        if os.environ.get("EMU_NOSPIN") and rem > 0:  # Phase 62: no busy tail (the emulator then leaves the P-cluster idle between events); timing error is a few hundred us
+        if os.environ.get("EMU_NOSPIN") and rem > 0:  # No busy tail (the emulator then leaves the P-cluster idle between events); timing error is a few hundred us
             time.sleep(rem / 1e9 / self.ratio)
             return
         if rem > 600_000:

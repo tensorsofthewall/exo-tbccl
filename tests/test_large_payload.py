@@ -1,4 +1,4 @@
-"""Phase 68: N=2 bf16 point-to-point and AllGather payloads at the sizes a 5120-wide pipeline (Qwen3.8-27B class) really moves: one decode activation
+"""N=2 bf16 point-to-point and AllGather payloads at the sizes a 5120-wide pipeline (Qwen3.8-27B class) really moves: one decode activation
 (1 x 5120), a prefill tail chunk (577 tokens) and a full exo prefill chunk (2048 tokens = 20,971,520 B). Bit-exact, with a send posted before the receive
 (queued-prefill order) and the other way round; one communicator reused for all sizes, closed explicitly."""
 

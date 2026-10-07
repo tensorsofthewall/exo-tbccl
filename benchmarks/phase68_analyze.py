@@ -1,4 +1,4 @@
-"""Phase 68: aggregate the real-exo sessions (docs/data/phase68/raw/<label>/) into the comparison tables.
+"""Aggregate the real-exo sessions (docs/data/phase68/raw/<label>/) into the comparison tables.
 
     python benchmarks/phase68_analyze.py docs/data/phase68 [--out docs/data/phase68/analysis.json]
 

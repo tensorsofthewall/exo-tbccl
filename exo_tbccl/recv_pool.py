@@ -1,4 +1,4 @@
-"""Bounded pool of pipeline receive destinations (Phase 54).
+"""Bounded pool of pipeline receive destinations (the latency-attribution work).
 
 recv_like used to allocate and evaluate a fresh MLX destination for every receive (~130-165 us on Metal, ~170-280 us on CUDA). A slot is reusable only
 once exo says the stage's input activation is dead (``release_leased``, called from ``TbcclPipelineComm.step_complete`` after the stage output has been

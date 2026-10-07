@@ -1,7 +1,7 @@
-"""Phase 59 mechanism test: is host code slower after a fully idle wait only when it touches a lot of memory (cold caches / power-gated cluster), and does a spinning
+"""The remote-peer emulator work mechanism test: is host code slower after a fully idle wait only when it touches a lot of memory (cold caches / power-gated cluster), and does a spinning
 thread elsewhere in the process prevent it?
 
-Phase 58's cpu_after_wait.py timed a tiny CPU-bound loop and saw no effect. The emulator runs show the PYTHON graph build of Qwen's seven transformer blocks going from
+The cross-host timeline work's cpu_after_wait.py timed a tiny CPU-bound loop and saw no effect. The emulator runs show the PYTHON graph build of Qwen's seven transformer blocks going from
 ~114 us (MlxRing) to ~785 us (TbcclPipelineComm blocking wait), and back to ~117 us with a spinner. A graph build touches many Python/C++ objects; this times three
 workloads right after the same wait modes: `tiny` (a small arithmetic loop), `touch` (a pointer-chasing walk over a few MB of Python objects) and `graph` (building
 ~300 lazy MLX ops, no eval).

@@ -1,4 +1,4 @@
-"""Phase 58 measurement-only cross-host clock alignment (NTP-style ping-pong over one plain TCP connection).
+"""The cross-host timeline work measurement-only cross-host clock alignment (NTP-style ping-pong over one plain TCP connection).
 
 The recorder timestamps with time.perf_counter_ns() on each host; those clocks are unrelated. Rank 0 plays the requester (L0 send, L3 receive), rank 1 the
 responder (M1 receive, M2 send, taken immediately around the echo). For one exchange, assuming a symmetric path,

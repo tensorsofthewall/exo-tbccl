@@ -35,14 +35,15 @@ ByteExchange = Callable[[str, bytes], Sequence[bytes]]
 
 _PROVEN_MANAGED_HOST_SIGNATURES = (
     # Linux, discrete GPU, driver-managed pageable access without host page tables: CPU access to managed pages is legal while the GPU runs and
-    # faults the pages to the host (RTX 3070 Ti Laptop, sm_86, driver 610.43.02, Phase 54). Add a signature only after the stress gates pass on it.
+    # faults the pages to the host (RTX 3070 Ti Laptop, sm_86, driver 610.43.02, the latency-attribution work). Add a signature only after the
+    # stress gates pass on it.
     {"managed_memory": 1, "concurrent_managed_access": 1, "pageable_memory_access": 1, "pageable_memory_access_uses_host_page_tables": 0,
      "direct_managed_mem_access_from_host": 0, "integrated": 0},
 )
 
 
 def _AUTO_ALLOWED(caps: "_cuda_caps.DeviceCaps") -> bool:
-    """True when the driver-reported attributes equal a signature the Phase 54 capability audit proved safe for host-direct managed access."""
+    """True when the driver-reported attributes equal a signature the latency-attribution capability audit proved safe for host-direct managed access."""
     return any(all(caps.attrs.get(k) == v for k, v in sig.items()) for sig in _PROVEN_MANAGED_HOST_SIGNATURES)
 
 
@@ -57,7 +58,7 @@ def _metal_available() -> bool:
 
 @dataclass
 class WaitStats:
-    """Lightweight counters of the caller-side wait policy (Phase 60): no per-wait logging, only totals. A wait 'spun' when it polled before blocking."""
+    """Lightweight counters of the caller-side wait policy (the wait-policy work): no per-wait logging, only totals. A wait 'spun' when it polled before blocking."""
 
     waits_total: int = 0
     waits_spun: int = 0
@@ -153,7 +154,7 @@ class TbcclPipelineComm:
 
     def _managed_as_host(self, send: bool, recv: bool, array: "mx.array") -> bool:
         """Policy for describing kDLCUDAManaged storage to TBCCL as host memory. ``cuda`` (the default) never does; ``host`` is a forced override
-        for measurement; ``auto`` needs the array to be CUDA-managed, its device to match a capability signature the Phase 54 audit proved
+        for measurement; ``auto`` needs the array to be CUDA-managed, its device to match a capability signature the latency-attribution audit proved
         (docs/cuda_managed_memory.md), and the payload to be small enough that CPU access to GPU-written pages stays cheap. Anything else,
         including a driver that cannot be queried, keeps the CUDA path."""
         cfg = self.config
@@ -257,7 +258,8 @@ class TbcclPipelineComm:
             ws = self.wait_stats
             ws.waits_total += 1
             if timeout_ms is None and self._spin_s > 0:
-                # Phase 59 experiment (Metal only): keep this thread active while the transfer is pending, like MlxRing's busy-polling worker, then block
+                # The remote-peer emulator work experiment (Metal only): keep this thread active while the transfer is pending, like MlxRing's
+                # busy-polling worker, then block
                 t_start = time.perf_counter()
                 deadline = t_start + self._spin_s
                 while time.perf_counter() < deadline:

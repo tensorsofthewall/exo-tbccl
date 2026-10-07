@@ -1,4 +1,4 @@
-"""Phase 57: externally written storage -> first GPU consumer, on Metal (Mac) or CUDA (Linux) — cost AND correctness.
+"""Externally written storage -> first GPU consumer, on Metal (Mac) or CUDA (Linux) — cost AND correctness.
 
     python benchmarks/recv_visibility.py [--iters 1000] [--rounds 3] [--host 127.0.0.1]
 

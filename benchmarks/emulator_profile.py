@@ -1,4 +1,4 @@
-"""Phase 59: turn the Linux side of the Phase 58 physical traces into replay profiles for benchmarks/remote_peer_emulator.py.
+"""Turn the Linux side of the cross-host timeline physical traces into replay profiles for benchmarks/remote_peer_emulator.py.
 
     python benchmarks/emulator_profile.py --out docs/data/phase59/profiles [--data docs/data/phase58/physical]
 
@@ -67,7 +67,7 @@ def main():
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
     spec = {"A": ("phys_A_{b}*.rank0.json", "rank0"), "B": ("phys_B7_{b}*.rank1.json", "rank1")}
-    if os.environ.get("PHASE") == "60":  # Phase 61 A-v2: the Phase 60 physical A runs (A1 = TBCCL baseline, A3 = Ring)
+    if os.environ.get("PHASE") == "60":  # the windowed activity-controller work A-v2: the wait-policy physical A runs (A1 = TBCCL baseline, A3 = Ring)
         a.data = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs", "data", "phase60", "physical")
         spec = {"A": ("phys_A{n}_{b}.rank0.json", "rank0")}
     for orient, (pat, role) in spec.items():

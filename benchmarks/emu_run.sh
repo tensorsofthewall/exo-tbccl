@@ -1,5 +1,5 @@
 #!/bin/sh
-# Phase 59: one real-Mac-stage + emulated-Linux-peer run (Mac loopback).
+# One real-Mac-stage + emulated-Linux-peer run (Mac loopback).
 #   usage: emu_run.sh <A|B> <tbccl|ring> <port> <outprefix> [tokens] [extra real-worker args...]
 # Run from the exo-tbccl checkout with the exo venv's python in $PY (default ../exo/.venv/bin/python). The real Mac stage records with EXO_P57_SYNC=<outprefix>;
 # the emulator writes <outprefix>.rank<R>.json and <outprefix>.fidelity.json. Extra env (EXO_TBCCL_ALLOC_STREAM=cpu, EXO_P59_*) is inherited by both processes.

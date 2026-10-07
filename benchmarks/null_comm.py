@@ -1,4 +1,4 @@
-"""Phase 57 TEST-ONLY control: a PipelineComm whose cross-rank transport is the cheapest correct local exchange available to the harness
+"""The per-token timeline work TEST-ONLY control: a PipelineComm whose cross-rank transport is the cheapest correct local exchange available to the harness
 (POSIX shared memory plus a spun sequence word) so that what remains is the pipeline's own synchronization and evaluation pattern.
 
 It keeps exo's required call semantics (send returns an array to depend on; recv_like returns a materialized array of the template's shape/dtype;

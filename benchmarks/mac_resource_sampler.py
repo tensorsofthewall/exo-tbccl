@@ -1,4 +1,4 @@
-"""Phase 62: read-only external process/thread resource sampler (macOS, psutil), aligned with the recorder clock.
+"""Read-only external process/thread resource sampler (macOS, psutil), aligned with the recorder clock.
 
     python benchmarks/mac_resource_sampler.py --match <substring of the target argv> --out <file.json> [--interval-ms 2]
 

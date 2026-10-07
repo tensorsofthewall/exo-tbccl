@@ -1,4 +1,4 @@
-"""Phase 58: how fast does plain host (Python) code run right after the thread was blocked, versus after other ways of spending the same gap?
+"""How fast does plain host (Python) code run right after the thread was blocked, versus after other ways of spending the same gap?
 
 Physical Linux<->Mac traces showed the Mac's host-side work between communication calls (return from a call, graph building, command encoding) 4-15x slower
 under TbcclPipelineComm (blocking native wait) than under MlxRing (whose non-blocking socket worker busy-polls on another thread while a transfer is pending).

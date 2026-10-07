@@ -1,4 +1,4 @@
-"""Phase 68: drive the REAL exo runtime (master + API + placement + workers + runners) over two nodes through its HTTP API. Nothing in exo is modified.
+"""Drive the REAL exo runtime (master + API + placement + workers + runners) over two nodes through its HTTP API. Nothing in exo is modified.
 
     python benchmarks/phase68_e2e.py state                                   # nodes, advertised memory, backends
     python benchmarks/phase68_e2e.py preview <model_id>                      # exo's own placement previews (MlxRing / Pipeline and Tensor)
@@ -31,8 +31,8 @@ def state():
 
 def prompts():
     short = "Count from one to five in words."
-    # Phase 68: "medium" = 6 items (~140 prompt tokens): the largest that the 8 GB GPU prefills with the exo-selected 21-layer shard (12 items ~266 tokens and the Phase 53
-    # 17-item ~375-token prompt OOM in mlx-lm's CUDA gated-delta fallback, ~3.4 MB per token per linear layer; see docs/phase68_large_model_loading.md)
+    # "medium" = 6 items (~140 prompt tokens): the largest that the 8 GB GPU prefills with the exo-selected 21-layer shard (12 items ~266 tokens and the exo integration
+    # 17-item ~375-token prompt OOM in mlx-lm's CUDA gated-delta fallback, ~3.4 MB per token per linear layer.md)
     medium = "Summarize the following in two sentences. " + " ".join(f"Item {i}: the quick brown fox number {i} jumps over lazy dog number {i * 3}." for i in range(1, 7))
     medium12 = "Summarize the following in two sentences. " + " ".join(f"Item {i}: the quick brown fox number {i} jumps over lazy dog number {i * 3}." for i in range(1, 13))
     medium17 = "Summarize the following in two sentences. " + " ".join(f"Item {i}: the quick brown fox number {i} jumps over lazy dog number {i * 3}." for i in range(1, 18))

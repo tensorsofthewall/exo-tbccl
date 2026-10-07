@@ -1,4 +1,4 @@
-"""Forced managed host-direct stress (Phase 54): thousands of GPU-produced, per-iteration varying payloads sent and received in host-direct mode, each received
+"""Forced managed host-direct stress (the latency-attribution work): thousands of GPU-produced, per-iteration varying payloads sent and received in host-direct mode, each received
 buffer consumed by a GPU kernel at once and verified bit for bit, for FP32/FP16/BF16 at 2 KiB, 8 KiB, 64 KiB and 1 MiB.
 
     python benchmarks/managed_stress.py [iters-per-direction-per-config, default 1500]   (1500 -> 36,000 verified receives)

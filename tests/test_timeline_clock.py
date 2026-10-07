@@ -1,6 +1,6 @@
-"""Phase 63: regression for the cross-host clock alignment (benchmarks/distributed_timeline.py).
+"""Regression for the cross-host clock alignment (benchmarks/distributed_timeline.py).
 
-Phase 62 found that to_rank0 applied the drift to (t1 - t0) with t1 in rank 1's clock and t0 in rank 0's, an error of drift x |offset| that only became visible when
+The resource-sampler work found that to_rank0 applied the drift to (t1 - t0) with t1 in rank 1's clock and t0 in rank 0's, an error of drift x |offset| that only became visible when
 the hosts' monotonic clocks differed by thousands of seconds (a rebooted Linux host).
 """
 import os

@@ -1,4 +1,4 @@
-"""Phase 58 hypothesis check: does a stage computation run slower right after the host thread BLOCKED (idle) than after it SPUN for the same time?
+"""The cross-host timeline work hypothesis check: does a stage computation run slower right after the host thread BLOCKED (idle) than after it SPUN for the same time?
 
     python benchmarks/idle_vs_spin_compute.py [--layers 7] [--iters 300] [--gaps-ms 1,3,5]
 

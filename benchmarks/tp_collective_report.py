@@ -1,4 +1,4 @@
-"""Phase 67: tables of the exact-size collective results (docs/data/phase67/physical/M1_*, M2_*, both ranks) -> JSON + text.
+"""Tables of the exact-size collective results (docs/data/phase67/physical/M1_*, M2_*, both ranks) -> JSON + text.
 
     python benchmarks/tp_collective_report.py docs/data/phase67/physical [--out docs/data/phase67/collectives.json]
 """

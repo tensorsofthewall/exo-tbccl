@@ -1,4 +1,4 @@
-"""Loopback A/B of managed-memory modes (Phase 54): per-direction send/recv/first-GPU-consumer times with GPU-produced varying data.
+"""Loopback A/B of managed-memory modes (the latency-attribution work): per-direction send/recv/first-GPU-consumer times with GPU-produced varying data.
 
     python benchmarks/managed_fastpath.py [--iters 400] [--rounds 3] [--dtype bfloat16]
 

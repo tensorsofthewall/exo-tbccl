@@ -21,7 +21,7 @@ mx.distributed    DLPack bridge
                     libtbccl
 ```
 
-Scope (Phase 53, extended in Phase 54): pipeline parallelism for text generation only. Not tensor parallelism, not image/CFG models. exo owns discovery,
+Scope: pipeline parallelism for text generation only. Not tensor parallelism, not image/CFG models. exo owns discovery,
 topology, placement and shard assignment; TBCCL never discovers anything.
 
 ## Install
@@ -53,9 +53,9 @@ structured result code (`TbcclTransportError`, `TbcclAbortedError`, `TbcclTimeou
 operation. Set `EXO_TBCCL_TRACE=1` to log the path of every operation (host, cuda-direct, metal-direct); `comm.stats` counts any
 adapter copy (it must stay 0).
 
-## Fast paths (Phase 54, all off by default)
+## Fast paths (all off by default)
 
-`FastPathConfig` (or the environment, read when a communicator is created) selects three opt-in optimizations; the defaults are exactly the Phase 53 behavior.
+`FastPathConfig` (or the environment, read when a communicator is created) selects three opt-in optimizations; the defaults are exactly the behavior without them.
 
 | setting | values | what it does | measured |
 |---|---|---|---|
@@ -63,7 +63,7 @@ adapter copy (it must stay 0).
 | `EXO_TBCCL_RECV` | `fresh` (default), `reuse` | serve `recv_like` destinations from a bounded pool, released at exo's `step_complete()` | -60% bridge round trip on Metal; neutral end to end |
 | `EXO_TBCCL_ASYNC_SEND` | `0` (default), `1` | decode sends submit and return; Work/Borrow are tracked and reaped, failures surface at the next communication point | neutral end to end |
 
-`kDLCUDAManaged` stays authoritative for what storage is; see `docs/cuda_managed_memory.md`, `docs/receive_buffer_pool.md`, `docs/async_send.md` and `docs/phase54_results.md`.
+`kDLCUDAManaged` stays authoritative for what storage is; see `docs/cuda_managed_memory.md`, `docs/receive_buffer_pool.md` and `docs/async_send.md`.
 Reuse is audited for Qwen3 (KVCache) and the synthetic model only; audit other cache families with `EXO_TBCCL_RECV_POISON=0xA5` before enabling it.
 
 ## Tests
@@ -76,5 +76,4 @@ Reuse is audited for Qwen3 (KVCache) and the synthetic model only; audit other c
 
 Two-host probes: `examples/two_host_fastpath.py`, `examples/two_host_ring_chain.py`, `benchmarks/real_model_two_host.py` (see their docstrings; AER-gate every real-link run).
 
-See `docs/architecture.md`, `docs/mlx_dlpack_bridge.md`, `docs/bootstrap.md`, `docs/phase53_memory_bridge.md`, `docs/phase53_exo_audit.md`
-`docs/phase53_results.md` and `docs/phase54_results.md`.
+See `docs/architecture.md`, `docs/mlx_dlpack_bridge.md` and `docs/bootstrap.md`.

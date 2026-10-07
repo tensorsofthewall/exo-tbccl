@@ -1,4 +1,4 @@
-"""Phase 58: the expected cross-host decode step from two single-machine profiles, WITHOUT the link.
+"""The expected cross-host decode step from two single-machine profiles, WITHOUT the link.
 
     python benchmarks/compose_expected.py --stage0 linux_profile.json --stage1 mac_profile.json [--measured-ms X]
 

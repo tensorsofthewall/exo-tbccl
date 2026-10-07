@@ -1,4 +1,4 @@
-"""Phase 62: per-token-window CPU activity from a recorder dump plus a mac_resource_sampler dump (same machine, same perf_counter_ns clock).
+"""Per-token-window CPU activity from a recorder dump plus a mac_resource_sampler dump (same machine, same perf_counter_ns clock).
 
     python benchmarks/resource_report.py --rec <run.rank1.json> --res <run.res.json> [--label X] [--json out.json]
 
@@ -90,7 +90,7 @@ def analyse(rec_path, res_path):
             med = [statistics.median(x[i] for x in v) for i in range(10)]
             out["windows"][w] = dict(steps=len(v), wall_us=med[0], proc_cores=med[1], main_cores=med[2], other_cores=med[3], invcs_per_ms=med[4], volcs_per_ms=med[5], rows=med[6], main_running=med[7], other_running=med[8], main_sys_cores=med[9])
     act = d.get("activity")
-    if act:  # Phase 63: the benchmark-only activity helper's own accounting, restricted to the decode steps (>=2, no digest steps, < 30 ms)
+    if act:  # The benchmark-only activity helper's own accounting, restricted to the decode steps (>=2, no digest steps, < 30 ms)
         ivs = []
         for st, v in steps.items():
             es = [e for e in v.values() if e["kind"] != "activity"]

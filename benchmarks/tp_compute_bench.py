@@ -1,4 +1,4 @@
-"""Phase 67: warm, synchronized per-part compute timings of the local Qwen3-0.6B-8bit for single-device and TP2-shard execution (measurement only; nothing is distributed).
+"""Warm, synchronized per-part compute timings of the local Qwen3-0.6B-8bit for single-device and TP2-shard execution (measurement only; nothing is distributed).
 
     python benchmarks/tp_compute_bench.py --out docs/data/phase67/compute_<host>.json [--warmup 10 --iters 50] [--prefill-len 577]
 

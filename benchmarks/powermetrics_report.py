@@ -1,4 +1,4 @@
-"""Phase 62: parse a `powermetrics --samplers cpu_power,gpu_power,thermal -i 100` text capture and summarise it over each run's DECODE window.
+"""Parse a `powermetrics --samplers cpu_power,gpu_power,thermal -i 100` text capture and summarise it over each run's DECODE window.
 
     python benchmarks/powermetrics_report.py --power p62_power.txt --run <label> <rank1 recorder.json> <res.json> <res_mtime_ns> [--run ...] [--tz-hours 5.5]
 

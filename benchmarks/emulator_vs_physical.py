@@ -1,4 +1,4 @@
-"""Phase 59: component-by-component comparison of the physical Phase 58 traces with the emulator runs (same decomposition, same tool).
+"""Component-by-component comparison of the physical cross-host timeline traces with the emulator runs (same decomposition, same tool).
 
     python benchmarks/emulator_vs_physical.py --phys r0 r1 [r0 r1 ...] --emu r0 r1 [...] [--label "A tbccl"]
 

@@ -1,4 +1,4 @@
-"""Phase 67: the exact tensor-parallel (TP2) communication graph of the local Qwen3-0.6B-8bit, derived from config.json and verified against the real mlx_lm graph.
+"""The exact tensor-parallel (TP2) communication graph of the local Qwen3-0.6B-8bit, derived from config.json and verified against the real mlx_lm graph.
 
     python benchmarks/tp_graph.py [--trace] [--out docs/data/phase67/tp_graph.json]
 

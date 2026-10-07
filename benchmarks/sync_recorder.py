@@ -1,4 +1,4 @@
-"""Phase 57 measurement-only recorder: every mx.eval / mx.async_eval, every communication call and, for TbcclPipelineComm, every borrow, DLPack export
+"""The per-token timeline work measurement-only recorder: every mx.eval / mx.async_eval, every communication call and, for TbcclPipelineComm, every borrow, DLPack export
 and native wait, with entry/exit timestamps (time.perf_counter_ns) and a SEMANTIC label.
 
 Not part of the library and not imported by it. Enable it from a driver with `install(comm, rank, backend)`; it patches mlx.core.eval/async_eval (exo's
@@ -27,7 +27,8 @@ SITES: dict[tuple[str, str], list[str]] = {
     ("group.py", "all_gather"): ["allgather_destination_eval"],
     ("group.py", "TbcclPipelineComm._alloc"): ["destination_alloc_eval"],
     ("pipeline_comm.py", "MlxPipelineComm.flush_sends"): ["flush_async_eval"],
-    # Phase 59 remote-peer emulator: one eval per helper, named like the real pipeline's evals so distributed_timeline.py reads both
+    # The remote-peer emulator work remote-peer emulator: one eval per helper, named like the real pipeline's evals so
+    # distributed_timeline.py reads both
     ("synthetic_mac_stage.py", "sampler_eval"): ["real_model_loopback.py:worker#4"],
     ("synthetic_mac_stage.py", "stage_eval"): ["model_output_eval"],
     ("synthetic_mac_stage.py", "do_send"): ["send_dependency_eval"],
@@ -71,7 +72,7 @@ class SyncRecorder:
         self._orig: list[tuple[object, str, object]] = []
         self._completed = 0  # decode step_complete calls finished so far
         self._res0 = None
-        self.activity = None  # benchmarks/activity_thread.Activity (Phase 59 control), set by the driver
+        self.activity = None  # benchmarks/activity_thread.Activity (the remote-peer emulator work control), set by the driver
         self._op = 0
 
     def _depth(self) -> int:
@@ -121,7 +122,7 @@ class SyncRecorder:
             self.events.append((t0, t1, kind, label if self.phase == "decode" else "prefill:" + label, d, step, op, threading.get_ident()))
 
     def instrument_model(self, model) -> None:
-        """Phase 59 first-use/graph-build breakdown: time every layer __call__ (host graph construction; lazy MLX returns before any GPU work) so evals nested in a
+        """The remote-peer emulator work first-use/graph-build breakdown: time every layer __call__ (host graph construction; lazy MLX returns before any GPU work) so evals nested in a
         layer call, if any, are visible as depth>0 eval events inside it. Patches the layer CLASSES of the pipelined model; undone by uninstall()."""
         rec = self
         seen = set()
@@ -212,12 +213,12 @@ class SyncRecorder:
                     return rec.timed("tbccl_wait", f"wait:{t.op}", orig_wait, self_, t, *a, **kw)
                 finally:
                     spun = self_.wait_stats.total_spin_us - s0
-                    if spun > 0 and rec.phase == "decode":  # Phase 66: the caller's WAIT_SPIN interval (starts at wait entry, lasts `spun`)
+                    if spun > 0 and rec.phase == "decode":  # The caller's WAIT_SPIN interval (starts at wait entry, lasts `spun`)
                         rec.events.append((t_in, t_in + int(spun * 1e3), "wait_spin", f"wait_spin:{t.op}", 0, rec._completed, -1, threading.get_ident()))
 
             self._patch(group.TbcclPipelineComm, "wait", wait_)
             policy = getattr(comm, "_act", None)
-            if policy is not None:  # Phase 66: the runtime helper's open/close instants (it burns from an open to the next close)
+            if policy is not None:  # The runtime helper's open/close instants (it burns from an open to the next close)
                 sa = policy.activity
 
                 def wrap(orig, nm):

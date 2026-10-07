@@ -1,4 +1,4 @@
-"""Phase 68: bit-exact transfer-integrity probe for the exact tensors a 5120-wide exo pipeline moves, between two ranks (loopback or Linux CUDA <-> Mac Metal over TB4).
+"""Bit-exact transfer-integrity probe for the exact tensors a 5120-wide exo pipeline moves, between two ranks (loopback or Linux CUDA <-> Mac Metal over TB4).
 
     python benchmarks/phase68_integrity_probe.py --rank R --host <my ip> --peer <peer ip> [--port 29700] [--rows 1,138,2048] [--iters 1000,100,10] [--jitter-ms 15] [--out FILE]
 

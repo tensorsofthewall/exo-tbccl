@@ -1,4 +1,4 @@
-"""Phase 57 microbenchmark: what does borrow() cost when its input is PENDING (not yet evaluated) vs already evaluated, split into
+"""The per-token timeline work microbenchmark: what does borrow() cost when its input is PENDING (not yet evaluated) vs already evaluated, split into
 mx.eval / the same-width uint view (+ its eval) / __dlpack__ (native Export) / the whole borrow().
 
     python benchmarks/bridge_pending_micro.py [--iters 2000] [--layers 8] [--dtype bfloat16]

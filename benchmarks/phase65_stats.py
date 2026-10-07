@@ -1,4 +1,4 @@
-"""Phase 65: per-run metrics and repeated-run statistics for the final physical validation (both orientations).
+"""Per-run metrics and repeated-run statistics for the final physical validation (both orientations).
 
     python benchmarks/phase65_stats.py --manifest docs/data/phase65/manifest.json [--out docs/data/phase65/stats.json]
 

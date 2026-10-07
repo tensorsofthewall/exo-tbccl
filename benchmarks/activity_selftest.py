@@ -1,4 +1,4 @@
-"""Phase 63: lifecycle / CPU-cost self test of benchmarks/activity_thread.py (run on the Mac; no model, no communication).
+"""Lifecycle / CPU-cost self test of benchmarks/activity_thread.py (run on the Mac; no model, no communication).
 
     python benchmarks/activity_selftest.py
 

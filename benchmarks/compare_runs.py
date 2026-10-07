@@ -1,11 +1,11 @@
-"""Phase 58: Ring vs TBCCL critical-path difference table for one orientation, from physical (or loopback) traces.
+"""Ring vs TBCCL critical-path difference table for one orientation, from physical (or loopback) traces.
 
     python benchmarks/compare_runs.py --ring r0a.json r1a.json [r0b.json r1b.json ...] --tbccl t0a.json t1a.json [...] [--host0 Linux --host1 Mac]
 
 Each backend's runs are paired by rank files in order; per component the per-step values of all runs are pooled and the median is reported, and the paired
 (step i of a TBCCL run vs step i of a Ring run, same run index) mean difference and its standard error are computed. Rows are the plan's table plus the
 host that executes the component; the sum of the rows equals the step period exactly (the decomposition telescopes), so the 'explained' fraction of the
-TPOT difference is the sum of the rows that are attributed to a cause, shown in the notes of docs/phase58_results.md.
+TPOT difference is the sum of the rows that are attributed to a cause, shown in the notes of
 """
 import argparse
 import math

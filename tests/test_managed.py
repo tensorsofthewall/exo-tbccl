@@ -1,4 +1,4 @@
-"""CUDA managed-memory host-direct mode (Phase 54): forced mode correctness with GPU producers and immediate GPU consumers, on loopback."""
+"""CUDA managed-memory host-direct mode (the latency-attribution work): forced mode correctness with GPU producers and immediate GPU consumers, on loopback."""
 
 import pytest
 

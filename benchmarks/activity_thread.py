@@ -1,4 +1,4 @@
-"""Phase 59 TEST-ONLY control: an external CPU-activity thread that imitates what MlxRing's communication worker does on the Mac without touching the
+"""The remote-peer emulator work TEST-ONLY control: an external CPU-activity thread that imitates what MlxRing's communication worker does on the Mac without touching the
 communication backend. MlxRing sets its sockets non-blocking and busy-polls recv/send for as long as a transfer is pending (about 0.5 core on the Mac);
 TbcclPipelineComm blocks. Enable with EXO_P59_ACTIVITY (read by benchmarks/real_model_loopback.py):
 
@@ -6,10 +6,10 @@ TbcclPipelineComm blocks. Enable with EXO_P59_ACTIVITY (read by benchmarks/real_
     comm          the same spinning, but ONLY while a communication call is outstanding (the recorder proxy raises/clears the flag): Ring-like
     duty:<pct>    spins <pct>% of every 1 ms period (a controlled average CPU: duty:50 ~ 0.5 core)
     off / unset   nothing
-    win:<name>[@<duty>]   Phase 61 step windows, gated by recorder events (benchmarks/sync_recorder.py calls on_event for every recorded call/eval/layer):
+    win:<name>[@<duty>]   the windowed activity-controller work step windows, gated by recorder events (benchmarks/sync_recorder.py calls on_event for every recorded call/eval/layer):
                   step       from the end of an all_gather to the begin of the next one (everything the Mac does between collectives)
                   compute    from the end of recv_like to the begin of the next all_gather (orientation A: recv complete -> AllGather submission)
-                  stepwork   (Phase 63) from the begin of the pre-receive eval to the begin of the next all_gather
+                  stepwork   (the step-activity work) from the begin of the pre-receive eval to the begin of the next all_gather
                   graphstage from the begin of the first TransformerBlock call of a step to the end of model_output_eval (graph build + Metal stage)
                   graph      only while a TransformerBlock.__call__ runs (needs EXO_P59_LAYERS=1)
                   stage      only around mx.eval(model_output_eval)
@@ -43,9 +43,11 @@ WINDOWS = {
     "graph": ([("begin", "layer", "layer:TransformerBlock")], [("end", "layer", "layer:TransformerBlock")]),
     "stage": ([("begin", "eval", "model_output_eval")], [("end", "eval", "model_output_eval")]),
     "sampler": ([("begin", "eval", "real_model_loopback.py:worker#4")], [("end", "eval", "real_model_loopback.py:worker#4")]),
-    # Phase 63 step-scoped candidate: the Mac's own per-step work, from the start of the pre-receive eval (after the sampler) to the AllGather submission
+    # The step-activity work step-scoped candidate: the Mac's own per-step work, from the start of the pre-receive eval (after the sampler) to the
+    # AllGather submission
     "stepwork": ([("begin", "eval", "pre_recv_template_eval")], [("begin", "comm", "all_gather")]),
-    # Phase 63 continuous positive control: from the first decode receive until the final barrier (spans the KV-digest windows too)
+    # The step-activity work continuous positive control: from the first decode receive until the final barrier (spans the
+    # KV-digest windows too)
     "decode": ([("begin", "comm", "recv_like")], [("begin", "comm", "barrier")]),
 }
 
@@ -66,7 +68,7 @@ class Activity:
         self.outstanding = threading.Event()
         self.cpu_s = 0.0
         self.native_id = None  # the helper's OS thread id (the libproc id the external sampler reports)
-        self.events = []  # (perf_counter_ns, "activity_begin" | "activity_end") as seen by the pipeline thread (Phase 63)
+        self.events = []  # (perf_counter_ns, "activity_begin" | "activity_end") as seen by the pipeline thread (the step-activity work)
         self.bursts = []  # (begin_ns, end_ns, helper thread CPU ns) per active period, measured by the helper itself
         self.thread = None
         if self.mode != "off":
@@ -131,7 +133,7 @@ class Activity:
         return None
 
     def comm_begin(self):
-        if self.mode == "comm":  # window modes are driven only by on_event (Phase 63: comm_end used to clear an open window)
+        if self.mode == "comm":  # window modes are driven only by on_event (the step-activity work: comm_end used to clear an open window)
             self.outstanding.set()
 
     def comm_end(self):

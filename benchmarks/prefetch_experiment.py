@@ -1,4 +1,4 @@
-"""Phase 54 prefetch experiment: cost of CPU-writing an MLX CUDA array and consuming it on the GPU at once, with and without an explicit blocking
+"""The latency-attribution work prefetch experiment: cost of CPU-writing an MLX CUDA array and consuming it on the GPU at once, with and without an explicit blocking
 managed-memory prefetch toward the GPU in between. Single process, no TBCCL. Throwaway measurement tool; the package does not use prefetch.
 
     python benchmarks/prefetch_experiment.py

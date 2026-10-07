@@ -1,4 +1,4 @@
-"""Phase 59: classify every GPU eval of a recorded decode as warm or cold by the idle gap before it, per label.
+"""Classify every GPU eval of a recorded decode as warm or cold by the idle gap before it, per label.
 
     python benchmarks/gpu_gap_report.py dump.json [dump2.json ...] [--skip 3]
 

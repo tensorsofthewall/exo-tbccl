@@ -1,4 +1,4 @@
-"""EXO_TBCCL_WAIT_SPIN_MS failure / lifecycle / bound tests (Phase 60). The setting is honoured on Metal only; on CUDA/CPU hosts every test must also pass with the policy
+"""EXO_TBCCL_WAIT_SPIN_MS failure / lifecycle / bound tests (the wait-policy work). The setting is honoured on Metal only; on CUDA/CPU hosts every test must also pass with the policy
 inert (the counters then show waits but no spinning). Process-per-rank over loopback."""
 
 import pytest

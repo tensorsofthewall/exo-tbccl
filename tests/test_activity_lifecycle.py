@@ -1,4 +1,4 @@
-"""Phase 65: lifecycle, failure and threading validation of the Metal activity policy (EXO_TBCCL_ACTIVITY_MODE=step) on real communicators.
+"""Lifecycle, failure and threading validation of the Metal activity policy (EXO_TBCCL_ACTIVITY_MODE=step) on real communicators.
 
 Every test runs with the policy requested; on a host without Metal (Linux/CUDA, CPU) it must be inert (no helper thread, zero counters) and the same assertions on leaks hold.
 """

@@ -1,4 +1,4 @@
-"""Two-host fast-path probe (Phase 54): TbcclPipelineComm between Linux CUDA and Mac Metal over the TB4 link, one rank per host.
+"""Two-host fast-path probe (the latency-attribution work): TbcclPipelineComm between Linux CUDA and Mac Metal over the TB4 link, one rank per host.
 
     python examples/two_host_fastpath.py --rank R --host <my TB ip> --peer <peer TB ip> [--port 29555] [--modes baseline,managed,recv,async,combined]
                                          [--sizes 2048,8192,16384] [--iters 150] [--out results.json]

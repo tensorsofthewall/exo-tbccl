@@ -1,4 +1,4 @@
-"""Phase 56 measurement wrapper: records entry/exit timestamps (time.perf_counter_ns) of every communication call a pipeline comm receives.
+"""The cold-progress work measurement wrapper: records entry/exit timestamps (time.perf_counter_ns) of every communication call a pipeline comm receives.
 
 Not part of the library. Wrap a PipelineComm (MlxPipelineComm or TbcclPipelineComm) before handing it to exo's pipeline_auto_parallel; set `.phase`
 ("prefill" / "decode") from the driver; call `dump(path)` at the end. Delegates everything else, so the wrapped comm behaves unchanged.

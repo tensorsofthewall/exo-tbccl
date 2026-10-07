@@ -1,4 +1,4 @@
-"""Phase 67: per-rank TP cadence-replay profiles for tp_replay.cpp from the measured compute JSONs (benchmarks/tp_compute_bench.py).
+"""Per-rank TP cadence-replay profiles for tp_replay.cpp from the measured compute JSONs (benchmarks/tp_compute_bench.py).
 
     python benchmarks/tp_make_profiles.py --linux docs/data/phase67/compute_linux.json --mac docs/data/phase67/compute_mac.json --out docs/data/phase67/profiles
 

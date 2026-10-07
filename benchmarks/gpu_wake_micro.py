@@ -1,4 +1,4 @@
-"""Phase 58: does a small GPU operation issued DURING an idle period make the next real stage computation slower (Metal)?
+"""Does a small GPU operation issued DURING an idle period make the next real stage computation slower (Metal)?
 
 Under TbcclPipelineComm the Mac issues several tiny GPU evals around each communication (fresh destination zeros+eval, three same-width views) while the GPU
 is otherwise idle waiting for the peer; MlxRing issues none. Physical traces showed the Mac's big evals 1.5x slower in the TBCCL runs. Sequences, each followed

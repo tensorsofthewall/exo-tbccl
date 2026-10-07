@@ -1,5 +1,5 @@
 #!/bin/sh
-# Phase 59: interleaved paired repetitions of emu_run.sh.
+# Interleaved paired repetitions of emu_run.sh.
 #   usage: emu_ab.sh <outdir> <A|B> <reps> <spec...>     spec = name:backend[:ENV=V,ENV=V]
 # Writes <outdir>/<orientation>_<name>_<rep>.{rank0,rank1}.json (+ .fidelity.json) and appends "<name> rep=<n> tpot_ms=<x>" to <outdir>/<orientation>_tpot.txt.
 OUTDIR=$1; O=$2; REPS=$3; shift 3

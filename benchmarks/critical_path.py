@@ -1,4 +1,4 @@
-"""Phase 57: per-token critical-path components of a two-stage decode from sync_recorder dumps, and a no-link composition for a heterogeneous pair.
+"""Per-token critical-path components of a two-stage decode from sync_recorder dumps, and a no-link composition for a heterogeneous pair.
 
     python benchmarks/critical_path.py --stage0 rank0.json --stage1 rank1.json [--label NAME]
     python benchmarks/critical_path.py --compose --stage0 linux_rank0.json --stage1 mac_rank1.json [--label NAME]

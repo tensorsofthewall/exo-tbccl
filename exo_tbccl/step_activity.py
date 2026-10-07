@@ -1,6 +1,6 @@
-"""Metal activity policy (``EXO_TBCCL_ACTIVITY_MODE=step``; Phase 63 experiment, Phase 64 policy): same-process CPU activity during the pipeline's own local work.
+"""Metal activity policy (``EXO_TBCCL_ACTIVITY_MODE=step``; the step-activity work experiment, the activity-policy work policy): same-process CPU activity during the pipeline's own local work.
 
-Phase 62/63 measured on the real Linux<->Mac link (orientation A) that TBCCL's blocking Mac pipeline thread is scheduled on slow (efficiency) cores while MlxRing's
+The resource-sampler work measured on the real Linux<->Mac link (orientation A) that TBCCL's blocking Mac pipeline thread is scheduled on slow (efficiency) cores while MlxRing's
 busy-polling worker keeps the Mac fast; a helper thread that burns CPU while the pipeline does its own work restored the speed (first-use 1.1 -> 0.13 ms, stage
 4.3 -> 2.2 ms, TPOT 12.0 -> 6.6 ms). See docs/mac_activity_policy.md. The window is defined only by communicator events (no model, rank, split or orientation input):
 

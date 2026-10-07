@@ -1,4 +1,4 @@
-// Phase 67: exact-size collective latency and trace-driven TP2 cadence replay over the installed TBCCL (Host memory, process per rank, two hosts or loopback).
+// exact-size collective latency and trace-driven TP2 cadence replay over the installed TBCCL (Host memory, process per rank, two hosts or loopback).
 // A consumer built OUTSIDE the TBCCL tree against its public C++ header and static library; nothing in TBCCL is changed.
 //
 //   tp_replay --rank R --peers ip0:port0,ip1:port1 --mode micro  [--sizes 1024,2048,...] [--ops p2p,allgather,allreduce] [--dtype bf16|f32]

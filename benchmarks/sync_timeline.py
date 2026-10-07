@@ -1,4 +1,4 @@
-"""Phase 57: per-token timeline and synchronization counts from sync_recorder dumps.
+"""Per-token timeline and synchronization counts from sync_recorder dumps.
 
     python benchmarks/sync_timeline.py rank0.json rank1.json [...] [--token N] [--md]
 

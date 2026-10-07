@@ -1,4 +1,4 @@
-"""EXO_TBCCL_STEP_ACTIVITY (Phase 63 opt-in experiment): helper lifecycle, bounds, inertness off Metal, exactness, failure paths."""
+"""EXO_TBCCL_STEP_ACTIVITY (the step-activity work opt-in experiment): helper lifecycle, bounds, inertness off Metal, exactness, failure paths."""
 
 import os
 import resource
@@ -38,7 +38,7 @@ def test_default_off_and_env_parse(monkeypatch):
     c = FastPathConfig.from_env()
     assert (c.activity_mode, c.activity_duty, c.activity_max_ms) == ("step", 0.5, 40.0)
     monkeypatch.delenv("EXO_TBCCL_ACTIVITY_MODE")
-    monkeypatch.setenv("EXO_TBCCL_STEP_ACTIVITY", "1")  # the Phase 63 alias
+    monkeypatch.setenv("EXO_TBCCL_STEP_ACTIVITY", "1")  # the step-activity alias
     assert FastPathConfig.from_env().activity_mode == "step"
     monkeypatch.setenv("EXO_TBCCL_ACTIVITY_MODE", "bogus")
     with pytest.raises(ValueError):

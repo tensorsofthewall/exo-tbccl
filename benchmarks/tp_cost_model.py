@@ -1,4 +1,4 @@
-"""Phase 67: trace-calibrated heterogeneous TP2 cost model (Mac M4 / Linux RTX 3070 Ti over TB4), decode and prefill, with model-size / batch / split scaling.
+"""Trace-calibrated heterogeneous TP2 cost model (Mac M4 / Linux RTX 3070 Ti over TB4), decode and prefill, with model-size / batch / split scaling.
 
     python benchmarks/tp_cost_model.py --data docs/data/phase67 [--out docs/data/phase67/cost_model.json]
 

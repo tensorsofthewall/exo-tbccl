@@ -1,4 +1,4 @@
-"""Phase 66: physical Orientation-B composition statistics (BASE, STEP, SPIN, BOTH, Ring), per run and over repetitions.
+"""Physical Orientation-B composition statistics (BASE, STEP, SPIN, BOTH, Ring), per run and over repetitions.
 
     python benchmarks/phase66_stats.py --manifest docs/data/phase66/manifest.json [--out docs/data/phase66/stats.json]
 

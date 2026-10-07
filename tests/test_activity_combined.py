@@ -1,4 +1,4 @@
-"""Phase 66: the combined configuration (EXO_TBCCL_ACTIVITY_MODE=step + EXO_TBCCL_WAIT_SPIN_MS=8) on real communicators.
+"""The combined configuration (EXO_TBCCL_ACTIVITY_MODE=step + EXO_TBCCL_WAIT_SPIN_MS=8) on real communicators.
 
 Both mechanisms are Metal-only: on a host without Metal (Linux/CUDA, CPU) the helper must never start and no wait may spin, whatever the variables say.
 """
@@ -230,7 +230,7 @@ def _w_idle_off(rank, world, ex):
 
 
 def test_lost_wakeup_regression_150_adversarial_shutdowns():
-    """Phase 65's StepActivity close_window/shutdown race: shutdown must never be undone by a concurrent close_window, so the helper always exits and joins."""
+    """The repeated physical-validation work's StepActivity close_window/shutdown race: shutdown must never be undone by a concurrent close_window, so the helper always exits and joins."""
     from exo_tbccl.step_activity import StepActivity
 
     base = threading.active_count()
