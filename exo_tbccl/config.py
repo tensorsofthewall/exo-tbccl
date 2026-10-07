@@ -7,7 +7,7 @@ Environment overrides (benchmarking/debugging, read once at ``FastPathConfig.fro
     ``EXO_TBCCL_MANAGED_MAX_BYTES``   integer                   largest payload ``auto`` maps to host (default 16384; ``host`` ignores it)
     ``EXO_TBCCL_RECV``               fresh | reuse             receive destination policy (default fresh)
     ``EXO_TBCCL_ASYNC_SEND``         0 | 1                     decode sends are not waited for immediately (default 0)
-    ``EXO_TBCCL_WAIT_SPIN_MS``        float                     the remote-peer emulator work experiment: poll a pending Work for up to this many ms (the caller spins, GIL released per poll) before blocking;
+    ``EXO_TBCCL_WAIT_SPIN_MS``        float                     experiment: poll a pending Work for up to this many ms (the caller spins, GIL released per poll) before blocking;
                                                               honoured on Metal only, ignored on CUDA (default 0 = block)
     ``EXO_TBCCL_ACTIVITY_MODE``       off | step                the activity-policy work Metal activity policy: a helper burns CPU during the pipeline's own local work (exo_tbccl/step_activity.py,
                                                               docs/mac_activity_policy.md); Metal only, ignored elsewhere (default off). ``EXO_TBCCL_STEP_ACTIVITY=1`` is the step-activity alias of ``step``

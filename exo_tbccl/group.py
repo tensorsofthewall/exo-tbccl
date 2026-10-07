@@ -258,7 +258,7 @@ class TbcclPipelineComm:
             ws = self.wait_stats
             ws.waits_total += 1
             if timeout_ms is None and self._spin_s > 0:
-                # The remote-peer emulator work experiment (Metal only): keep this thread active while the transfer is pending, like MlxRing's
+                # Experiment (Metal only): keep this thread active while the transfer is pending, like MlxRing's
                 # busy-polling worker, then block
                 t_start = time.perf_counter()
                 deadline = t_start + self._spin_s
