@@ -1,19 +1,19 @@
 """Fast-path policy for TbcclPipelineComm (the latency-attribution work). Defaults reproduce the exo integration work behavior exactly; every optimization is opt-in.
 
-Environment overrides (benchmarking/debugging, read once at ``FastPathConfig.from_env()``):
+Environment overrides (benchmarking/debugging, read once at ``FastPathConfig.from_env()``)::
 
-``EXO_TBCCL_CUDA_MANAGED_MODE``  cuda | host | auto      how a kDLCUDAManaged export is described to TBCCL (default cuda)
-``EXO_TBCCL_MANAGED_DIRS``       send,recv | send | recv  which directions the managed mapping applies to (default send,recv)
-``EXO_TBCCL_MANAGED_MAX_BYTES``   integer                   largest payload ``auto`` maps to host (default 16384; ``host`` ignores it)
-``EXO_TBCCL_RECV``               fresh | reuse             receive destination policy (default fresh)
-``EXO_TBCCL_ASYNC_SEND``         0 | 1                     decode sends are not waited for immediately (default 0)
-``EXO_TBCCL_WAIT_SPIN_MS``        float                     the remote-peer emulator work experiment: poll a pending Work for up to this many ms (the caller spins, GIL released per poll) before blocking;
-                                                          honoured on Metal only, ignored on CUDA (default 0 = block)
-``EXO_TBCCL_ACTIVITY_MODE``       off | step                the activity-policy work Metal activity policy: a helper burns CPU during the pipeline's own local work (exo_tbccl/step_activity.py,
-                                                          docs/mac_activity_policy.md); Metal only, ignored elsewhere (default off). ``EXO_TBCCL_STEP_ACTIVITY=1`` is the step-activity alias of ``step``
-``EXO_TBCCL_ACTIVITY_DUTY``       0 < float <= 1            fraction of each 1 ms period the helper burns inside an open window (default 1.0)
-``EXO_TBCCL_ACTIVITY_MAX_MS``     float                     hard bound of one activity window (default 100)
-``EXO_TBCCL_ALLOC_STREAM``        gpu | cpu                 stream that allocates fresh receive/all_gather destinations (the per-token timeline work experiment, default gpu; honoured on Metal only, ignored on CUDA)
+    ``EXO_TBCCL_CUDA_MANAGED_MODE``  cuda | host | auto      how a kDLCUDAManaged export is described to TBCCL (default cuda)
+    ``EXO_TBCCL_MANAGED_DIRS``       send,recv | send | recv  which directions the managed mapping applies to (default send,recv)
+    ``EXO_TBCCL_MANAGED_MAX_BYTES``   integer                   largest payload ``auto`` maps to host (default 16384; ``host`` ignores it)
+    ``EXO_TBCCL_RECV``               fresh | reuse             receive destination policy (default fresh)
+    ``EXO_TBCCL_ASYNC_SEND``         0 | 1                     decode sends are not waited for immediately (default 0)
+    ``EXO_TBCCL_WAIT_SPIN_MS``        float                     experiment: poll a pending Work for up to this many ms (the caller spins, GIL released per poll) before blocking;
+                                                              honoured on Metal only, ignored on CUDA (default 0 = block)
+    ``EXO_TBCCL_ACTIVITY_MODE``       off | step                the activity-policy work Metal activity policy: a helper burns CPU during the pipeline's own local work (exo_tbccl/step_activity.py,
+                                                              docs/mac_activity_policy.md); Metal only, ignored elsewhere (default off). ``EXO_TBCCL_STEP_ACTIVITY=1`` is the step-activity alias of ``step``
+    ``EXO_TBCCL_ACTIVITY_DUTY``       0 < float <= 1            fraction of each 1 ms period the helper burns inside an open window (default 1.0)
+    ``EXO_TBCCL_ACTIVITY_MAX_MS``     float                     hard bound of one activity window (default 100)
+    ``EXO_TBCCL_ALLOC_STREAM``        gpu | cpu                 stream that allocates fresh receive/all_gather destinations (the per-token timeline work experiment, default gpu; honoured on Metal only, ignored on CUDA)
 """
 
 from __future__ import annotations
