@@ -2,7 +2,7 @@
 
 The resource-sampler work measured on the real Linux<->Mac link (orientation A) that TBCCL's blocking Mac pipeline thread is scheduled on slow (efficiency) cores while MlxRing's
 busy-polling worker keeps the Mac fast; a helper thread that burns CPU while the pipeline does its own work restored the speed (first-use 1.1 -> 0.13 ms, stage
-4.3 -> 2.2 ms, TPOT 12.0 -> 6.6 ms). See docs/mac_activity_policy.md. The window is defined only by communicator events (no model, rank, split or orientation input):
+4.3 -> 2.2 ms, TPOT 12.0 -> 6.6 ms). See docs/mac_activity_policy.md. The window is defined only by communicator events (no model, rank, split or orientation input)::
 
     opens   when a ``recv_like`` is posted (the receiving stage's wait for its input and the local compute that follows), or, in a pipeline whose previous step
             had no receive, when an ``all_gather`` completes
