@@ -1,6 +1,6 @@
 """Warm, synchronized per-part compute timings of the local Qwen3-0.6B-8bit for single-device and TP2-shard execution (measurement only; nothing is distributed).
 
-    python benchmarks/tp_compute_bench.py --out docs/data/phase67/compute_<host>.json [--warmup 10 --iters 50] [--prefill-len 577]
+    python benchmarks/tp_compute_bench.py --out compute_<host>.json [--warmup 10 --iters 50] [--prefill-len 577]
 
 Runs on whichever MLX device the host has (Metal on the Mac, CUDA on the RTX 3070 Ti: the same quantized kernels and dtypes as the pipeline runs). Every timing includes
 building the lazy graph and `mx.eval` of the result (real completion, not an enqueue). The unit of measurement is exactly what a TP2 layer executes between two

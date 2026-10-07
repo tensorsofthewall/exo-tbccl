@@ -1,6 +1,6 @@
 """The exact tensor-parallel (TP2) communication graph of the local Qwen3-0.6B-8bit, derived from config.json and verified against the real mlx_lm graph.
 
-    python benchmarks/tp_graph.py [--trace] [--out docs/data/phase67/tp_graph.json]
+    python benchmarks/tp_graph.py [--trace] [--out tp_graph.json]
 
 Analytic part: classic Megatron-style TP2 (column-parallel q/k/v and gate/up, row-parallel o_proj and down_proj), one AllReduce after each row-parallel projection.
 Trace part (--trace): runs one real decode step (batch 1, KV length = the prompt) on the unmodified mlx_lm model with every projection / norm / attention call wrapped

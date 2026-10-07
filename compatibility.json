@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "project": "exo-tbccl",
+  "package": {
+    "development_version": "0.2.1",
+    "target_release": "0.3.0",
+    "released": false,
+    "note": "target_release is planned and unreleased; no 0.3.0 artifact or tag exists"
+  },
+  "python": {
+    "requires": ">=3.13"
+  },
+  "frameworks": {
+    "mlx": {
+      "validated": "0.32"
+    },
+    "exo": {
+      "integration": "the exo integration branch with the PipelineComm seam and the runner byte exchange"
+    }
+  },
+  "requires_tbccl": {
+    "c_abi": [
+      1
+    ],
+    "minimum_package": "0.5"
+  },
+  "platforms": [
+    {
+      "os": "linux",
+      "arch": "x86_64",
+      "devices": [
+        "cuda",
+        "cpu"
+      ]
+    },
+    {
+      "os": "macos",
+      "arch": "arm64",
+      "devices": [
+        "metal",
+        "cpu"
+      ]
+    }
+  ],
+  "validated_configurations": [
+    {
+      "name": "loopback-qwen3-0.6b-8bit",
+      "stages": 2,
+      "model": "Qwen3-0.6B-8bit"
+    },
+    {
+      "name": "thunderbolt-metal-cuda-27b",
+      "stages": [
+        "macos-metal",
+        "linux-cuda"
+      ],
+      "model": "Qwen3.8-27B-4bit",
+      "tbccl_wire_protocol_at_validation": 3
+    }
+  ]
+}

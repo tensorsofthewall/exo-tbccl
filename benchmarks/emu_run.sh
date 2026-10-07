@@ -4,7 +4,7 @@
 # Run from the exo-tbccl checkout with the exo venv's python in $PY (default ../exo/.venv/bin/python). The real Mac stage records with EXO_P57_SYNC=<outprefix>;
 # the emulator writes <outprefix>.rank<R>.json and <outprefix>.fidelity.json. Extra env (EXO_TBCCL_ALLOC_STREAM=cpu, EXO_P59_*) is inherited by both processes.
 O=$1; B=$2; PORT=$3; OUT=$4; TOK=${5:-48}; shift 5 2>/dev/null
-PY=${PY:-../exo/.venv/bin/python}; PROFILES=${PROFILES:-docs/data/phase59/profiles}
+PY=${PY:-../exo/.venv/bin/python}; PROFILES=${PROFILES:-benchmarks/emulator_profiles}
 export HF_HUB_OFFLINE=1 EXO_OFFLINE=true
 if [ "$O" = A ]; then REAL=1; SPLIT=21; else REAL=0; SPLIT=7; fi
 COMMON="--host 127.0.0.1 --peer 127.0.0.1 --port $PORT"
