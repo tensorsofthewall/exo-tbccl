@@ -24,6 +24,9 @@ checks = {
     "requires_tbccl.c_abi": (tuple(manifest["requires_tbccl"]["c_abi"]), (int(abi.group(1)),) if abi else None),
 }
 bad = [k for k, (declared, actual) in checks.items() if declared != actual]
+if manifest["package"].get("released") is not False:
+    bad.append("package.released")
+    print("MISMATCH package.released: an unreleased target must be marked released=false")
 for k in bad:
     print(f"MISMATCH {k}: manifest {checks[k][0]!r}, sources {checks[k][1]!r}")
 if bad:

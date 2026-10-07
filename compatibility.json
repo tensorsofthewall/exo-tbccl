@@ -3,7 +3,9 @@
   "project": "exo-tbccl",
   "package": {
     "development_version": "0.2.1",
-    "released": false
+    "target_release": "0.3.0",
+    "released": false,
+    "note": "target_release is planned and unreleased; no 0.3.0 artifact or tag exists"
   },
   "python": {
     "requires": ">=3.13"
