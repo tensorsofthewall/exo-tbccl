@@ -1,13 +1,26 @@
 [build-system]
-requires = ["scikit-build-core>=0.10"]
+requires = ["scikit-build-core>=0.11"]
 build-backend = "scikit_build_core.build"
 
 [project]
 name = "exo-tbccl"
 version = "0.2.1"
 description = "TBCCL pipeline communication backend for exo (MLX arrays over the TBCCL C ABI v1)"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Sandesh Bharadwaj" }]
 requires-python = ">=3.13"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: C",
+]
 dependencies = []
+
+[project.urls]
+Repository = "https://github.com/tensorsofthewall/exo-tbccl"
+Issues = "https://github.com/tensorsofthewall/exo-tbccl/issues"
 
 [dependency-groups]
 dev = ["pytest>=8.4.0"]

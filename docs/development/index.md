@@ -7,4 +7,7 @@ See `CONTRIBUTING.md` and `AGENTS.md` in the repository root.
 
 testing
 building-docs
+release-process
+security-policy
+changelog
 ```
