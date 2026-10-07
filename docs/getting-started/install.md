@@ -23,4 +23,4 @@ import exo_tbccl
 print(exo_tbccl.is_available())    # (True, "") when the native binding loads and the TBCCL C ABI matches
 ```
 
-After installing a TBCCL with a different wire protocol version, rebuild the extension against the new prefix; ranks built against different wire versions cannot connect ([TBCCL versioning](https://github.com/tensorsofthewall/tbccl/blob/main/docs/reference/versioning.md)).
+After installing a TBCCL with a different wire protocol version, rebuild the extension against the new prefix; ranks built against different wire versions cannot connect ([TBCCL versioning](https://tbccl.tensorsofthewall.com/en/stable/reference/versioning.html)).
