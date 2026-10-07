@@ -10,3 +10,8 @@ AGENTS.local.md
 # Documentation build
 .venv-docs/
 docs/_build/
+
+# Packaging, test and local state
+.local/
+dist/
+.pytest_cache/

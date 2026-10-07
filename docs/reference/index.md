@@ -6,4 +6,5 @@
 configuration
 compatibility
 api
+licensing
 ```
