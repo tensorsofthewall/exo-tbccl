@@ -1,79 +1,53 @@
 # exo-tbccl
 
-TBCCL as a heterogeneous **pipeline-parallel data plane for exo**: MLX activations move between pipeline stages (Mac Metal, Linux CUDA, or
-CPU) over TBCCL's stable C ABI v1. Optional, separate from exo and from TBCCL; no PyTorch, no MLX C++ internals, no copy of TBCCL.
+exo-tbccl is an optional package that lets [exo](https://github.com/exo-explore/exo) (an MLX-based distributed inference system) run **pipeline-parallel text generation** across machines of different kinds, for example a Mac with Metal and a Linux host with CUDA, with [TBCCL](https://github.com/tensorsofthewall/tbccl) moving the activations between stages over its stable C ABI. It is separate from exo and from TBCCL, and uses no PyTorch and no MLX C++ internals.
 
-```
-exo Master / placement / topology
-            |
-            v
-   PipelineShardMetadata
-            |
-            v
-      exo PipelineComm
-        /          \
-MlxPipelineComm   TbcclPipelineComm   <- this package
-     |                 |
-mx.distributed    DLPack bridge
-                       |
-                  TBCCL C ABI v1
-                       |
-                    libtbccl
-```
+> **Status:** development version 0.2.1, experimental, no release published.
 
-Scope: pipeline parallelism for text generation only. Not tensor parallelism, not image/CFG models. exo owns discovery,
-topology, placement and shard assignment; TBCCL never discovers anything.
+## What you can use it for
+
+- Running an exo pipeline (the `MlxTbccl` instance type) over a Thunderbolt 4 link or any TCP network between a Mac (Metal), a Linux host (CUDA) or CPU hosts.
+- Pipeline parallelism and text models only; not tensor parallelism and not image models. exo owns discovery, topology, placement and shard assignment.
 
 ## Install
 
-Needs an installed TBCCL >= 0.5 (C ABI 1). A CUDA-enabled install on Linux/NVIDIA, a host/Metal install on macOS.
+Into exo's virtual environment, against an installed TBCCL 0.5 or newer (C ABI 1):
 
 ```sh
 TBCCL_ROOT=<tbccl prefix> uv pip install --python <exo venv>/bin/python -e .
 ```
 
-The extension links only `TBCCL::tbccl_c`. Use `uv` for package management. `uv sync` in exo removes it; reinstall afterwards.
-exo works without this package: selecting `MlxTbccl` without it is a clear placement error (`exo_tbccl.is_available()` explains why).
+exo works without this package; selecting `MlxTbccl` without it is a clear placement error and `exo_tbccl.is_available()` explains why. More: [installing](docs/getting-started/install.md).
 
-## Use (what exo does)
+## Minimal example
+
+exo calls it for you; the API it uses is:
 
 ```python
 from exo_tbccl.group import TbcclPipelineComm
 comm = TbcclPipelineComm.create(rank, world_size, exchange, bind_host=host, advertise_host=host)
-# exchange(purpose, payload) -> list[bytes]: the host application's all-gather of opaque bytes (exo's runner byte exchange)
-x = comm.recv_like(template, src)      # MLX array in, MLX array out; Work waited
+x = comm.recv_like(template, src)      # MLX array in, MLX array out
 comm.send(array, dst)
-comm.flush_sends([(a, dst), ...])      # submits every send first, then waits as a group
-y = comm.all_gather(array)             # rank-order concatenation along axis 0
-comm.barrier(); comm.any_true(flag); comm.close()   # close() is explicit; no finalizer dependence
+y = comm.all_gather(array)
+comm.close()
 ```
 
-Rank and world size come from exo's `PipelineShardMetadata`, never from node ordering. Every error is a typed exception built from TBCCL's
-structured result code (`TbcclTransportError`, `TbcclAbortedError`, `TbcclTimeoutError`, `TbcclDeviceError`, ...) carrying rank, peer and
-operation. Set `EXO_TBCCL_TRACE=1` to log the path of every operation (host, cuda-direct, metal-direct); `comm.stats` counts any
-adapter copy (it must stay 0).
+Rank and world size come from exo's `PipelineShardMetadata`. Errors are typed exceptions built from TBCCL's structured result codes. See the [quickstart](docs/getting-started/quickstart.md).
 
-## Fast paths (all off by default)
+## Supported configurations
 
-`FastPathConfig` (or the environment, read when a communicator is created) selects three opt-in optimizations; the defaults are exactly the behavior without them.
+| | Validated |
+|---|---|
+| Stages | Mac Metal and Linux CUDA over Thunderbolt 4 (also CPU and loopback) |
+| Models | Qwen3-0.6B-8bit (loopback) and `Qwen3.8-27B-4bit` (two hosts, real exo) |
+| TBCCL | C ABI 1; physical runs recorded at an earlier wire protocol, loopback suites at wire protocol 4 |
 
-| setting | values | what it does | measured |
-|---|---|---|---|
-| `EXO_TBCCL_CUDA_MANAGED_MODE` | `cuda` (default), `host`, `auto` | describe CUDA-managed MLX storage to TBCCL as host memory (`auto`: only a proven capability signature and <= 16 KiB) | wins on loopback at decode sizes, **loses on the real TB4 link**; leave at `cuda` |
-| `EXO_TBCCL_RECV` | `fresh` (default), `reuse` | serve `recv_like` destinations from a bounded pool, released at exo's `step_complete()` | -60% bridge round trip on Metal; neutral end to end |
-| `EXO_TBCCL_ASYNC_SEND` | `0` (default), `1` | decode sends submit and return; Work/Borrow are tracked and reaped, failures surface at the next communication point | neutral end to end |
+Optional fast paths and Metal activity policies are off by default ([fast paths](docs/concepts/fast-paths.md)). See [compatibility](docs/reference/compatibility.md) and the draft [validation](docs/validation/0.2.1.md).
 
-`kDLCUDAManaged` stays authoritative for what storage is; see `docs/cuda_managed_memory.md`, `docs/receive_buffer_pool.md` and `docs/async_send.md`.
-Reuse is audited for Qwen3 (KVCache) and the synthetic model only; audit other cache families with `EXO_TBCCL_RECV_POISON=0xA5` before enabling it.
+## Documentation
 
-## Tests
+The documentation is in `docs/` and builds with `make docs`: [getting started](docs/getting-started/index.md), [guides](docs/guides/index.md), [concepts](docs/concepts/index.md), [reference](docs/reference/index.md). Contributing: `CONTRIBUTING.md` and `AGENTS.md`.
 
-```sh
-<exo venv>/bin/python -m pytest -p no:asyncio tests          # 58 tests, process-per-rank, loopback
-<exo venv>/bin/python examples/link_probe.py ...             # two-host correctness probe (see its docstring)
-<exo venv>/bin/python benchmarks/bridge_overhead.py          # loopback bridge cost
-```
+## License
 
-Two-host probes: `examples/two_host_fastpath.py`, `examples/two_host_ring_chain.py`, `benchmarks/real_model_two_host.py` (see their docstrings; AER-gate every real-link run).
-
-See `docs/architecture.md`, `docs/mlx_dlpack_bridge.md` and `docs/bootstrap.md`.
+No license file has been published yet.
