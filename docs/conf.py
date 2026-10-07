@@ -40,3 +40,29 @@ autoapi_options = ["members", "show-inheritance", "show-module-summary"]
 
 # Imports of compiled extension modules cannot be resolved statically; that is expected here.
 suppress_warnings = ["autoapi.python_import_resolution"]
+
+
+# Hosting, versions and cross-project links.
+import os
+
+# Read the Docs sets READTHEDOCS_VERSION_TYPE to "tag" only for a build of a release tag. Every other build (main, a branch, a pull request, a local
+# build) is development documentation and says so; nothing here labels unreleased documentation as stable.
+_released_build = os.environ.get("READTHEDOCS_VERSION_TYPE") == "tag"
+html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "")
+if not _released_build:
+    html_theme_options = {"announcement": "Development documentation (not a release)"}
+
+# Only the core site has a decided address; the adapters are added here when their hosting is decided.
+# Cross-project references are opt-in: the build never needs the network unless DOCS_INTERSPHINX=1. A local inventory can be given with
+# DOCS_INVENTORY_<PROJECT> (for example DOCS_INVENTORY_TORCH_TBCCL=/path/to/objects.inv).
+_SITES = {
+    "tbccl": "https://tbccl.tensorsofthewall.com/en/stable/",
+}
+if os.environ.get("DOCS_INTERSPHINX") == "1":
+    extensions.append("sphinx.ext.intersphinx")
+    intersphinx_timeout = 10
+    intersphinx_mapping = {
+        _name: (_url, os.environ.get("DOCS_INVENTORY_" + _name.upper().replace("-", "_")))
+        for _name, _url in _SITES.items()
+        if _name != "exo-tbccl"
+    }
