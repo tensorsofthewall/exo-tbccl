@@ -1,6 +1,6 @@
 """Parse a `powermetrics --samplers cpu_power,gpu_power,thermal -i 100` text capture and summarise it over each run's DECODE window.
 
-    python benchmarks/powermetrics_report.py --power p62_power.txt --run <label> <rank1 recorder.json> <res.json> <res_mtime_ns> [--run ...] [--tz-hours 5.5]
+    python benchmarks/powermetrics_report.py --power power.txt --run <label> <rank1 recorder.json> <res.json> <res_mtime_ns> [--run ...] [--tz-hours 5.5]
 
 Clock alignment (no sub-second wall clock is printed by powermetrics): sample k ends at T0 + cumulative elapsed time; T0 is fitted so that every printed
 timestamp second equals floor(end of its sample) (a constraint set that pins T0 to a few ms when the capture crosses many second boundaries). A run's decode window

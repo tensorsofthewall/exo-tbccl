@@ -6,7 +6,7 @@ Profiles come from `distributed_timeline.py --profile` on loopback runs. Rank 0'
 stage-0 machine's profile, rank 1's side (sampler, receive posting, first use, compute, pre-gather) from the stage-1 machine's, and the software transit and
 AllGather transfer from a loopback run (default: the stage-1 machine's, whose receive and gather bridge they include). Then
     expected = max(rank0 time to send, rank1 time to receive-posted) + transit + first-use1 + compute1 + pre-gather1 + ag-xfer
-Anything the physical run adds beyond this is the link and the cross-host effects this phase tries to localize.
+Anything the physical run adds beyond this is the link and the cross-host effects the physical run is meant to localize.
 """
 import argparse
 import json

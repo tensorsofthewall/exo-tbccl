@@ -1,4 +1,4 @@
-"""The per-token timeline work candidate preview: cost of the receive-destination allocation (mx.zeros + mx.eval) and of the borrow's same-width view + eval on the GPU stream
+"""Candidate preview: cost of the receive-destination allocation (mx.zeros + mx.eval) and of the borrow's same-width view + eval on the GPU stream
 versus the CPU stream. Arrays have no device in MLX; a stream only decides where an op runs, so a destination created on the CPU stream is ordinary
 unified/managed storage that any GPU op may read afterwards (verified below by running a GPU consumer on it and comparing the result).
 

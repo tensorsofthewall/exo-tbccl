@@ -17,7 +17,7 @@ import time
 sys.path.insert(0, __file__.rsplit("/benchmarks", 1)[0])
 from tests.harness import run_world  # noqa: E402
 
-MODEL = os.path.expanduser("~/.exo_p53/local_models/Qwen3-0.6B-8bit")
+MODEL = os.environ.get("EXO_TBCCL_BENCH_MODEL", os.path.expanduser("~/models/Qwen3-0.6B-8bit"))
 TEXT = (
     "The history of distributed computing spans decades of work on how separate machines can cooperate. "
     "Early systems exchanged messages over slow serial lines; later ones built shared file systems, remote procedure calls, and eventually "
@@ -78,21 +78,21 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         comm = NullPipelineComm.create(rank, world, ex)
     else:
         comm = TbcclPipelineComm.create(rank, world, ex, bind_host=host, advertise_host=host, timeout_ms=1800000)
-    if os.environ.get("EXO_P59_QOS"):  # the remote-peer emulator work test-only: scope a macOS QoS class to THIS (main) thread: 0x21 user-interactive, 0x19 user-initiated, 0x15 default, 0x11 utility
+    if os.environ.get("EXO_TBCCL_BENCH_QOS"):  # test-only: scope a macOS QoS class to THIS (main) thread: 0x21 user-interactive, 0x19 user-initiated, 0x15 default, 0x11 utility
         import ctypes
 
-        ctypes.CDLL("/usr/lib/libSystem.B.dylib").pthread_set_qos_class_self_np(int(os.environ["EXO_P59_QOS"], 0), 0)
-    sync_prefix = os.environ.get("EXO_P57_SYNC")  # Record every eval / communication call with a semantic label (path prefix); measurement only
+        ctypes.CDLL("/usr/lib/libSystem.B.dylib").pthread_set_qos_class_self_np(int(os.environ["EXO_TBCCL_BENCH_QOS"], 0), 0)
+    sync_prefix = os.environ.get("EXO_TBCCL_BENCH_SYNC_RECORD")  # Record every eval / communication call with a semantic label (path prefix); measurement only
     sync_rec = None
     if sync_prefix:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from sync_recorder import SyncRecorder
 
         sync_rec = SyncRecorder(rank, backend)
-        if os.environ.get("EXO_P59_ACTIVITY"):  # the remote-peer emulator work test-only CPU-activity control (benchmarks/activity_thread.py)
+        if os.environ.get("EXO_TBCCL_BENCH_ACTIVITY"):  # test-only CPU-activity control (benchmarks/activity_thread.py)
             from activity_thread import Activity
 
-            sync_rec.activity = Activity(os.environ["EXO_P59_ACTIVITY"])
+            sync_rec.activity = Activity(os.environ["EXO_TBCCL_BENCH_ACTIVITY"])
         comm = sync_rec.install(comm)
     clock_sync = None
     if clock:  # cross-host clock alignment on its own socket (benchmarks/clock_sync.py), before the traced region
@@ -101,7 +101,7 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
 
         clock_sync = ClockSync(rank, clock["host"], clock["peer"], clock["port"], clock.get("n", 200))
         clock_sync.measure("pre")
-    cadence = os.environ.get("EXO_P56_CADENCE")  # Record the communication cadence (path prefix); measurement only
+    cadence = os.environ.get("EXO_TBCCL_BENCH_CADENCE")  # Record the communication cadence (path prefix); measurement only
     if cadence:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         from cadence_recorder import CadenceRecorder
@@ -122,7 +122,7 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         except StopIteration as stop:
             model = stop.value
         cache = make_prompt_cache(model)
-        if sync_rec and os.environ.get("EXO_P59_LAYERS"):  # per-layer host (graph-build) timing
+        if sync_rec and os.environ.get("EXO_TBCCL_BENCH_LAYERS"):  # per-layer host (graph-build) timing
             sync_rec.instrument_model(model)
 
         def prefix_digest(n):
@@ -139,7 +139,7 @@ def worker(rank, world, ex, env, split, prompt_kind, ntok, chunk, reps_override=
         set_pipeline_prefill(model, True)
         set_pipeline_queue_sends(model, True)
         body = p[:-1]
-        die = os.environ.get("EXO_P54_DIE_AT", "")  # "<rank>:prefill:<chunk index>" or "<rank>:decode:<step>" (failure-injection test)
+        die = os.environ.get("EXO_TBCCL_BENCH_DIE_AT", "")  # "<rank>:prefill:<chunk index>" or "<rank>:decode:<step>" (failure-injection test)
         for i in range(0, body.size, chunk):
             if die == f"{rank}:prefill:{i // chunk}":
                 os._exit(0)

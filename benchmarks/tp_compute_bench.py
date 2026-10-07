@@ -24,7 +24,7 @@ from mlx_lm import load
 from mlx_lm.models.base import scaled_dot_product_attention
 from mlx_lm.models.cache import KVCache
 
-MODEL = os.path.expanduser("~/.exo_p53/local_models/Qwen3-0.6B-8bit")
+MODEL = os.environ.get("EXO_TBCCL_BENCH_MODEL", os.path.expanduser("~/models/Qwen3-0.6B-8bit"))
 KV_FRACTIONS = {0.25: 2, 0.375: 3, 0.5: 4, 0.625: 5, 0.75: 6, 1.0: 8}  # kv heads (of 8) per fraction of the attention work; q heads = 2 x kv heads
 
 

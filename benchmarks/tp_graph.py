@@ -11,7 +11,7 @@ import json
 import os
 import sys
 
-MODEL = os.path.expanduser("~/.exo_p53/local_models/Qwen3-0.6B-8bit")
+MODEL = os.environ.get("EXO_TBCCL_BENCH_MODEL", os.path.expanduser("~/models/Qwen3-0.6B-8bit"))
 
 
 def analytic(cfg: dict, batch: int, seq: int, tp: int = 2, act_bytes: int = 2) -> dict:

@@ -1,4 +1,4 @@
-"""The remote-peer emulator work mechanism test: is host code slower after a fully idle wait only when it touches a lot of memory (cold caches / power-gated cluster), and does a spinning
+"""Mechanism test: is host code slower after a fully idle wait only when it touches a lot of memory (cold caches / power-gated cluster), and does a spinning
 thread elsewhere in the process prevent it?
 
 The cross-host timeline work's cpu_after_wait.py timed a tiny CPU-bound loop and saw no effect. The emulator runs show the PYTHON graph build of Qwen's seven transformer blocks going from

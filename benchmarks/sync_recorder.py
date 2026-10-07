@@ -27,7 +27,7 @@ SITES: dict[tuple[str, str], list[str]] = {
     ("group.py", "all_gather"): ["allgather_destination_eval"],
     ("group.py", "TbcclPipelineComm._alloc"): ["destination_alloc_eval"],
     ("pipeline_comm.py", "MlxPipelineComm.flush_sends"): ["flush_async_eval"],
-    # The remote-peer emulator work remote-peer emulator: one eval per helper, named like the real pipeline's evals so
+    # The remote-peer emulator: one eval per helper, named like the real pipeline's evals so
     # distributed_timeline.py reads both
     ("synthetic_mac_stage.py", "sampler_eval"): ["real_model_loopback.py:worker#4"],
     ("synthetic_mac_stage.py", "stage_eval"): ["model_output_eval"],
@@ -72,7 +72,7 @@ class SyncRecorder:
         self._orig: list[tuple[object, str, object]] = []
         self._completed = 0  # decode step_complete calls finished so far
         self._res0 = None
-        self.activity = None  # benchmarks/activity_thread.Activity (the remote-peer emulator work control), set by the driver
+        self.activity = None  # benchmarks/activity_thread.Activity (the emulator's control), set by the driver
         self._op = 0
 
     def _depth(self) -> int:
@@ -122,7 +122,7 @@ class SyncRecorder:
             self.events.append((t0, t1, kind, label if self.phase == "decode" else "prefill:" + label, d, step, op, threading.get_ident()))
 
     def instrument_model(self, model) -> None:
-        """The remote-peer emulator work first-use/graph-build breakdown: time every layer __call__ (host graph construction; lazy MLX returns before any GPU work) so evals nested in a
+        """The first-use/graph-build breakdown: time every layer __call__ (host graph construction; lazy MLX returns before any GPU work) so evals nested in a
         layer call, if any, are visible as depth>0 eval events inside it. Patches the layer CLASSES of the pipelined model; undone by uninstall()."""
         rec = self
         seen = set()

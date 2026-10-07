@@ -1,6 +1,6 @@
-"""The remote-peer emulator work TEST-ONLY control: an external CPU-activity thread that imitates what MlxRing's communication worker does on the Mac without touching the
+"""TEST-ONLY control: an external CPU-activity thread that imitates what MlxRing's communication worker does on the Mac without touching the
 communication backend. MlxRing sets its sockets non-blocking and busy-polls recv/send for as long as a transfer is pending (about 0.5 core on the Mac);
-TbcclPipelineComm blocks. Enable with EXO_P59_ACTIVITY (read by benchmarks/real_model_loopback.py):
+TbcclPipelineComm blocks. Enable with EXO_TBCCL_BENCH_ACTIVITY (read by benchmarks/real_model_loopback.py):
 
     spin          a thread that burns CPU continuously (without holding the GIL for long: it spins in libc memset calls)
     comm          the same spinning, but ONLY while a communication call is outstanding (the recorder proxy raises/clears the flag): Ring-like
@@ -11,7 +11,7 @@ TbcclPipelineComm blocks. Enable with EXO_P59_ACTIVITY (read by benchmarks/real_
                   compute    from the end of recv_like to the begin of the next all_gather (orientation A: recv complete -> AllGather submission)
                   stepwork   (the step-activity work) from the begin of the pre-receive eval to the begin of the next all_gather
                   graphstage from the begin of the first TransformerBlock call of a step to the end of model_output_eval (graph build + Metal stage)
-                  graph      only while a TransformerBlock.__call__ runs (needs EXO_P59_LAYERS=1)
+                  graph      only while a TransformerBlock.__call__ runs (needs EXO_TBCCL_BENCH_LAYERS=1)
                   stage      only around mx.eval(model_output_eval)
                   sampler    only around the token eval (lm_head + argmax)
                   <duty>     optional percent of each 1 ms period spent spinning while the window is open (default 100)
@@ -72,7 +72,7 @@ class Activity:
         self.bursts = []  # (begin_ns, end_ns, helper thread CPU ns) per active period, measured by the helper itself
         self.thread = None
         if self.mode != "off":
-            self.thread = threading.Thread(target=self._run, daemon=True, name="p59-activity")
+            self.thread = threading.Thread(target=self._run, daemon=True, name="activity")
             self.thread.start()
 
     def _run(self):
@@ -133,7 +133,7 @@ class Activity:
         return None
 
     def comm_begin(self):
-        if self.mode == "comm":  # window modes are driven only by on_event (the step-activity work: comm_end used to clear an open window)
+        if self.mode == "comm":  # window modes are driven only by on_event (comm_end used to clear an open window)
             self.outstanding.set()
 
     def comm_end(self):

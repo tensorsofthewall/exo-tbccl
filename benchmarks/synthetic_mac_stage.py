@@ -1,4 +1,4 @@
-"""The remote-peer emulator work control: the Mac side of orientation B (rank 0) with a SYNTHETIC Metal stage instead of Qwen, against the same remote-peer emulator.
+"""Control: the Mac side of orientation B (rank 0) with a SYNTHETIC Metal stage instead of Qwen, against the same remote-peer emulator.
 
     python benchmarks/synthetic_mac_stage.py --backend tbccl|ring --stage-ms 2 --sampler-ms 2 --tokens 48 --host 127.0.0.1 --peer 127.0.0.1 --port N --out PREFIX
 

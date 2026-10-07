@@ -338,7 +338,7 @@ def test_alloc_stream_config_parsing(monkeypatch):
 @pytest.mark.parametrize("world", [2, 3, 4])
 @pytest.mark.parametrize("dtype", ["float32", "bfloat16"])
 def test_wait_spin_is_bit_exact_vs_blocking_wait(world, dtype):
-    """The remote-peer emulator work experiment: EXO_TBCCL_WAIT_SPIN_MS polls a pending Work before blocking (Metal only; a no-op on CUDA). Every gathered stage output must hash
+    """Experiment: EXO_TBCCL_WAIT_SPIN_MS polls a pending Work before blocking (Metal only; a no-op on CUDA). Every gathered stage output must hash
     identically to the blocking path, and the receive-pool bookkeeping must stay bounded."""
     base = run_world(world, _w_chain, {}, 200, dtype)
     spin = run_world(world, _w_chain, {"EXO_TBCCL_WAIT_SPIN_MS": "50"}, 200, dtype)
@@ -355,7 +355,7 @@ def test_wait_spin_config_parsing(monkeypatch):
 
 
 def test_metal_only_experiments_are_ignored_off_metal():
-    """Linux safety (the per-token timeline work: the CPU-stream allocation was +29% on CUDA): every Metal-only experiment must be inert unless Metal is available."""
+    """Linux safety (the CPU-stream allocation was +29% on CUDA): every Metal-only experiment must be inert unless Metal is available."""
     import mlx.core as mx
 
     from exo_tbccl.config import FastPathConfig
