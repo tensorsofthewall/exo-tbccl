@@ -19,6 +19,7 @@ classifiers = [
 dependencies = []
 
 [project.urls]
+Documentation = "https://exo-tbccl.tensorsofthewall.com/"
 Repository = "https://github.com/tensorsofthewall/exo-tbccl"
 Issues = "https://github.com/tensorsofthewall/exo-tbccl/issues"
 
