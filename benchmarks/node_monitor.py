@@ -1,7 +1,7 @@
 """External resource monitor for an exo node (read-only): every INTERVAL s it records, for the exo process tree (exo + its runner processes),
 RSS, CPU seconds and thread count, plus the host's available memory and, on Linux, the GPU's used memory / utilization / temperature (nvidia-smi).
 
-    python benchmarks/phase68_monitor.py --pid-file <exo.pid> --out <file.jsonl> [--interval 1.0]      # stop with SIGTERM / Ctrl-C
+    python benchmarks/node_monitor.py --pid-file <exo.pid> --out <file.jsonl> [--interval 1.0]      # stop with SIGTERM / Ctrl-C
 """
 import argparse
 import json

@@ -1,8 +1,8 @@
 """Drive the REAL exo runtime (master + API + placement + workers + runners) over two nodes through its HTTP API. Nothing in exo is modified.
 
-    python benchmarks/phase68_e2e.py state                                   # nodes, advertised memory, backends
-    python benchmarks/phase68_e2e.py preview <model_id>                      # exo's own placement previews (MlxRing / Pipeline and Tensor)
-    python benchmarks/phase68_e2e.py run <label> <MlxRing|MlxTbccl> <model_id> --prompts short:8,medium:32 [--reps 1] [--out FILE] [--keep]
+    python benchmarks/real_exo_e2e.py state                                   # nodes, advertised memory, backends
+    python benchmarks/real_exo_e2e.py preview <model_id>                      # exo's own placement previews (MlxRing / Pipeline and Tensor)
+    python benchmarks/real_exo_e2e.py run <label> <MlxRing|MlxTbccl> <model_id> --prompts short:8,medium:32 [--reps 1] [--out FILE] [--keep]
 
 `run` places the instance with exo's normal placement (Sharding.Pipeline, min_nodes 2, no manual layer boundaries), waits for every runner to be ready (the model load),
 streams deterministic (temperature 0) chat completions and records, per prompt: text, token strings, usage, TTFT, per-token arrival times (decode intervals: median,

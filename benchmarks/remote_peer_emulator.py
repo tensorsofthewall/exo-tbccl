@@ -1,6 +1,6 @@
 """A Mac-local emulator of the remote Linux pipeline peer, driven by the cross-host timeline physical traces.
 
-    python benchmarks/remote_peer_emulator.py --orientation A --backend tbccl --profile docs/data/phase59/profiles/profile_A_tbccl.json \
+    python benchmarks/remote_peer_emulator.py --orientation A --backend tbccl --profile benchmarks/emulator_profiles/profile_A_tbccl.json \
         --host 127.0.0.1 --peer 127.0.0.1 --port 29900 --out /tmp/emu
 
 The real Mac stage (benchmarks/real_model_two_host.py, Qwen3-0.6B-8bit, the latency-attribution prompt) runs as the other rank over loopback with the SAME communication
@@ -15,7 +15,7 @@ Linux rank's HOST timeline:
       prefill: receive the two chunks, then per decode step
       [wait the profile's sampler+pre-recv delay] recv (1,1,1024) [wait first-use+compute+pre-gather] step_complete  all_gather (1,1,1024)
 
-All delays are Linux-local intervals from docs/data/phase58 (see emulator_profile.py), replayed with calibrated sleeps plus a short spin (macOS timers run ~1.5x
+All delays are Linux-local intervals recorded from physical traces (the profiles in benchmarks/emulator_profiles), replayed with calibrated sleeps plus a short spin (macOS timers run ~1.5x
 long: the cold-progress work). Requested and achieved delays are recorded for every step. The payloads are small deterministic bfloat16 values, so the Mac's tokens are NOT
 those of the real run (the activations are not the real model's): the experiment measures timing and communication behaviour, not text.
 
