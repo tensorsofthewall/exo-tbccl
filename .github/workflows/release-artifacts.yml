@@ -1,0 +1,182 @@
+name: release-artifacts
+
+# Builds, validates and describes the exo-tbccl release wheels from one exact commit of this repository and one exact commit of the TBCCL core. It only uploads
+# GitHub Actions artifacts: no tag, no GitHub Release, no package upload, and no tag trigger.
+on:
+  workflow_dispatch:
+    inputs:
+      tbccl_ref:
+        description: "TBCCL core ref (tag or commit) to build against"
+        required: false
+        default: "main"
+  pull_request:
+    paths:
+      - ".github/workflows/release-artifacts.yml"
+      - "tools/ci/**"
+      - "tools/build_release_wheel.sh"
+      - "tools/inspect_wheel.py"
+      - "tools/release_metadata.py"
+      - "CMakeLists.txt"
+      - "pyproject.toml"
+
+permissions:
+  contents: read
+
+env:
+  MANYLINUX_IMAGE: quay.io/pypa/manylinux_2_28_x86_64@sha256:39df0042d5cc900b085aa25a0659368b42a0006c54c474299b785b44c1b4ff82
+  SLIM_IMAGE: python@sha256:bf44cdfcb76cd3b41e879bc058fc37ec5872002ccfde7fcb765e218cde0cd79c
+  TBCCL_REF: ${{ inputs.tbccl_ref || 'main' }}
+
+jobs:
+  linux-wheel:
+    name: Linux wheel (manylinux_2_28, static CUDA 13 runtime)
+    runs-on: ubuntu-24.04
+    outputs:
+      tbccl_sha: ${{ steps.core_sha.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: exo-tbccl
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: tensorsofthewall/tbccl
+          ref: ${{ env.TBCCL_REF }}
+          path: tbccl
+      - name: Record the core commit
+        id: core_sha
+        run: echo "sha=$(git -C tbccl rev-parse HEAD)" >> "$GITHUB_OUTPUT" && git -C tbccl rev-parse HEAD
+      - name: Build, repair, inspect and rebuild in manylinux_2_28
+        run: |
+          mkdir -p out
+          docker run --rm -v "$PWD:/src" -w /src/exo-tbccl "$MANYLINUX_IMAGE" bash tools/ci/linux_wheel.sh /src/out
+          sudo chown -R "$USER" out
+          ls -lR out
+      - name: Reproducibility and size
+        run: |
+          cat out/reproducibility.txt | tee -a "$GITHUB_STEP_SUMMARY"
+          stat -c '%n %s bytes' out/*.whl | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: wheel-linux-x86_64
+          path: out/
+          retention-days: 14
+          if-no-files-found: error
+
+  linux-clean-install:
+    name: Linux clean install and tests (python 3.13, no CUDA, no TBCCL)
+    needs: linux-wheel
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: wheel-linux-x86_64
+          path: dl
+      - name: Install the wheel into a bare python:3.13-slim and run the test suite
+        run: |
+          mkdir wh && cp dl/*.whl wh/
+          docker run --rm -v "$PWD/wh:/wh:ro" -v "$PWD:/repo:ro" "$SLIM_IMAGE" bash -c '
+            set -e
+            python -m venv /clean && . /clean/bin/activate
+            pip install -q /wh/*.whl
+            python -c "import exo_tbccl; print(\"imported from\", exo_tbccl.__file__, exo_tbccl.__version__)"
+            echo "libraries the native module needs:"; ldd /clean/lib/python3.13/site-packages/exo_tbccl/_native*.so
+            ! ldd /clean/lib/python3.13/site-packages/exo_tbccl/_native*.so | grep -q -E "cudart|not found"
+            pip install -q pytest numpy psutil "mlx[cpu]==0.32.*"
+            # a copy of the checkout WITHOUT the package sources, so the installed wheel is what gets imported
+            mkdir /r && cd /repo && tar --exclude=./exo_tbccl --exclude=./src --exclude=./.git -cf - . | tar -xf - -C /r && cd /r
+            python -m pytest -q -p no:cacheprovider -p no:asyncio tests'
+
+  macos-wheel:
+    name: macOS arm64 wheel (deployment target 14.0)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: exo-tbccl
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: tensorsofthewall/tbccl
+          ref: ${{ env.TBCCL_REF }}
+          path: tbccl
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Build the core archive, then build, inspect and rebuild the wheel
+        env:
+          MACOSX_DEPLOYMENT_TARGET: "14.0"
+        run: |
+          python -m pip install --quiet "build==1.6.1" "delocate==0.13.0" "scikit-build-core==0.11.6" ninja
+          mkdir -p out/inputs
+          (cd tbccl && scripts/package_native.sh --out "$PWD/../core")
+          cp core/tbccl-*.tar.gz out/inputs/
+          mkdir pfx && tar -xzf core/tbccl-*.tar.gz -C pfx
+          export TBCCL_ROOT=$(ls -d "$PWD"/pfx/tbccl-*)
+          for n in 1 2; do (cd exo-tbccl && rm -rf build && tools/build_release_wheel.sh "$PWD/../wheel$n"); done
+          python exo-tbccl/tools/release_metadata.py compare wheel1/*.whl wheel2/*.whl | tee out/reproducibility.txt
+          cp wheel1/*.whl out/ && cp wheel1/inspect.json out/inspect.json
+          pip freeze > out/build-environment.txt
+      - name: Inspect the binary (architecture, install names, rpaths, private paths)
+        run: |
+          mkdir x && cd x && unzip -q ../out/*.whl
+          for so in $(find . -name '*.so'); do lipo -info "$so"; otool -L "$so"; otool -l "$so" | grep -A2 -E 'LC_RPATH|LC_BUILD_VERSION'; done
+          ! strings -a $(find . -name '*.so') | grep -E '/Users/|/Volumes/|runner/work|/private/var'
+      - name: Clean install in a fresh environment and import
+        run: |
+          python -m venv /tmp/clean && . /tmp/clean/bin/activate
+          pip install --quiet out/*.whl
+          cd /tmp && python -c "import exo_tbccl; print('imported from', exo_tbccl.__file__, exo_tbccl.__version__)"
+          otool -L /tmp/clean/lib/python3.13/site-packages/exo_tbccl/_native*.so
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: wheel-macos-arm64
+          path: out/
+          retention-days: 14
+          if-no-files-found: error
+
+  finalize:
+    name: checksums, SBOM and provenance
+    needs: [linux-wheel, linux-clean-install, macos-wheel]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: wheel-*
+          path: parts
+      - name: SBOMs and SHA256SUMS
+        run: |
+          python -m pip install --quiet spdx-tools==0.8.5
+          mkdir release
+          EPOCH=$(date -u -d "@$(git log -1 --format=%ct)" +%Y-%m-%dT%H:%M:%SZ)
+          for d in parts/wheel-linux-x86_64 parts/wheel-macos-arm64; do
+            w=$(ls $d/*.whl); cp "$w" release/
+            core=$(ls $d/inputs/tbccl-*.tar.gz)
+            flags=""; [ "$d" = parts/wheel-linux-x86_64 ] && flags="--bundles-cuda-runtime"
+            python tools/release_metadata.py sbom "release/$(basename "$w")" --out "release/$(basename "$w").spdx.json" --repo exo-tbccl --commit "$GITHUB_SHA" --epoch "$EPOCH" --homepage https://exo-tbccl.tensorsofthewall.com/ --core-archive "$core" $flags
+            python tools/release_metadata.py check-sbom "release/$(basename "$w").spdx.json" "release/$(basename "$w")"
+          done
+          python tools/release_metadata.py sums release
+          (cd release && sha256sum -c SHA256SUMS)
+          {
+            echo "### exo-tbccl release wheels for $GITHUB_SHA (built against TBCCL ${{ needs.linux-wheel.outputs.tbccl_sha }})"
+            echo '| wheel | bytes | SHA-256 |'; echo '|---|---|---|'
+            (cd release && for f in *.whl; do echo "| $f | $(stat -c %s "$f") | $(sha256sum "$f" | cut -d' ' -f1) |"; done)
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Attest the artifacts (GitHub build provenance)
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: release/*
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-artifacts-${{ github.sha }}
+          path: release/
+          retention-days: 14
+          if-no-files-found: error
