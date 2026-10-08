@@ -5,7 +5,7 @@ exo-tbccl is an optional package that is installed into **exo's** virtual enviro
 ## Requirements
 
 - Python 3.13 or newer and a C compiler (the package builds a small native extension with scikit-build-core).
-- An installed [TBCCL](https://github.com/tensorsofthewall/tbccl) 0.5 or newer (C ABI 1): a CUDA-enabled install on Linux with an NVIDIA GPU, a host or Metal install on macOS. The extension links only `TBCCL::tbccl_c`.
+- An installed [TBCCL](https://github.com/tensorsofthewall/tbccl) 0.6.0 or newer (C ABI 1; there is no public 0.5.x): a CUDA-enabled install on Linux with an NVIDIA GPU, a host or Metal install on macOS. The extension links only `TBCCL::tbccl_c`.
 - exo with its MLX environment: `mx-cuda` on Linux or `mlx` on macOS.
 
 ## Install

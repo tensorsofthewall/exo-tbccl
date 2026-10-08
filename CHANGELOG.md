@@ -1,10 +1,14 @@
 # Changelog
 
-All notable user-facing changes are recorded here. The format follows Keep a Changelog, and the project follows Semantic Versioning once it has releases. exo-tbccl has not been released: everything below is unreleased.
+All notable user-facing changes are recorded here. The format follows Keep a Changelog, and the project follows Semantic Versioning once it has releases. exo-tbccl has had no final release. 0.3.0rc1 is a release candidate (pre-release), not production-ready.
 
-## Unreleased
+## 0.3.0rc1 (release candidate)
 
-Planned for 0.3.0. This section describes the first planned release and changes until it is published.
+First release candidate of the first planned release, 0.3.0. Expect an rc2 if a blocker is found.
+
+### Installation
+
+- CI-built wheels (Linux x86-64 manylinux_2_28, macOS arm64 14.0+, CPython 3.13) attached to the GitHub pre-release and uploaded to TestPyPI, with an SPDX SBOM, `SHA256SUMS` and a build-provenance attestation. The wheel links TBCCL 0.6.0rc1 statically; install it into exo's virtual environment, for example `pip install --pre --no-deps -i https://test.pypi.org/simple/ exo-tbccl==0.3.0rc1`.
 
 ### Added
 
@@ -22,7 +26,7 @@ Planned for 0.3.0. This section describes the first planned release and changes 
 
 ### Compatibility
 
-- Requires an installed TBCCL 0.5 or newer (C ABI 1) and an exo build that provides the pipeline communication seam and the runner byte exchange; see `compatibility.json`.
+- Requires an installed TBCCL 0.6.0 or newer (C ABI 1; there is no public 0.5.x) and an exo build that provides the pipeline communication seam and the runner byte exchange; see `compatibility.json`.
 - Python 3.13 or newer; validated with MLX 0.32.
 
 ### Known limitations
