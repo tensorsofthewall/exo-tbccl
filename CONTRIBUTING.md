@@ -4,7 +4,7 @@ Thank you for contributing. This document describes how to set up, test and subm
 
 ## Development setup
 
-You need Python >= 3.13, an exo checkout with its virtual environment, and an installed TBCCL package >= 0.5 (C ABI v1). Use `uv`. A C compiler builds the native extension.
+You need Python >= 3.13, an exo checkout with its virtual environment, and an installed TBCCL package 0.6.0 or newer (C ABI 1, wire protocol 4; a release archive works). Use `uv`. A C compiler builds the native extension.
 
 ## Building and testing
 

@@ -1,6 +1,59 @@
 # Quickstart
 
-You normally do not call exo-tbccl yourself: exo's placement chooses it, and exo's runners create the communicator. The API below shows what exo does.
+Form a two-node exo cluster, place a model with `MlxTbccl`, and generate. This is the flow validated with the release-candidate wheels (a Linux CUDA host and a Mac, joined by Thunderbolt 4). Install exo and exo-tbccl on both hosts first ([installing](install.md)).
+
+## 1. Start exo on both hosts
+
+Use the same namespace on both nodes so they join one cluster, and give each its own exo state directory. On Linux:
+
+```sh
+cd <exo checkout>
+EXO_HOME=$HOME/.exo EXO_ZENOH_NAMESPACE=mycluster .venv/bin/exo
+```
+
+On the Mac, start exo from a **live Terminal or `ssh -tt` session** (not a detached tmux/nohup job; see [running across two hosts](../guides/two-host.md)):
+
+```sh
+ssh -tt <mac> 'export PATH=/opt/homebrew/bin:$PATH EXO_HOME=$HOME/.exo EXO_ZENOH_NAMESPACE=mycluster; cd <exo checkout> && exec .venv/bin/exo'
+```
+
+`EXO_ZENOH_NAMESPACE` (or `--namespace`) must be the same on every node of the cluster. Add `EXO_OFFLINE=true` (or `--offline`) when the models are pre-staged locally and nothing should be downloaded. Within seconds of the second node starting, both should see each other.
+
+## 2. Check the cluster
+
+```sh
+curl -s localhost:52415/state | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d['topology']['nodes']), 'nodes;', {k[:6]: v['friendlyName'] for k, v in d['nodeIdentities'].items()})"
+```
+
+Expect `2 nodes`. Exactly one node acts as master (the other logs `elected master - demoting self` once, right after discovery). If you do not see two nodes, use [discovery troubleshooting](../guides/discovery-troubleshooting.md).
+
+## 3. Place a model with `MlxTbccl`
+
+```sh
+curl -X POST localhost:52415/place_instance -H 'content-type: application/json' \
+  -d '{"model_id": "mlx-community/Qwen3-0.6B-8bit", "sharding": "Pipeline", "instance_meta": "MlxTbccl", "min_nodes": 2}'
+```
+
+`min_nodes: 2` makes placement refuse a single-node placement. exo assigns the layers (the split depends on each node's available memory; for a 28-layer model it may be, for example, 7 layers on the Mac and 21 on Linux) and each node's runner loads its share. Wait until every runner reports ready in `/state`.
+
+## 4. Generate
+
+```sh
+curl -s localhost:52415/v1/chat/completions -H 'content-type: application/json' \
+  -d '{"model": "mlx-community/Qwen3-0.6B-8bit", "messages": [{"role": "user", "content": "Count from one to five in words."}], "temperature": 0, "max_tokens": 32}'
+```
+
+## 5. Confirm `MlxTbccl` is active and stop
+
+```sh
+curl -s localhost:52415/state | python3 -c "import json,sys; d=json.load(sys.stdin); print([next(iter(i)) for i in d['instances'].values()])"     # ['MlxTbcclInstance']
+```
+
+See [how do I know TBCCL is being used?](../guides/verify-active.md). Delete the instance with `curl -X DELETE localhost:52415/instance/<instance id>` and stop each exo node with Ctrl-C (or `kill -TERM`). `kill -9` is a last resort.
+
+## Using the API directly
+
+You normally do not call exo-tbccl yourself; this is what exo does:
 
 ```python
 from exo_tbccl.group import TbcclPipelineComm
@@ -18,6 +71,4 @@ comm.any_true(flag)
 comm.close()                           # explicit; no dependence on finalizers
 ```
 
-Rank and world size come from exo's `PipelineShardMetadata`, never from node ordering. Errors are typed exceptions built from TBCCL's structured result codes (`TbcclTransportError`, `TbcclAbortedError`, `TbcclTimeoutError`, `TbcclDeviceError`, and so on) and carry rank, peer and operation. Set `EXO_TBCCL_TRACE=1` to log the path of every operation (host, CUDA-direct, Metal-direct); `comm.stats` counts any adapter copy, which must stay 0.
-
-See [architecture](../concepts/architecture.md) for how exo uses it.
+Rank and world size come from exo's `PipelineShardMetadata`, never from node ordering. Errors are typed exceptions built from TBCCL's structured result codes (`TbcclTransportError`, `TbcclAbortedError`, `TbcclTimeoutError`, `TbcclDeviceError`, and so on) and carry rank, peer and operation. `comm.stats` counts any adapter copy, which must stay 0. See [architecture](../concepts/architecture.md) for how exo uses it.

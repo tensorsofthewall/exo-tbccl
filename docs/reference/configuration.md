@@ -1,6 +1,6 @@
-# Configuration
+# Environment variables
 
-Read when a communicator is created (benchmarking and debugging overrides; nothing is required). Settings can also be given programmatically through `FastPathConfig`.
+exo-tbccl needs no configuration: every variable below is an optional benchmarking or debugging override, read when a communicator is created. Settings can also be given programmatically through `FastPathConfig`. The variables are per process (set them on each node that should use them). exo's own settings (`EXO_ZENOH_NAMESPACE`, `EXO_HOME`, `EXO_OFFLINE`, `OVERRIDE_MEMORY_MB`) are documented in exo and in [running across two hosts](../guides/two-host.md).
 
 | Variable | Values (default first) | Effect |
 |---|---|---|
