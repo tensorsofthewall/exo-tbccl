@@ -2,7 +2,7 @@
 
 exo-tbccl is an optional package that lets [exo](https://github.com/exo-explore/exo) (an MLX-based distributed inference system) run **pipeline-parallel text generation** across machines of different kinds, for example a Mac with Metal and a Linux host with CUDA, with [TBCCL](https://github.com/tensorsofthewall/tbccl) moving the activations between stages over its stable C ABI. It is separate from exo and from TBCCL, and uses no PyTorch and no MLX C++ internals.
 
-> **Status:** development version 0.2.1, experimental, no release published.
+> **Status:** release candidate **0.3.0rc1** (pre-release, experimental; not production-ready). The final 0.3.0 has not been released.
 
 ## What you can use it for
 
@@ -11,7 +11,7 @@ exo-tbccl is an optional package that lets [exo](https://github.com/exo-explore/
 
 ## Install
 
-Into exo's virtual environment, against an installed TBCCL 0.5 or newer (C ABI 1):
+Into exo's virtual environment, against an installed TBCCL 0.6.0 or newer (0.6.0rc1 for this candidate; C ABI 1):
 
 ```sh
 TBCCL_ROOT=<tbccl prefix> uv pip install --python <exo venv>/bin/python -e .

@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-exo-tbccl has not been released yet; 0.3.0 is the first planned release. Once releases exist, security fixes are made against the latest release series only. Development versions and unreleased branches are not supported.
+exo-tbccl has had no final release; 0.3.0rc1 is a release candidate and 0.3.0 is the first planned release. Once releases exist, security fixes are made against the latest release series only. Development versions and unreleased branches are not supported.
 
 ## Reporting a vulnerability
 

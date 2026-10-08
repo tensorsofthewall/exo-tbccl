@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "exo-tbccl"
-version = "0.2.1"
+version = "0.3.0rc1"
 description = "TBCCL pipeline communication backend for exo (MLX arrays over the TBCCL C ABI v1)"
 readme = "README.md"
 license = "Apache-2.0"
