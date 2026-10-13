@@ -62,3 +62,15 @@ def test_the_discovery_workaround_is_documented():
     two_host = _read("docs", "guides", "two-host.md")
     assert "ssh -tt" in two_host and "52413" in two_host
     assert "not architectural requirements" in two_host
+
+
+def test_the_exo_base_is_recorded_consistently_and_stale_bases_are_gone():
+    manifest = json.loads(_read("compatibility.json"))
+    base = manifest["frameworks"]["exo"]["upstream_base"]
+    compat = _read("docs", "reference", "compatibility.md")
+    assert base in compat and base[:8] in _read("docs", "getting-started", "install.md") and base[:8] in _read("README.md")
+    for name in ("README.md", "docs/reference/compatibility.md", "docs/getting-started/install.md", "docs/project/limitations.md"):
+        text = _read(*name.split("/"))
+        assert "14 commits" not in text, f"{name} still counts the old integration series"
+    assert "21a54c5e" in compat and "re-derived" in compat   # named only as the history of the series
+    assert not [v for v in manifest["validated_configurations"] if "tbccl_wire_protocol_at_validation" in v]

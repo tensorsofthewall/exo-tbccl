@@ -17,8 +17,8 @@ exo (discovery, placement)  ->  exo-tbccl (MLX bridge + TbcclPipelineComm)  ->  
 
 ## Requirements
 
-- **exo with the `PipelineComm` seam.** exo-tbccl needs an exo build that contains the integration (the `MlxTbccl` instance type, the `PipelineComm` seam and the runner byte exchange). At 0.3.0rc1 these are 14 commits over upstream exo `21a54c5e` that are not part of upstream exo and have **not been published yet** ([compatibility](docs/reference/compatibility.md)). Until they are, a working cluster from public sources is not possible.
-- Python 3.13 or newer, MLX 0.32 (CUDA 13 on Linux, Metal on macOS).
+- **exo with the `PipelineComm` seam.** exo-tbccl needs an exo build that contains the integration (the `MlxTbccl` instance type, the `PipelineComm` seam and the runner byte exchange). They are a short series of commits over upstream exo `75d8ad2b` (2026-10-12) that are not part of upstream exo and have **not been published yet** ([compatibility](docs/reference/compatibility.md)). Until they are, a working cluster from public sources is not possible.
+- Python 3.13 or newer, MLX 0.32 (CUDA 13 on Linux, Metal on macOS; exo's pinned macOS MLX, a 0.32.4 development build, is supported: see [compatibility](docs/reference/compatibility.md)).
 - Nothing else of TBCCL to install: the wheel contains libtbccl.
 
 ## Quick start
@@ -60,7 +60,7 @@ Rank and world size come from exo's `PipelineShardMetadata`. Errors are typed ex
 | | Validated |
 |---|---|
 | Stages | Mac Metal and Linux CUDA over Thunderbolt 4 (also CPU and loopback) |
-| Models | Qwen3-0.6B (two hosts, release-candidate wheels, three full start-to-shutdown cycles) and `Qwen3.8-27B-4bit` (two hosts, earlier wire protocol) |
+| Models | Qwen3-0.6B (two hosts, release-candidate wheels, three full start-to-shutdown cycles) and `Qwen3.8-27B-4bit` (two hosts, wire protocol 4, both pipeline orders) |
 | TBCCL | C ABI 1, wire protocol 4 (bundled) |
 
 Optional fast paths and Metal activity policies are off by default ([fast paths](docs/concepts/fast-paths.md)). See [compatibility](docs/reference/compatibility.md), the ecosystem [compatibility matrix](https://tbccl.tensorsofthewall.com/en/latest/reference/compatibility-matrix.html) and [validated configurations](docs/project/validated-configurations.md).

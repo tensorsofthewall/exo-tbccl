@@ -7,8 +7,8 @@ exo-tbccl is installed into **exo's** virtual environment. exo works without it:
 | | |
 |---|---|
 | Python | 3.13 or newer (the wheels are `cp313`) |
-| exo | an exo with the `PipelineComm` seam, `MlxTbccl` and the runner byte exchange: the integration branch described in [compatibility](../reference/compatibility.md) (14 commits over upstream exo `21a54c5e`; not yet published) |
-| MLX | 0.32 (`mlx-cuda13` extra on Linux with CUDA 13, `mlx` on macOS), from exo's own environment |
+| exo | an exo with the `PipelineComm` seam, `MlxTbccl` and the runner byte exchange: the integration series described in [compatibility](../reference/compatibility.md) (commits over upstream exo `75d8ad2b`; not yet published) |
+| MLX | 0.32.x (`mlx-cuda13` extra on Linux with CUDA 13, `mlx` on macOS), from exo's own environment; validated with 0.32.0 (Linux CUDA) and the 0.32.4 development build `0e3ff3643` that upstream exo pins on macOS |
 | Platforms | Linux x86-64 (CUDA, CPU) and macOS arm64 (Metal, CPU); wheels `manylinux_2_24`/`2_28` and `macosx_14_0_arm64` |
 | TBCCL | bundled: C ABI 1, wire protocol 4 |
 

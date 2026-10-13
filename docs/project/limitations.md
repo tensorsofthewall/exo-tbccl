@@ -9,7 +9,7 @@ Each limitation is labelled with the project that owns it. The same categories a
 | Parallelism | exo-tbccl | pipeline parallelism for text generation only. Tensor parallelism is rejected at placement; image and classifier-free-guidance models are rejected |
 | Addresses | exo-tbccl / exo | one advertised address per node; topologies that need different addresses for different peers are rejected |
 | Python | exo-tbccl | CPython 3.13 or newer; the wheels are `cp313` |
-| The required exo | exo integration | exo-tbccl needs the `PipelineComm` seam, `MlxTbccl` and the runner byte exchange, which are not in upstream exo and **not yet published** ([compatibility](../reference/compatibility.md)) |
+| The required exo | exo integration | exo-tbccl needs the `PipelineComm` seam, `MlxTbccl` and the runner byte exchange, which are not in upstream exo and **not yet published**; the series is based on upstream exo `75d8ad2b` ([compatibility](../reference/compatibility.md)) |
 | Reductions beyond `Sum`, recovery after a communicator failure | TBCCL | see the TBCCL limitations |
 
 ## Supported but not validated
@@ -18,7 +18,7 @@ Each limitation is labelled with the project that owns it. The same categories a
 |---|---|
 | More than two stages on hardware | synthetic pipelines of 2 to 4 stages ran on loopback; the physical validation used two stages |
 | Models other than Qwen3 | receive-buffer reuse is audited only for Qwen3 with a standard KV cache and the synthetic model; the default (no reuse) is model-agnostic but only Qwen3-0.6B and a 27B 4-bit Qwen3 model were run on two hosts |
-| `Qwen3.8-27B-4bit` on wire protocol 4 | that run was recorded at an earlier TBCCL wire protocol (3) and not repeated; Qwen3-0.6B was run with the release-candidate wheels |
+| Larger models | `Qwen3.8-27B-4bit` was run on the two-host pair at wire protocol 4 (both orientations, short prompts only: 138 tokens on the 8 GB GPU); other large models are not validated |
 | The Metal activity policies | experimental, off by default |
 | Peer failure on a physical link | validated on loopback; do not kill a physical peer to test it |
 
