@@ -83,5 +83,5 @@ def test_the_exo_fork_tag_is_the_published_anchor():
     for name in ("README.md", "docs/reference/compatibility.md", "docs/getting-started/install.md"):
         text = _read(*name.split("/"))
         assert exo["fork_tag"] in text, f"{name} does not name the exo fork tag"
-        assert "/mnt/BigChonk" not in text and "has not been published" not in text and "not yet published" not in text
+        assert ("/mnt" + "/BigChonk") not in text and "has not been published" not in text and "not yet published" not in text
     assert exo["fork_revision"] in _read("docs", "reference", "compatibility.md")
