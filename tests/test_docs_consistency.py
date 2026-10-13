@@ -74,3 +74,14 @@ def test_the_exo_base_is_recorded_consistently_and_stale_bases_are_gone():
         assert "14 commits" not in text, f"{name} still counts the old integration series"
     assert "21a54c5e" in compat and "re-derived" in compat   # named only as the history of the series
     assert not [v for v in manifest["validated_configurations"] if "tbccl_wire_protocol_at_validation" in v]
+
+
+def test_the_exo_fork_tag_is_the_published_anchor():
+    manifest = json.loads(_read("compatibility.json"))
+    exo = manifest["frameworks"]["exo"]
+    assert exo["fork"] == "tensorsofthewall/exo-fork" and exo["fork_tag"] == "tbccl-integration-v1"
+    for name in ("README.md", "docs/reference/compatibility.md", "docs/getting-started/install.md"):
+        text = _read(*name.split("/"))
+        assert exo["fork_tag"] in text, f"{name} does not name the exo fork tag"
+        assert "/mnt/BigChonk" not in text and "has not been published" not in text and "not yet published" not in text
+    assert exo["fork_revision"] in _read("docs", "reference", "compatibility.md")

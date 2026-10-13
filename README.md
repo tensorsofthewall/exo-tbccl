@@ -4,7 +4,7 @@
 
 exo-tbccl is an optional package that lets [exo](https://github.com/exo-explore/exo) (an MLX-based distributed inference system) run **pipeline-parallel text generation** across machines of different kinds, for example a Mac with Metal and a Linux host with CUDA, with [TBCCL](https://github.com/tensorsofthewall/tbccl) moving the activations between stages over its stable C ABI. It is separate from exo and from TBCCL, and uses no PyTorch and no MLX C++ internals.
 
-> **Status:** release candidate **0.3.0rc1** (pre-release, experimental; not production-ready). The final 0.3.0 has not been released. It is one of three independent adapters over TBCCL (with [torch-tbccl](https://github.com/tensorsofthewall/torch-tbccl) and [vllm-tbccl](https://github.com/tensorsofthewall/vllm-tbccl)) and depends on neither.
+> **Status:** release candidate **0.3.0rc2** (pre-release, experimental; not production-ready). The final 0.3.0 has not been released. It is one of three independent adapters over TBCCL (with [torch-tbccl](https://github.com/tensorsofthewall/torch-tbccl) and [vllm-tbccl](https://github.com/tensorsofthewall/vllm-tbccl)) and depends on neither.
 
 ## What is supported
 
@@ -17,7 +17,7 @@ exo (discovery, placement)  ->  exo-tbccl (MLX bridge + TbcclPipelineComm)  ->  
 
 ## Requirements
 
-- **exo with the `PipelineComm` seam.** exo-tbccl needs an exo build that contains the integration (the `MlxTbccl` instance type, the `PipelineComm` seam and the runner byte exchange). They are a short series of commits over upstream exo `75d8ad2b` (2026-10-12) that are not part of upstream exo and have **not been published yet** ([compatibility](docs/reference/compatibility.md)). Until they are, a working cluster from public sources is not possible.
+- **exo with the `PipelineComm` seam.** exo-tbccl needs an exo build that contains the integration (the `MlxTbccl` instance type, the `PipelineComm` seam and the runner byte exchange). They are not part of upstream exo (upstream base `75d8ad2b`, 2026-10-12) and are published as the immutable tag `tbccl-integration-v1` of the maintained fork [`tensorsofthewall/exo-fork`](https://github.com/tensorsofthewall/exo-fork) ([compatibility](docs/reference/compatibility.md)): `git clone --branch tbccl-integration-v1 --depth 1 https://github.com/tensorsofthewall/exo-fork.git`.
 - Python 3.13 or newer, MLX 0.32 (CUDA 13 on Linux, Metal on macOS; exo's pinned macOS MLX, a 0.32.4 development build, is supported: see [compatibility](docs/reference/compatibility.md)).
 - Nothing else of TBCCL to install: the wheel contains libtbccl.
 
@@ -27,10 +27,10 @@ Install the release-candidate wheel into **exo's** virtual environment:
 
 ```sh
 # Linux (CUDA):
-uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0rc1/exo_tbccl-0.3.0rc1-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0rc2/exo_tbccl-0.3.0rc2-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
 # macOS (Apple silicon):
-uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0rc1/exo_tbccl-0.3.0rc1-cp313-cp313-macosx_14_0_arm64.whl
-<exo venv>/bin/python -c "import exo_tbccl; print(exo_tbccl.__version__, exo_tbccl.is_available())"    # 0.3.0rc1 (True, '')
+uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0rc2/exo_tbccl-0.3.0rc2-cp313-cp313-macosx_14_0_arm64.whl
+<exo venv>/bin/python -c "import exo_tbccl; print(exo_tbccl.__version__, exo_tbccl.is_available())"    # 0.3.0rc2 (True, '')
 ```
 
 Start exo on both hosts (see [running across two hosts](docs/guides/two-host.md): on the Mac, launch exo from a live `ssh -tt` session, not from detached tmux or nohup), then select the pipeline type:
@@ -71,7 +71,7 @@ Hosted documentation: https://exo-tbccl.tensorsofthewall.com/ (`latest` is devel
 
 ## Known limitations
 
-Pipeline sharding and text generation only; one address per node; the exo integration is not yet published; on macOS the exo node must be started from a live session and no other program may listen on UDP port 52413 (a validated operational workaround, not a Thunderbolt requirement). See [known limitations](docs/project/limitations.md).
+Pipeline sharding and text generation only; one address per node; the exo integration is a fork tag, not yet in upstream exo; on macOS the exo node must be started from a live session and no other program may listen on UDP port 52413 (a validated operational workaround, not a Thunderbolt requirement). See [known limitations](docs/project/limitations.md).
 
 ## Development
 

@@ -2,7 +2,13 @@
 
 All notable user-facing changes are recorded here. The format follows Keep a Changelog, and the project follows Semantic Versioning once it has releases. exo-tbccl has had no final release. 0.3.0rc1 is a release candidate (pre-release), not production-ready.
 
-## Unreleased (planned 0.3.0)
+## 0.3.0rc2 (release candidate)
+
+Supersedes 0.3.0rc1. Wire protocol and C ABI are unchanged (C ABI 1, wire protocol 4); this release changes the MLX bridge, not the wire.
+
+### Installation
+
+- exo is installed from the maintained fork at an immutable tag: `tensorsofthewall/exo-fork@tbccl-integration-v1` (1416807b, upstream exo `75d8ad2b` plus the integration). The earlier unpublished integration series is gone from the instructions.
 
 ### Fixed
 

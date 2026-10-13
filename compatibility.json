@@ -2,11 +2,11 @@
   "schema_version": 1,
   "project": "exo-tbccl",
   "package": {
-    "development_version": "0.3.0rc1",
+    "development_version": "0.3.0rc2",
     "release_candidate": true,
     "target_release": "0.3.0",
     "released": false,
-    "note": "target_release is planned and unreleased; 0.3.0rc1 is a release candidate (pre-release)"
+    "note": "target_release is planned and unreleased; 0.3.0rc2 is a release candidate (pre-release)"
   },
   "python": {
     "requires": ">=3.13"
@@ -20,7 +20,10 @@
       ]
     },
     "exo": {
-      "integration": "the exo integration series with the PipelineComm seam and the runner byte exchange (unpublished)",
+      "integration": "the TBCCL integration series (PipelineComm seam, MlxTbccl placement, runner byte exchange) published as an immutable signed tag of the maintained exo fork",
+      "fork": "tensorsofthewall/exo-fork",
+      "fork_tag": "tbccl-integration-v1",
+      "fork_revision": "1416807b46efd87c3601c69ce5784f51c9dd4c75",
       "upstream_base": "75d8ad2bc1eac25aaf7adb39c0784ad0def8c1b6",
       "upstream_base_date": "2026-10-12"
     }

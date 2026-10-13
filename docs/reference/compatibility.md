@@ -2,7 +2,7 @@
 
 | | Value |
 |---|---|
-| Package version | 0.3.0rc1 (release candidate; no final release has been published); the planned release is 0.3.0 and is **unreleased** |
+| Package version | 0.3.0rc2 (release candidate; no final release has been published); the planned release is 0.3.0 and is **unreleased** |
 | Python | 3.13 or newer (`requires-python`); the wheels are `cp313` |
 | TBCCL | bundled and statically linked: C ABI 1, wire protocol 4 (minimum TBCCL package 0.6.0 when building from source) |
 | exo | the exo integration described below |
@@ -15,14 +15,20 @@ Core transport compatibility (platforms, CUDA, world sizes, the C ABI and wire p
 
 | Wheel | Platform |
 |---|---|
-| `exo_tbccl-0.3.0rc1-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl` | Linux x86-64 |
-| `exo_tbccl-0.3.0rc1-cp313-cp313-macosx_14_0_arm64.whl` | macOS 14 or newer, Apple silicon |
+| `exo_tbccl-0.3.0rc2-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl` | Linux x86-64 |
+| `exo_tbccl-0.3.0rc2-cp313-cp313-macosx_14_0_arm64.whl` | macOS 14 or newer, Apple silicon |
 
 ## The required exo
 
 exo-tbccl needs an exo that contains four things: the `PipelineComm` protocol seam, the `MlxTbccl` instance type and its placement rules, the generic runner byte all-gather (`RunnerByteExchange`), and the fix that keeps draining the byte-exchange inbox after the exchange completes. None is in upstream exo yet.
 
-The validated integration is a short series of commits over upstream exo `75d8ad2bc1eac25aaf7adb39c0784ad0def8c1b6` (2026-10-12; upstream `main` at the time), re-derived on that base from the earlier series over `21a54c5e`: upstream had meanwhile stopped rebuilding the `Worker` on master election (`announce_to_master`), moved its macOS MLX pin to a 0.32.4 development build and reworked placement, the KV prefix cache and the runner bootstrap, so the seams were ported rather than rebased mechanically. The series is maintained as a local branch of the maintainers and **has not been published**: there is no public repository or upstream pull request to install exo with this integration from yet. This is tracked for the final release (publish the integration, or propose it upstream). Until then, exo-tbccl can be exercised only with that branch.
+They are published as the maintained fork `tensorsofthewall/exo-fork` at the immutable tag `tbccl-integration-v1` (commit `1416807b46efd87c3601c69ce5784f51c9dd4c75`, upstream exo `75d8ad2b` plus the TBCCL integration). The tag is signed and immutable; install exo from it, never from the fork's `main` (which tracks upstream and carries the integration forward but is not the compatibility anchor).
+
+```sh
+git clone --branch tbccl-integration-v1 --depth 1 https://github.com/tensorsofthewall/exo-fork.git
+```
+
+The tag is upstream exo `75d8ad2bc1eac25aaf7adb39c0784ad0def8c1b6` (2026-10-12) plus fifteen commits (tree-identical to the integration qualified in Phase 75C.5). The integration was re-derived on that base and the seams were ported rather than rebased mechanically over the earlier series on `21a54c5e`: upstream had meanwhile stopped rebuilding the `Worker` on master election, moved its macOS MLX pin to a 0.32.4 development build and reworked placement, the KV prefix cache and the runner bootstrap. The integration is meant to be proposed upstream; until then this tag is the anchor.
 
 ## MLX versions
 
