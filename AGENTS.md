@@ -20,7 +20,7 @@ exo (placement, shards, runners) -> exo PipelineComm -> TbcclPipelineComm (this 
 
 ## Architecture boundaries
 
-- Link only the stable C ABI (`TBCCL::tbccl_c`, an installed TBCCL >= 0.5). No TBCCL C++ header, source-tree include or private symbol.
+- Link only the stable C ABI (`TBCCL::tbccl_c`, an installed TBCCL 0.6.0 or newer). No TBCCL C++ header, source-tree include or private symbol.
 - No PyTorch in the bridge and no MLX C++ internals. Arrays enter through the Python DLPack protocol and the DLPack C structs.
 - exo owns discovery, topology, placement, shard assignment, model loading and scheduling. This package never rediscovers interfaces and never derives rank from node ordering: rank is the pipeline shard's device rank and world size comes from exo.
 - TBCCL core is not changed for exo's convenience. Fix generic TBCCL defects in the TBCCL repository.
