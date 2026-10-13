@@ -3,6 +3,8 @@ import json
 import os
 import re
 
+import pytest
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -12,6 +14,8 @@ def _read(*parts):
 
 
 def _source_env_vars():
+    if not os.path.isdir(os.path.join(ROOT, "src")):
+        pytest.skip("the package sources are not in this copy (the clean-install job strips them so the installed wheel is imported)")
     names = set()
     for base in ("exo_tbccl", "src"):
         for dirpath, _, files in os.walk(os.path.join(ROOT, base)):
