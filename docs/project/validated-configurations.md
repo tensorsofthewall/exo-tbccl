@@ -1,6 +1,6 @@
 # Validated configurations
 
-Configurations that were exercised, not a benchmark report. Evidence is in the [validation report](../validation/0.3.0.md). "Release-candidate wheels" means the published 0.3.0rc1 wheels were used. Versions and platforms are in the ecosystem [compatibility matrix](https://tbccl.tensorsofthewall.com/en/latest/reference/compatibility-matrix.html).
+Configurations that were exercised, not a benchmark report. Evidence is in the [validation report](../validation/0.3.0.md). "Release-candidate wheels" means the published release-candidate wheels (0.3.0rc1, 0.3.0rc2) and "release wheels" the published 0.3.0 wheels were used. Versions and platforms are in the ecosystem [compatibility matrix](https://tbccl.tensorsofthewall.com/en/latest/reference/compatibility-matrix.html).
 
 | Configuration | What was run | Result |
 |---|---|---|

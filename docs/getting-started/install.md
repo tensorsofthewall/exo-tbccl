@@ -12,15 +12,15 @@ exo-tbccl is installed into **exo's** virtual environment. exo works without it:
 | Platforms | Linux x86-64 (CUDA, CPU) and macOS arm64 (Metal, CPU); wheels `manylinux_2_24`/`2_28` and `macosx_14_0_arm64` |
 | TBCCL | bundled: C ABI 1, wire protocol 4 |
 
-## Install the release-candidate wheel
+## Install the wheel
 
-The 0.3.0rc2 wheels are attached to the GitHub pre-release [`v0.3.0rc2`](https://github.com/tensorsofthewall/exo-tbccl/releases/tag/v0.3.0rc2). They are not published on PyPI or TestPyPI. The wheel does **not** need an editable install.
+The 0.3.0 wheels are attached to the GitHub release [`v0.3.0`](https://github.com/tensorsofthewall/exo-tbccl/releases/tag/v0.3.0). They are not published on PyPI or TestPyPI. The wheel does **not** need an editable install.
 
 ```sh
 # Linux:
-uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0rc2/exo_tbccl-0.3.0rc2-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
 # macOS:
-uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0rc2/exo_tbccl-0.3.0rc2-cp313-cp313-macosx_14_0_arm64.whl
+uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-macosx_14_0_arm64.whl
 ```
 
 Install it on **every** node, with the same version. `--no-deps` keeps the installer from touching exo's MLX environment. A dependency sync inside exo (`uv sync`) can uninstall the package; reinstall afterwards.
@@ -29,7 +29,7 @@ Install it on **every** node, with the same version. `--no-deps` keeps the insta
 
 ```python
 import exo_tbccl
-print(exo_tbccl.__version__, exo_tbccl.is_available())    # 0.3.0rc2 (True, '')
+print(exo_tbccl.__version__, exo_tbccl.is_available())    # 0.3.0 (True, '')
 ```
 
 `is_available()` returns `(True, "")` when the native binding loads and the bundled TBCCL C ABI matches; otherwise `(False, reason)`. Run it with exo's Python, on every node.

@@ -2,7 +2,7 @@
 
 | | Value |
 |---|---|
-| Package version | 0.3.0rc2 (release candidate; no final release has been published); the planned release is 0.3.0 and is **unreleased** |
+| Package version | 0.3.0 |
 | Python | 3.13 or newer (`requires-python`); the wheels are `cp313` |
 | TBCCL | bundled and statically linked: C ABI 1, wire protocol 4 (minimum TBCCL package 0.6.0 when building from source) |
 | exo | the exo integration described below |
@@ -15,8 +15,8 @@ Core transport compatibility (platforms, CUDA, world sizes, the C ABI and wire p
 
 | Wheel | Platform |
 |---|---|
-| `exo_tbccl-0.3.0rc2-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl` | Linux x86-64 |
-| `exo_tbccl-0.3.0rc2-cp313-cp313-macosx_14_0_arm64.whl` | macOS 14 or newer, Apple silicon |
+| `exo_tbccl-0.3.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl` | Linux x86-64 |
+| `exo_tbccl-0.3.0-cp313-cp313-macosx_14_0_arm64.whl` | macOS 14 or newer, Apple silicon |
 
 ## The required exo
 

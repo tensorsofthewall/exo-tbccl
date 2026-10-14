@@ -4,7 +4,7 @@
 
 exo-tbccl is an optional package that lets [exo](https://github.com/exo-explore/exo) (an MLX-based distributed inference system) run **pipeline-parallel text generation** across machines of different kinds, for example a Mac with Metal and a Linux host with CUDA, with [TBCCL](https://github.com/tensorsofthewall/tbccl) moving the activations between stages over its stable C ABI. It is separate from exo and from TBCCL, and uses no PyTorch and no MLX C++ internals.
 
-> **Status:** release candidate **0.3.0rc2** (pre-release, experimental; not production-ready). The final 0.3.0 has not been released. It is one of three independent adapters over TBCCL (with [torch-tbccl](https://github.com/tensorsofthewall/torch-tbccl) and [vllm-tbccl](https://github.com/tensorsofthewall/vllm-tbccl)) and depends on neither.
+> **Status:** **0.3.0** (first release; experimental). It is one of three independent adapters over TBCCL (with [torch-tbccl](https://github.com/tensorsofthewall/torch-tbccl) and [vllm-tbccl](https://github.com/tensorsofthewall/vllm-tbccl)) and depends on neither.
 
 ## What is supported
 
@@ -23,14 +23,14 @@ exo (discovery, placement)  ->  exo-tbccl (MLX bridge + TbcclPipelineComm)  ->  
 
 ## Quick start
 
-Install the release-candidate wheel into **exo's** virtual environment:
+Install the wheel into **exo's** virtual environment:
 
 ```sh
 # Linux (CUDA):
-uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0rc2/exo_tbccl-0.3.0rc2-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
 # macOS (Apple silicon):
-uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0rc2/exo_tbccl-0.3.0rc2-cp313-cp313-macosx_14_0_arm64.whl
-<exo venv>/bin/python -c "import exo_tbccl; print(exo_tbccl.__version__, exo_tbccl.is_available())"    # 0.3.0rc2 (True, '')
+uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-macosx_14_0_arm64.whl
+<exo venv>/bin/python -c "import exo_tbccl; print(exo_tbccl.__version__, exo_tbccl.is_available())"    # 0.3.0 (True, '')
 ```
 
 Start exo on both hosts (see [running across two hosts](docs/guides/two-host.md): on the Mac, launch exo from a live `ssh -tt` session, not from detached tmux or nohup), then select the pipeline type:
@@ -67,7 +67,7 @@ Optional fast paths and Metal activity policies are off by default ([fast paths]
 
 ## Documentation
 
-Hosted documentation: https://exo-tbccl.tensorsofthewall.com/ (`latest` is development documentation built from `main`; release-candidate versions appear as numbered versions; `stable` does not exist until the final release). Build it locally with `make docs`. Start with [getting started](docs/getting-started/index.md), [running across two hosts](docs/guides/two-host.md), [discovery troubleshooting](docs/guides/discovery-troubleshooting.md) and [known limitations](docs/project/limitations.md).
+Hosted documentation: https://exo-tbccl.tensorsofthewall.com/ (`latest` is development documentation built from `main`; released versions appear as numbered versions and `stable` is the latest final release). Build it locally with `make docs`. Start with [getting started](docs/getting-started/index.md), [running across two hosts](docs/guides/two-host.md), [discovery troubleshooting](docs/guides/discovery-troubleshooting.md) and [known limitations](docs/project/limitations.md).
 
 ## Known limitations
 
