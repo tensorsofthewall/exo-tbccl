@@ -5,7 +5,7 @@
     "development_version": "0.3.0",
     "release_candidate": false,
     "target_release": "0.3.0",
-    "released": false,
+    "released": true,
     "note": "0.3.0 is the first release; promoted from the release candidate 0.3.0rc2 without a code change"
   },
   "python": {
