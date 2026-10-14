@@ -42,7 +42,7 @@ uv sync --no-dev --extra mlx-cuda13 --extra tbccl     # Linux CUDA 13
 uv sync --no-dev --extra mlx --extra tbccl            # macOS
 ```
 
-On Linux this was verified to install exactly one extra package (`exo-tbccl 0.3.0`) compared with the same sync without `--extra tbccl`, to keep it across a repeated sync, and to leave the MLX and PyTorch pins unchanged; the macOS command is the same resolution and has not been run yet. It is **pending**: it is not in `tbccl-integration-v1`, which is never changed, and becomes the supported path when a new integration tag with the extra is released and qualified. exo without the extra behaves as before.
+On Linux x86-64 (CUDA 13) and on macOS arm64 (Metal) this was verified to install exactly one extra package (`exo-tbccl 0.3.0`) compared with the same sync without `--extra tbccl`, to keep it across a repeated sync, and to leave the MLX and PyTorch pins unchanged. On macOS the first sync builds MLX from its pinned git revision (Xcode and the Metal toolchain are needed, and it takes several minutes); a later sync may reinstall that date-stamped MLX build, which is existing behaviour and leaves `exo-tbccl` installed. On any other platform (for example Linux aarch64 or Intel macOS) no adapter wheel exists, the extra installs nothing, and the same diagnostic as without the extra appears: `exo_tbccl is not installed (No module named 'exo_tbccl')`, and selecting `MlxTbccl` fails placement with `MlxTbccl requires the optional exo-tbccl package: <that reason>`. It is **pending**: it is not in `tbccl-integration-v1`, which is never changed, and becomes the supported path when a new integration tag with the extra is released and qualified. exo without the extra behaves as before.
 
 ## Check
 
