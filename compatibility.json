@@ -26,10 +26,18 @@
     "exo": {
       "integration": "the TBCCL integration series (PipelineComm seam, MlxTbccl placement, runner byte exchange) published as an immutable signed tag of the maintained exo fork",
       "fork": "tensorsofthewall/exo-fork",
-      "fork_tag": "tbccl-integration-v1",
-      "fork_revision": "1416807b46efd87c3601c69ce5784f51c9dd4c75",
-      "upstream_base": "75d8ad2bc1eac25aaf7adb39c0784ad0def8c1b6",
-      "upstream_base_date": "2026-10-12"
+      "fork_tag": "tbccl-integration-v2",
+      "fork_revision": "d1497b28b89618172d273e70e9ac7992811635f5",
+      "upstream_base": "bc412e2230f395e652c23426a5eb88dfa515769b",
+      "upstream_base_date": "2026-10-13",
+      "install": "uv sync --no-dev --locked --extra mlx-cuda13 --extra tbccl (Linux) or --extra mlx --extra tbccl (macOS), in a checkout of the tag",
+      "legacy_integration": {
+        "fork_tag": "tbccl-integration-v1",
+        "fork_revision": "1416807b46efd87c3601c69ce5784f51c9dd4c75",
+        "upstream_base": "75d8ad2bc1eac25aaf7adb39c0784ad0def8c1b6",
+        "upstream_base_date": "2026-10-12",
+        "install": "tag checkout plus the exo-tbccl 0.3.0 wheel installed manually (no optional extra)"
+      }
     }
   },
   "requires_tbccl": {
@@ -94,6 +102,22 @@
         "linux": 5200,
         "mac": 10800
       }
+    },
+    {
+      "name": "thunderbolt-real-exo-v2-qwen3-0.6b-8bit",
+      "stages": [
+        "macos-metal",
+        "linux-cuda"
+      ],
+      "model": "Qwen3-0.6B-8bit",
+      "tbccl_wire_protocol": 4,
+      "exo_fork_tag": "tbccl-integration-v2",
+      "exo_fork_revision": "d1497b28b89618172d273e70e9ac7992811635f5",
+      "install": "optional tbccl extra",
+      "layer_splits": [
+        "7/21"
+      ],
+      "cycles": 1
     }
   ]
 }

@@ -22,13 +22,15 @@ Core transport compatibility (platforms, CUDA, world sizes, the C ABI and wire p
 
 exo-tbccl needs an exo that contains four things: the `PipelineComm` protocol seam, the `MlxTbccl` instance type and its placement rules, the generic runner byte all-gather (`RunnerByteExchange`), and the fix that keeps draining the byte-exchange inbox after the exchange completes. None is in upstream exo yet.
 
-They are published as the maintained fork `tensorsofthewall/exo-fork` at the immutable tag `tbccl-integration-v1` (commit `1416807b46efd87c3601c69ce5784f51c9dd4c75`, upstream exo `75d8ad2b` plus the TBCCL integration). The tag is signed and immutable; install exo from it, never from the fork's `main` (which tracks upstream and carries the integration forward but is not the compatibility anchor).
+They are published as the maintained fork `tensorsofthewall/exo-fork` at the immutable tag `tbccl-integration-v2` (commit `d1497b28b89618172d273e70e9ac7992811635f5`, upstream exo `bc412e22` plus the TBCCL integration). The tag is annotated and immutable; install exo from it, never from the fork's `main` (which tracks upstream and carries the integration forward but is not the compatibility anchor).
 
 ```sh
-git clone --branch tbccl-integration-v1 --depth 1 https://github.com/tensorsofthewall/exo-fork.git
+git clone --depth 1 --branch tbccl-integration-v2 https://github.com/tensorsofthewall/exo-fork.git
 ```
 
-The tag is upstream exo `75d8ad2bc1eac25aaf7adb39c0784ad0def8c1b6` (2026-10-12) plus fifteen commits (tree-identical to the integration qualified in Phase 75C.5). The integration was re-derived on that base and the seams were ported rather than rebased mechanically over the earlier series on `21a54c5e`: upstream had meanwhile stopped rebuilding the `Worker` on master election, moved its macOS MLX pin to a 0.32.4 development build and reworked placement, the KV prefix cache and the runner bootstrap. The integration is meant to be proposed upstream; until then this tag is the anchor.
+The tag is upstream exo `bc412e2230f395e652c23426a5eb88dfa515769b` (2026-10-13) plus the unchanged integration and an optional `tbccl` dependency extra (platform-gated 0.3.0 wheel sources, a verified `uv.lock`), so that `uv sync --locked --extra mlx-cuda13 --extra tbccl` (Linux) or `--extra mlx --extra tbccl` (macOS) installs the adapter. exo-tbccl 0.3.0 is the adapter version of both integrations: the wheel did not change. The tag's own README predates this installation method. Physical qualification of v2: one two-rank `MlxTbccl` pipeline (Mac Metal and Linux CUDA, Thunderbolt 4, `Qwen3-0.6B-8bit`) completed a short generation with no new AER errors or link instability; no performance, scalability, recovery or other-model claim.
+
+**Legacy integration.** `tbccl-integration-v1` (commit `1416807b46efd87c3601c69ce5784f51c9dd4c75`, upstream exo `75d8ad2bc1eac25aaf7adb39c0784ad0def8c1b6`, 2026-10-12) remains available and unchanged, installed with the 0.3.0 wheel by hand ([installing](../getting-started/install.md)). It was the integration re-derived on that base: the seams were ported rather than rebased mechanically over the earlier series on `21a54c5e`, because upstream had meanwhile stopped rebuilding the `Worker` on master election, moved its macOS MLX pin to a 0.32.4 development build and reworked placement, the KV prefix cache and the runner bootstrap. The integration is meant to be proposed upstream; until then the tag is the anchor.
 
 ## MLX versions
 

@@ -7,14 +7,14 @@ Form a two-node exo cluster, place a model with `MlxTbccl`, and generate. This i
 Use the same namespace on both nodes so they join one cluster, and give each its own exo state directory. On Linux:
 
 ```sh
-cd <exo-fork checkout at tag tbccl-integration-v1>
-EXO_HOME=$HOME/.exo EXO_ZENOH_NAMESPACE=mycluster .venv/bin/exo
+cd <exo-fork checkout at tag tbccl-integration-v2>
+EXO_HOME=$HOME/.exo EXO_ZENOH_NAMESPACE=mycluster uv run --no-sync exo
 ```
 
 On the Mac, start exo from a **live Terminal or `ssh -tt` session** (not a detached tmux/nohup job; see [running across two hosts](../guides/two-host.md)):
 
 ```sh
-ssh -tt <mac> 'export PATH=/opt/homebrew/bin:$PATH EXO_HOME=$HOME/.exo EXO_ZENOH_NAMESPACE=mycluster; cd <exo-fork checkout at tag tbccl-integration-v1> && exec .venv/bin/exo'
+ssh -tt <mac> 'export PATH=/opt/homebrew/bin:$PATH EXO_HOME=$HOME/.exo EXO_ZENOH_NAMESPACE=mycluster; cd <exo-fork checkout at tag tbccl-integration-v2> && exec uv run --no-sync exo'
 ```
 
 `EXO_ZENOH_NAMESPACE` (or `--namespace`) must be the same on every node of the cluster. Add `EXO_OFFLINE=true` (or `--offline`) when the models are pre-staged locally and nothing should be downloaded. Within seconds of the second node starting, both should see each other.
