@@ -330,25 +330,76 @@ class FrameworkPin(unittest.TestCase):
         m["frameworks"][self.key]["fork_tag"] = "main"
         self.assertEqual(self.offline(m), mc.INTEGRITY)
 
-    def online(self, ls, api=lambda p: {"merge_base_commit": {"sha": None}}):
+    def eco_entry(self, **change):
+        key = "vllm_tbccl" if self.key == "vllm_metal" else "exo_tbccl"
+        p = self.pin
+        if self.key == "exo":
+            mine = {"exo_repo": p["fork"], "exo_tag": p["fork_tag"], "exo_sha": p["fork_revision"], "exo_upstream_base": p["upstream_base"]}
+        else:
+            mine = {"metal_repo": p["fork"], "metal_tag": p["fork_tag"], "metal_sha": p["fork_revision"], "metal_upstream_base": p["revision"]}
+        entry = {"version": self.manifest["package"]["development_version"], **mine, **change}
+        return {key: entry}
+
+    def pin_online(self, ls, api=None):
+        base = self.pin.get("upstream_base", self.pin.get("revision"))
+        api = api or (lambda p: {"merge_base_commit": {"sha": base}, "ahead_by": 1})
         rep = mc.Report("t")
-        with mock.patch.object(mc, "ls_remote_tag", ls), mock.patch.object(mc, "github_api", api), \
-                mock.patch.object(self.fp.urllib.request, "urlopen", side_effect=OSError("offline")), mock.patch.object(mc.Report, "summary"):
-            self.fp.check_online(self.manifest, rep)
+        with mock.patch.object(mc, "ls_remote_tag", ls), mock.patch.object(mc, "github_api", api), mock.patch.object(mc.Report, "summary"):
+            self.fp.check_pin_online(self.manifest, rep)
         return [c for c, m in rep.items]
 
-    def test_tag_resolving_elsewhere_fails_hard(self):
-        self.assertIn(mc.INTEGRITY, self.online(lambda r, t: "f" * 40))
-        self.assertIn(mc.INTEGRITY, self.online(lambda r, t: None))
+    def ecosystem(self, eco, released=True, version=None):
+        manifest = copy.deepcopy(self.manifest)
+        manifest["package"]["released"] = released
+        if version:
+            manifest["package"]["development_version"] = version
+        rep = mc.Report("t")
+        with mock.patch.object(mc, "load_ecosystem", side_effect=eco if isinstance(eco, Exception) else None, return_value=None if isinstance(eco, Exception) else eco), \
+                mock.patch.object(mc.Report, "summary"):
+            self.fp.check_current_ecosystem(manifest, rep)
+        return rep
 
-    def test_matching_tag_passes_and_offline_only_warns(self):
-        self.assertNotIn(mc.INTEGRITY, [c for c in self.online(lambda r, t: self.sha, api=lambda p: {"merge_base_commit": {"sha": self.pin.get("upstream_base", self.pin.get("revision"))}, "ahead_by": 1})])
+    def test_tag_resolving_elsewhere_fails_hard_whatever_the_release_state(self):
+        self.assertIn(mc.INTEGRITY, self.pin_online(lambda r, t: "f" * 40))
+        self.assertIn(mc.INTEGRITY, self.pin_online(lambda r, t: None))
+
+    def test_matching_tag_passes_and_unreachable_github_only_warns(self):
+        self.assertNotIn(mc.INTEGRITY, self.pin_online(lambda r, t: self.sha))
 
         def down(*a):
             raise mc.Network("offline")
-        codes = self.online(down, api=down)
+        codes = self.pin_online(down, api=down)
         self.assertNotIn(mc.INTEGRITY, codes)
         self.assertIn(mc.WARNING, codes)
+
+    def test_released_stable_matching_ecosystem_is_ok(self):
+        self.assertEqual(self.ecosystem(self.eco_entry()).worst(), mc.OK)
+
+    def test_released_stable_mismatching_ecosystem_is_an_integrity_failure(self):
+        key = next(k for k in self.eco_entry()[next(iter(self.eco_entry()))] if k.endswith("_sha"))
+        self.assertEqual(self.ecosystem(self.eco_entry(**{key: "a" * 40})).worst(), mc.INTEGRITY)
+
+    def test_unreleased_candidate_mismatch_only_warns(self):
+        key = next(k for k in self.eco_entry()[next(iter(self.eco_entry()))] if k.endswith("_sha"))
+        rep = self.ecosystem(self.eco_entry(**{key: "a" * 40}), released=False)
+        self.assertEqual(rep.worst(), mc.WARNING)
+        self.assertIn("has not been updated for this candidate", rep.items[0][1])
+
+    def test_a_new_stable_version_against_the_old_published_entry_only_warns(self):
+        key = next(k for k in self.eco_entry()[next(iter(self.eco_entry()))] if k.endswith("_sha"))
+        self.assertEqual(self.ecosystem(self.eco_entry(**{key: "a" * 40, "version": "0.0.1"})).worst(), mc.WARNING)
+
+    def test_unavailable_ecosystem_is_a_warning_not_a_verdict(self):
+        self.assertEqual(self.ecosystem(mc.Network("offline")).worst(), mc.WARNING)
+        self.assertEqual(self.ecosystem(mc.Network("offline"), released=False).worst(), mc.WARNING)
+
+    def test_explicit_ecosystem_file_is_read_without_the_network(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "eco.json"
+            path.write_text(json.dumps(self.eco_entry()))
+            self.assertEqual(mc.load_ecosystem(str(path)), self.eco_entry())
+            with self.assertRaises(mc.Network):
+                mc.load_ecosystem(str(Path(tmp) / "missing.json"))
 
     def test_diff_normalization_ignores_mail_headers(self):
         if self.key != "vllm_metal":
