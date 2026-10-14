@@ -8,7 +8,7 @@ exo-tbccl 0.3.0: CPython 3.13, TBCCL 0.6.0 (C ABI 1), Linux x86-64 and macOS arm
 
 ## Pins
 
-exo is installed from `tensorsofthewall/exo-fork` at the immutable tag `tbccl-integration-v1` (`1416807b46efd87c3601c69ce5784f51c9dd4c75`, upstream exo `75d8ad2bc1eac25aaf7adb39c0784ad0def8c1b6` plus the integration). `python3 tools/check_framework_pin.py` checks the pin offline; `--online` confirms the tag and that it still descends from the recorded upstream base.
+exo is installed from `tensorsofthewall/exo-fork` at the immutable tag `tbccl-integration-v2` (`d1497b28b89618172d273e70e9ac7992811635f5`, upstream exo `bc412e2230f395e652c23426a5eb88dfa515769b` plus the integration; `tbccl-integration-v1` is the legacy tag and is never changed). `python3 tools/check_framework_pin.py` checks the pin offline; `--online` confirms the tag and that it still descends from the recorded upstream base.
 
 ## What needs physical requalification here
 
