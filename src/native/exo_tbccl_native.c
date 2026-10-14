@@ -49,6 +49,8 @@ typedef struct {
     ExoDLManagedTensor *managed;
     PyObject *capsule;
     void *ptr;
+    void *data;
+    uint64_t byte_offset;
     uint64_t nbytes;
     int32_t device_type;
     int32_t device_id;
@@ -174,6 +176,8 @@ static PyObject *export_new(PyTypeObject *type, PyObject *args, PyObject *kwds) 
         goto fail;
     }
     self->ptr = (void *)((char *)t->data + t->byte_offset);
+    self->data = t->data;
+    self->byte_offset = t->byte_offset;
     return (PyObject *)self;
 fail:
     Py_DECREF(self);
@@ -181,6 +185,8 @@ fail:
 }
 
 static PyObject *export_get_ptr(PyObject *o, void *c) { (void)c; return PyLong_FromVoidPtr(((ExportObject *)o)->ptr); }
+static PyObject *export_get_data(PyObject *o, void *c) { (void)c; return PyLong_FromVoidPtr(((ExportObject *)o)->data); }
+static PyObject *export_get_byte_offset(PyObject *o, void *c) { (void)c; return PyLong_FromUnsignedLongLong(((ExportObject *)o)->byte_offset); }
 static PyObject *export_get_nbytes(PyObject *o, void *c) { (void)c; return PyLong_FromUnsignedLongLong(((ExportObject *)o)->nbytes); }
 static PyObject *export_get_device(PyObject *o, void *c) {
     (void)c;
@@ -196,6 +202,8 @@ static PyObject *export_get_released(PyObject *o, void *c) { (void)c; return PyB
 
 static PyGetSetDef export_getset[] = {
     {"ptr", export_get_ptr, NULL, "address of the first byte (data + byte_offset)", NULL},
+    {"data", export_get_data, NULL, "the DLPack data pointer as exported (for Metal: possibly an MTLBuffer handle, see bridge.py)", NULL},
+    {"byte_offset", export_get_byte_offset, NULL, "the DLPack byte offset", NULL},
     {"nbytes", export_get_nbytes, NULL, "payload size in bytes", NULL},
     {"device", export_get_device, NULL, "(DLPack device type, device id)", NULL},
     {"released", export_get_released, NULL, "True once the producer's deleter has run", NULL},

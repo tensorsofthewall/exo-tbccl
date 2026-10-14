@@ -142,12 +142,13 @@ class ReceivePool:
         import mlx.core as mx
 
         from ._loader import native
+        from .bridge import _export_address
 
         uint = {1: mx.uint8, 2: mx.uint16, 4: mx.uint32, 8: mx.uint64}[slot.array.dtype.size]
         view = slot.array.view(uint)
         mx.eval(view)
         exp = native.Export(view)
         try:
-            ctypes.memset(exp.ptr, self.poison, exp.nbytes)
+            ctypes.memset(_export_address(exp, exp.device[0]), self.poison, exp.nbytes)
         finally:
             exp.release()

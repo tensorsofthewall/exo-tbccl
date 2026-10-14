@@ -3,7 +3,7 @@
 An optional package that lets [exo](https://github.com/exo-explore/exo) run pipeline-parallel text generation across machines of different kinds (for example a Mac with Metal and a Linux host with CUDA), with TBCCL moving the activations between stages.
 
 ```{note}
-**Release candidate.** The current release candidate is 0.3.0rc1 (TBCCL C ABI 1 / wire protocol 4, MLX 0.32). It is a pre-release for validation, not for production use. The final 0.3.0 has not been released.
+**Release candidate.** The current release candidate is 0.3.0rc2 (TBCCL C ABI 1 / wire protocol 4, MLX 0.32). It is a pre-release for validation, not for production use. The final 0.3.0 has not been released.
 ```
 
 exo-tbccl is one of three independent adapters over the [TBCCL](https://tbccl.tensorsofthewall.com/en/latest/) runtime; the others are torch-tbccl (PyTorch) and vllm-tbccl (vLLM). It depends on neither. See the [ecosystem overview](project/ecosystem.md).

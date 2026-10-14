@@ -2,21 +2,30 @@
   "schema_version": 1,
   "project": "exo-tbccl",
   "package": {
-    "development_version": "0.3.0rc1",
+    "development_version": "0.3.0rc2",
     "release_candidate": true,
     "target_release": "0.3.0",
     "released": false,
-    "note": "target_release is planned and unreleased; 0.3.0rc1 is a release candidate (pre-release)"
+    "note": "target_release is planned and unreleased; 0.3.0rc2 is a release candidate (pre-release)"
   },
   "python": {
     "requires": ">=3.13"
   },
   "frameworks": {
     "mlx": {
-      "validated": "0.32"
+      "validated": [
+        "0.32.0 (linux cuda)",
+        "0.32.4.dev20261013+0e3ff3643 (macos, exo's pin)",
+        "0.32.0.dev20261004+cc3f3e60 (macos, earlier pin)"
+      ]
     },
     "exo": {
-      "integration": "the exo integration branch with the PipelineComm seam and the runner byte exchange"
+      "integration": "the TBCCL integration series (PipelineComm seam, MlxTbccl placement, runner byte exchange) published as an immutable signed tag of the maintained exo fork",
+      "fork": "tensorsofthewall/exo-fork",
+      "fork_tag": "tbccl-integration-v1",
+      "fork_revision": "1416807b46efd87c3601c69ce5784f51c9dd4c75",
+      "upstream_base": "75d8ad2bc1eac25aaf7adb39c0784ad0def8c1b6",
+      "upstream_base_date": "2026-10-12"
     }
   },
   "requires_tbccl": {
@@ -47,16 +56,40 @@
     {
       "name": "loopback-qwen3-0.6b-8bit",
       "stages": 2,
-      "model": "Qwen3-0.6B-8bit"
+      "model": "Qwen3-0.6B-8bit",
+      "mlx_metal": "0.32.4.dev20261013+0e3ff3643"
     },
     {
-      "name": "thunderbolt-metal-cuda-27b",
+      "name": "thunderbolt-real-exo-rebased-qwen3-0.6b-8bit",
+      "stages": [
+        "macos-metal",
+        "linux-cuda"
+      ],
+      "model": "Qwen3-0.6B-8bit",
+      "tbccl_wire_protocol": 4,
+      "exo_upstream_base": "75d8ad2bc1eac25aaf7adb39c0784ad0def8c1b6",
+      "layer_splits": [
+        "21/7",
+        "7/21"
+      ],
+      "cycles": 3
+    },
+    {
+      "name": "thunderbolt-real-exo-rebased-qwen3.8-27b-4bit",
       "stages": [
         "macos-metal",
         "linux-cuda"
       ],
       "model": "Qwen3.8-27B-4bit",
-      "tbccl_wire_protocol_at_validation": 3
+      "tbccl_wire_protocol": 4,
+      "orientations": [
+        "mac-rank0",
+        "linux-rank0"
+      ],
+      "memory_override_mb": {
+        "linux": 5200,
+        "mac": 10800
+      }
     }
   ]
 }

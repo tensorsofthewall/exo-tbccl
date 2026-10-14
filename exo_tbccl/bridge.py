@@ -90,6 +90,73 @@ def _kind_for(device_type: int, device_id: int, managed_as_host: bool = False) -
     return kind, (device_id if kind == MEMORY_CUDA else -1), label
 
 
+# ---- MLX's Metal DLPack export -----------------------------------------------------------------------------------------------------
+# DLPack's Metal device type means ``data`` is an ``id<MTLBuffer>`` and ``byte_offset`` an offset into it. Older MLX builds exported the buffer's
+# CPU-visible contents address instead (what TBCCL's MetalShared memory needs); newer MLX (exo's pinned 0.32.4 development line) exports the
+# MTLBuffer handle. Reading a handle as if it were the contents corrupts memory, so the convention is established once per process by an
+# exact-content probe and anything unrecognized is refused rather than guessed.
+_PROBE = bytes(range(1, 65))
+_metal_handle_convention: bool | None = None
+_objc: tuple | None = None
+
+
+def _objc_contents(handle: int) -> int:
+    """``[(id<MTLBuffer>)handle contents]`` through the Objective-C runtime (a CPU-visible address for shared storage, NULL otherwise)."""
+    global _objc
+    import ctypes
+
+    if _objc is None:
+        lib = ctypes.CDLL("/usr/lib/libobjc.A.dylib")
+        lib.sel_registerName.restype = ctypes.c_void_p
+        lib.sel_registerName.argtypes = [ctypes.c_char_p]
+        send = lib.objc_msgSend
+        send.restype = ctypes.c_void_p
+        send.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+        _objc = (send, lib.sel_registerName(b"contents"))
+    send, sel = _objc
+    return int(send(ctypes.c_void_p(handle), ctypes.c_void_p(sel)) or 0)
+
+
+def _read(ptr: int, n: int) -> bytes:
+    import ctypes
+
+    return ctypes.string_at(ptr, n)
+
+
+def _metal_uses_buffer_handles() -> bool:
+    global _metal_handle_convention
+    if _metal_handle_convention is None:
+        import mlx.core as mx
+
+        arr = mx.array(list(_PROBE), dtype=mx.uint8) + mx.zeros((len(_PROBE),), dtype=mx.uint8)
+        mx.eval(arr)
+        exp = native.Export(arr)
+        try:
+            if _read(exp.ptr, 8) == _PROBE[:8]:   # a handle's first bytes are an object header: reading 8 is always safe, 64 might cross the object
+                _metal_handle_convention = False
+            else:
+                base = _objc_contents(exp.data)
+                if base and _read(base + exp.byte_offset, len(_PROBE)) == _PROBE:
+                    _metal_handle_convention = True
+                else:
+                    raise TbcclUnsupportedError(
+                        native.TBCCL_UNSUPPORTED, "bridge",
+                        "this MLX's Metal DLPack export is neither a CPU-visible address nor a shared MTLBuffer; refusing to guess")
+        finally:
+            exp.release()
+    return _metal_handle_convention
+
+
+def _export_address(exp: object, device_type: int) -> int:
+    """The CPU-visible address of an exported MLX array's first byte (what libtbccl is given for MetalShared memory)."""
+    if device_type != native.DL_METAL or not _metal_uses_buffer_handles():
+        return exp.ptr  # pyright: ignore[reportAttributeAccessIssue]
+    base = _objc_contents(exp.data)  # pyright: ignore[reportAttributeAccessIssue]
+    if not base:
+        raise TbcclUnsupportedError(native.TBCCL_UNSUPPORTED, "bridge", "the MTLBuffer behind this array is not CPU-visible (private storage); only shared storage can be borrowed")
+    return base + exp.byte_offset  # pyright: ignore[reportAttributeAccessIssue]
+
+
 def _is_mlx(array: object) -> bool:
     return type(array).__module__.startswith("mlx.")
 
@@ -136,7 +203,12 @@ def borrow(array: object, stats: CopyStats | None = None, *, writable: bool = Fa
         if exp.nbytes != arr.nbytes:
             exp.release()
             raise TbcclInvalidArgumentError(native.TBCCL_INVALID_ARGUMENT, "bridge", f"byte count mismatch: view {exp.nbytes} vs array {arr.nbytes}")
-        return Borrow((arr, owner), probe, exp, exp.ptr, exp.nbytes, kind, device, label)
+        try:
+            address = _export_address(exp, device_type)
+        except BaseException:
+            exp.release()
+            raise
+        return Borrow((arr, owner), probe, exp, address, exp.nbytes, kind, device, label)
 
     exp = native.Export(array)
     device_type, device_id = exp.device

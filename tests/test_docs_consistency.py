@@ -3,6 +3,8 @@ import json
 import os
 import re
 
+import pytest
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -12,6 +14,8 @@ def _read(*parts):
 
 
 def _source_env_vars():
+    if not os.path.isdir(os.path.join(ROOT, "src")):
+        pytest.skip("the package sources are not in this copy (the clean-install job strips them so the installed wheel is imported)")
     names = set()
     for base in ("exo_tbccl", "src"):
         for dirpath, _, files in os.walk(os.path.join(ROOT, base)):
@@ -62,3 +66,26 @@ def test_the_discovery_workaround_is_documented():
     two_host = _read("docs", "guides", "two-host.md")
     assert "ssh -tt" in two_host and "52413" in two_host
     assert "not architectural requirements" in two_host
+
+
+def test_the_exo_base_is_recorded_consistently_and_stale_bases_are_gone():
+    manifest = json.loads(_read("compatibility.json"))
+    base = manifest["frameworks"]["exo"]["upstream_base"]
+    compat = _read("docs", "reference", "compatibility.md")
+    assert base in compat and base[:8] in _read("docs", "getting-started", "install.md") and base[:8] in _read("README.md")
+    for name in ("README.md", "docs/reference/compatibility.md", "docs/getting-started/install.md", "docs/project/limitations.md"):
+        text = _read(*name.split("/"))
+        assert "14 commits" not in text, f"{name} still counts the old integration series"
+    assert "21a54c5e" in compat and "re-derived" in compat   # named only as the history of the series
+    assert not [v for v in manifest["validated_configurations"] if "tbccl_wire_protocol_at_validation" in v]
+
+
+def test_the_exo_fork_tag_is_the_published_anchor():
+    manifest = json.loads(_read("compatibility.json"))
+    exo = manifest["frameworks"]["exo"]
+    assert exo["fork"] == "tensorsofthewall/exo-fork" and exo["fork_tag"] == "tbccl-integration-v1"
+    for name in ("README.md", "docs/reference/compatibility.md", "docs/getting-started/install.md"):
+        text = _read(*name.split("/"))
+        assert exo["fork_tag"] in text, f"{name} does not name the exo fork tag"
+        assert ("/mnt" + "/BigChonk") not in text and "has not been published" not in text and "not yet published" not in text
+    assert exo["fork_revision"] in _read("docs", "reference", "compatibility.md")

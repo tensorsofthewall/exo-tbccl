@@ -7,20 +7,20 @@ exo-tbccl is installed into **exo's** virtual environment. exo works without it:
 | | |
 |---|---|
 | Python | 3.13 or newer (the wheels are `cp313`) |
-| exo | an exo with the `PipelineComm` seam, `MlxTbccl` and the runner byte exchange: the integration branch described in [compatibility](../reference/compatibility.md) (14 commits over upstream exo `21a54c5e`; not yet published) |
-| MLX | 0.32 (`mlx-cuda13` extra on Linux with CUDA 13, `mlx` on macOS), from exo's own environment |
+| exo | the exo fork with the TBCCL integration: `tensorsofthewall/exo-fork` at the immutable tag `tbccl-integration-v1` (commit `1416807b46efd87c3601c69ce5784f51c9dd4c75`, upstream exo `75d8ad2b` plus the TBCCL integration) ([compatibility](../reference/compatibility.md)) |
+| MLX | 0.32.x (`mlx-cuda13` extra on Linux with CUDA 13, `mlx` on macOS), from exo's own environment; validated with 0.32.0 (Linux CUDA) and the 0.32.4 development build `0e3ff3643` that upstream exo pins on macOS |
 | Platforms | Linux x86-64 (CUDA, CPU) and macOS arm64 (Metal, CPU); wheels `manylinux_2_24`/`2_28` and `macosx_14_0_arm64` |
 | TBCCL | bundled: C ABI 1, wire protocol 4 |
 
 ## Install the release-candidate wheel
 
-The 0.3.0rc1 wheels are attached to the GitHub pre-release [`v0.3.0rc1`](https://github.com/tensorsofthewall/exo-tbccl/releases/tag/v0.3.0rc1). They are not published on PyPI or TestPyPI. The wheel does **not** need an editable install.
+The 0.3.0rc2 wheels are attached to the GitHub pre-release [`v0.3.0rc2`](https://github.com/tensorsofthewall/exo-tbccl/releases/tag/v0.3.0rc2). They are not published on PyPI or TestPyPI. The wheel does **not** need an editable install.
 
 ```sh
 # Linux:
-uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0rc1/exo_tbccl-0.3.0rc1-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0rc2/exo_tbccl-0.3.0rc2-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
 # macOS:
-uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0rc1/exo_tbccl-0.3.0rc1-cp313-cp313-macosx_14_0_arm64.whl
+uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0rc2/exo_tbccl-0.3.0rc2-cp313-cp313-macosx_14_0_arm64.whl
 ```
 
 Install it on **every** node, with the same version. `--no-deps` keeps the installer from touching exo's MLX environment. A dependency sync inside exo (`uv sync`) can uninstall the package; reinstall afterwards.
@@ -29,7 +29,7 @@ Install it on **every** node, with the same version. `--no-deps` keeps the insta
 
 ```python
 import exo_tbccl
-print(exo_tbccl.__version__, exo_tbccl.is_available())    # 0.3.0rc1 (True, '')
+print(exo_tbccl.__version__, exo_tbccl.is_available())    # 0.3.0rc2 (True, '')
 ```
 
 `is_available()` returns `(True, "")` when the native binding loads and the bundled TBCCL C ABI matches; otherwise `(False, reason)`. Run it with exo's Python, on every node.
