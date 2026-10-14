@@ -89,3 +89,28 @@ def test_the_exo_fork_tag_is_the_published_anchor():
         assert exo["fork_tag"] in text, f"{name} does not name the exo fork tag"
         assert ("/mnt" + "/BigChonk") not in text and "has not been published" not in text and "not yet published" not in text
     assert exo["fork_revision"] in _read("docs", "reference", "compatibility.md")
+
+
+def test_documented_wheel_urls_name_the_current_release():
+    manifest = json.loads(_read("compatibility.json"))
+    version = manifest["package"]["development_version"]
+    for name in (("README.md",), ("docs", "getting-started", "install.md")):
+        text = _read(*name)
+        urls = re.findall(r"https://github\.com/tensorsofthewall/exo-tbccl/releases/download/\S+?\.whl", text)
+        assert len(urls) >= 2, name
+        for url in urls:
+            assert f"/download/v{version}/exo_tbccl-{version}-cp313-cp313-" in url, url
+        assert any("manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl" in u for u in urls)
+        assert any("macosx_14_0_arm64.whl" in u for u in urls)
+
+
+def test_install_commands_use_a_named_environment_and_mark_the_extra_pending():
+    for name in (("README.md",), ("docs", "getting-started", "install.md")):
+        text = _read(*name)
+        assert "<exo venv>" not in text, name
+        wheel_lines = [ln for ln in text.splitlines() if "uv pip install" in ln and "exo_tbccl-" in ln]
+        assert wheel_lines
+        for ln in wheel_lines:
+            assert "--no-deps" in ln and "--python .venv/bin/python" in ln, ln
+        assert "tbccl-integration-v1" in text and "--extra tbccl" in text and "pending" in text.lower()
+        assert "uv sync --inexact" in text or "--inexact" in text
