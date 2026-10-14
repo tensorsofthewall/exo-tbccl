@@ -30,9 +30,9 @@ TBCCL is a family of four projects that let machines with different operating sy
 
 CUDA buffers are staged through pinned host memory; Metal shared (unified) memory is handed to the transport directly. There is no direct CUDA-to-Metal DMA, and the transport is TCP, not RDMA. See the [core architecture](https://tbccl.tensorsofthewall.com/en/latest/concepts/architecture.html).
 
-## Versions
+## Current versions
 
-The current family is tbccl 0.6.0, torch-tbccl 0.2.0, vllm-tbccl 0.2.0 and exo-tbccl 0.3.0, all final releases sharing **C ABI 1** and **wire protocol 4**. These are GitHub releases; nothing is on PyPI. Project versions, the C ABI version and the wire protocol version are different things, and ranks that speak different wire protocols cannot communicate. The authoritative table is the [compatibility matrix](https://tbccl.tensorsofthewall.com/en/latest/reference/compatibility-matrix.html).
+The current stable versions, tags and framework pins of all four projects are on the [canonical ecosystem page](https://tbccl.tensorsofthewall.com/en/latest/project/ecosystem.html), maintained in the TBCCL documentation. They are not repeated here, because documentation built from a release tag is frozen and would go stale when another project releases. This project's own release-specific compatibility is in its [compatibility reference](../reference/compatibility.md). All four share **C ABI 1** and **wire protocol 4**; ranks that speak different wire protocols cannot communicate.
 
 ## Hosted documentation
 
