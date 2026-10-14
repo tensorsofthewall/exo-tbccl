@@ -1,6 +1,6 @@
 # Quickstart
 
-Form a two-node exo cluster, place a model with `MlxTbccl`, and generate. This is the flow validated with the release-candidate wheels (a Linux CUDA host and a Mac, joined by Thunderbolt 4). Install exo and exo-tbccl on both hosts first ([installing](install.md)).
+Form a two-node exo cluster, place a model with `MlxTbccl`, and generate. This is the flow validated with the published wheels (a Linux CUDA host and a Mac, joined by Thunderbolt 4). Install exo and exo-tbccl on both hosts first ([installing](install.md)).
 
 ## 1. Start exo on both hosts
 

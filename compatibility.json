@@ -2,11 +2,11 @@
   "schema_version": 1,
   "project": "exo-tbccl",
   "package": {
-    "development_version": "0.3.0rc2",
-    "release_candidate": true,
+    "development_version": "0.3.0",
+    "release_candidate": false,
     "target_release": "0.3.0",
     "released": false,
-    "note": "target_release is planned and unreleased; 0.3.0rc2 is a release candidate (pre-release)"
+    "note": "0.3.0 is the first release; promoted from the release candidate 0.3.0rc2 without a code change"
   },
   "python": {
     "requires": ">=3.13"
