@@ -50,7 +50,7 @@ Both directions must work. Find the addresses with `ip -6 addr show thunderbolt0
 If the cluster forms but placement fails or the instance is not an `MlxTbcclInstance`:
 
 ```sh
-<exo venv>/bin/python -c "import exo_tbccl; print(exo_tbccl.is_available())"       # on every node
+.venv/bin/python -c "import exo_tbccl; print(exo_tbccl.is_available())"       # on every node
 curl -s localhost:52415/state | python3 -c "import json,sys; d=json.load(sys.stdin); print([next(iter(i)) for i in d['instances'].values()])"
 ```
 

@@ -12,18 +12,37 @@ exo-tbccl is installed into **exo's** virtual environment. exo works without it:
 | Platforms | Linux x86-64 (CUDA, CPU) and macOS arm64 (Metal, CPU); wheels `manylinux_2_24`/`2_28` and `macosx_14_0_arm64` |
 | TBCCL | bundled: C ABI 1, wire protocol 4 |
 
-## Install the wheel
+## Install
 
-The 0.3.0 wheels are attached to the GitHub release [`v0.3.0`](https://github.com/tensorsofthewall/exo-tbccl/releases/tag/v0.3.0). They are not published on PyPI or TestPyPI. The wheel does **not** need an editable install.
+exo-tbccl goes into the environment of an exo that carries the integration. There are two paths; do not mix their requirements.
+
+### Path A: the supported tag and a manual wheel (use this today)
+
+The supported exo is the immutable tag `tbccl-integration-v1` of [exo-fork](https://github.com/tensorsofthewall/exo-fork). The 0.3.0 wheels are attached to the GitHub release [`v0.3.0`](https://github.com/tensorsofthewall/exo-tbccl/releases/tag/v0.3.0). They are not published on PyPI or TestPyPI. The wheel does **not** need an editable install, and nobody has to build libtbccl or the adapter from source to use it. Use exo's own uv environment (`.venv` in the checkout), named explicitly in each command:
 
 ```sh
-# Linux:
-uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
-# macOS:
-uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-macosx_14_0_arm64.whl
+git clone --branch tbccl-integration-v1 --depth 1 https://github.com/tensorsofthewall/exo-fork.git
+cd exo-fork && (cd dashboard && npm install && npm run build)
+# Linux x86-64 (CUDA 13):
+uv sync --no-dev --extra mlx-cuda13
+uv pip install --python .venv/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+# macOS arm64 (Metal):
+uv sync --no-dev --extra mlx
+uv pip install --python .venv/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-macosx_14_0_arm64.whl
 ```
 
-Install it on **every** node, with the same version. `--no-deps` keeps the installer from touching exo's MLX environment. A dependency sync inside exo (`uv sync`) can uninstall the package; reinstall afterwards.
+Install it on **every** node, with the same version. `--no-deps` keeps the installer from touching exo's MLX environment. `uv sync` is an exact sync and removes the wheel again: after installing it, synchronise with `uv sync --inexact --no-dev --extra ...` (verified to keep it) or reinstall the wheel. An exo that lives somewhere else works the same way with its own `.venv/bin/python`.
+
+### Path B: the optional extra (pending the next integration tag)
+
+A development revision of exo-fork declares `exo-tbccl` as an optional dependency, resolved to the published release wheel on Linux x86-64 and macOS arm64 (and doing nothing elsewhere), with the lock recording both wheels and their hashes:
+
+```sh
+uv sync --no-dev --extra mlx-cuda13 --extra tbccl     # Linux CUDA 13
+uv sync --no-dev --extra mlx --extra tbccl            # macOS
+```
+
+On Linux this was verified to install exactly one extra package (`exo-tbccl 0.3.0`) compared with the same sync without `--extra tbccl`, to keep it across a repeated sync, and to leave the MLX and PyTorch pins unchanged; the macOS command is the same resolution and has not been run yet. It is **pending**: it is not in `tbccl-integration-v1`, which is never changed, and becomes the supported path when a new integration tag with the extra is released and qualified. exo without the extra behaves as before.
 
 ## Check
 
@@ -32,14 +51,14 @@ import exo_tbccl
 print(exo_tbccl.__version__, exo_tbccl.is_available())    # 0.3.0 (True, '')
 ```
 
-`is_available()` returns `(True, "")` when the native binding loads and the bundled TBCCL C ABI matches; otherwise `(False, reason)`. Run it with exo's Python, on every node.
+`is_available()` returns `(True, "")` when the native binding loads and the bundled TBCCL C ABI matches; otherwise `(False, reason)`. Run it with exo's Python (`.venv/bin/python`), on every node.
 
 ## Build from source
 
-Only needed without a matching wheel or to change the code. Build against an installed TBCCL prefix (a [release archive](https://tbccl.tensorsofthewall.com/en/latest/getting-started/install.html) works), 0.6.0 or newer:
+For developers only: needed without a matching wheel or to change the code, and not part of installing the wheel. Build against an installed TBCCL prefix (a [release archive](https://tbccl.tensorsofthewall.com/en/latest/getting-started/install.html) works), 0.6.0 or newer:
 
 ```sh
-TBCCL_ROOT=<tbccl prefix> uv pip install --python <exo venv>/bin/python -e .
+TBCCL_ROOT=<tbccl prefix> uv pip install --python .venv/bin/python -e .
 ```
 
 A C compiler builds the small native extension (scikit-build-core). Rebuild after editing `src/native/`.

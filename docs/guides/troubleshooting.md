@@ -4,7 +4,7 @@ Find the symptom, check the likely cause with the diagnostic, apply the fix. For
 
 | Symptom | Likely cause | Diagnostic | Fix |
 |---|---|---|---|
-| placement error when selecting `MlxTbccl` | `exo_tbccl` does not import in exo's environment, or exo lacks the seam | `<exo venv>/bin/python -c "import exo_tbccl; print(exo_tbccl.is_available())"` prints the reason | install the wheel into exo's environment; use the exo integration ([compatibility](../reference/compatibility.md)) |
+| placement error when selecting `MlxTbccl` | `exo_tbccl` does not import in exo's environment, or exo lacks the seam | `.venv/bin/python -c "import exo_tbccl; print(exo_tbccl.is_available())"` prints the reason | install the wheel into exo's environment; use the exo integration ([compatibility](../reference/compatibility.md)) |
 | `MlxTbccl supports only Pipeline sharding` / `does not support image or CFG-parallel models` | the request asks for tensor parallelism or an image model | the request body | use `"sharding": "Pipeline"` and a text model |
 | `MlxTbccl requires every node to be reachable from every other node` / one address per node | the topology needs different addresses for different peers | exo's topology | connect the nodes over one shared network (the Thunderbolt link) |
 | the placement uses one node only | `min_nodes` not set, or the second node is not in the cluster | `/state` shows the nodes | set `"min_nodes": 2` and fix discovery |

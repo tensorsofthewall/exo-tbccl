@@ -1,6 +1,6 @@
 # exo-tbccl
 
-[![docs](https://github.com/tensorsofthewall/exo-tbccl/actions/workflows/docs.yml/badge.svg)](https://github.com/tensorsofthewall/exo-tbccl/actions/workflows/docs.yml) [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE) [![release](https://img.shields.io/github/v/release/tensorsofthewall/exo-tbccl?include_prereleases&label=pre-release)](https://github.com/tensorsofthewall/exo-tbccl/releases)
+[![docs](https://github.com/tensorsofthewall/exo-tbccl/actions/workflows/docs.yml/badge.svg)](https://github.com/tensorsofthewall/exo-tbccl/actions/workflows/docs.yml) [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE) [![release](https://img.shields.io/github/v/release/tensorsofthewall/exo-tbccl?label=release)](https://github.com/tensorsofthewall/exo-tbccl/releases)
 
 exo-tbccl is an optional package that lets [exo](https://github.com/exo-explore/exo) (an MLX-based distributed inference system) run **pipeline-parallel text generation** across machines of different kinds, for example a Mac with Metal and a Linux host with CUDA, with [TBCCL](https://github.com/tensorsofthewall/tbccl) moving the activations between stages over its stable C ABI. It is separate from exo and from TBCCL, and uses no PyTorch and no MLX C++ internals.
 
@@ -15,23 +15,49 @@ exo-tbccl is an optional package that lets [exo](https://github.com/exo-explore/
 exo (discovery, placement)  ->  exo-tbccl (MLX bridge + TbcclPipelineComm)  ->  libtbccl (statically linked, C ABI v1)  ->  TCP / Thunderbolt 4
 ```
 
-## Requirements
+## Supported configurations
 
-- **exo with the `PipelineComm` seam.** exo-tbccl needs an exo build that contains the integration (the `MlxTbccl` instance type, the `PipelineComm` seam and the runner byte exchange). They are not part of upstream exo (upstream base `75d8ad2b`, 2026-10-12) and are published as the immutable tag `tbccl-integration-v1` of the maintained fork [`tensorsofthewall/exo-fork`](https://github.com/tensorsofthewall/exo-fork) ([compatibility](docs/reference/compatibility.md)): `git clone --branch tbccl-integration-v1 --depth 1 https://github.com/tensorsofthewall/exo-fork.git`.
-- Python 3.13 or newer, MLX 0.32 (CUDA 13 on Linux, Metal on macOS; exo's pinned macOS MLX, a 0.32.4 development build, is supported: see [compatibility](docs/reference/compatibility.md)).
-- Nothing else of TBCCL to install: the wheel contains libtbccl.
+| | Validated |
+|---|---|
+| Stages | Mac Metal and Linux CUDA over Thunderbolt 4 (also CPU and loopback) |
+| Models | Qwen3-0.6B (two hosts, release-candidate wheels, three full start-to-shutdown cycles) and `Qwen3.8-27B-4bit` (two hosts, wire protocol 4, both pipeline orders) |
+| exo | the fork [`tensorsofthewall/exo-fork`](https://github.com/tensorsofthewall/exo-fork) at the immutable tag `tbccl-integration-v1` (upstream exo `75d8ad2b` plus the integration) |
+| Python / MLX | CPython 3.13 (the wheels are `cp313`); MLX 0.32 from exo's own environment (CUDA 13 on Linux, Metal on macOS) |
+| Platforms | Linux x86-64 (CUDA, CPU), macOS arm64 (Metal, CPU) |
+| TBCCL | C ABI 1, wire protocol 4 (bundled in the wheel) |
 
-## Quick start
+Optional fast paths and Metal activity policies are off by default ([fast paths](docs/concepts/fast-paths.md)). See [compatibility](docs/reference/compatibility.md), the [current ecosystem status](https://tbccl.tensorsofthewall.com/en/latest/project/ecosystem.html) (a living page), the ecosystem [compatibility matrix](https://tbccl.tensorsofthewall.com/en/latest/reference/compatibility-matrix.html) and [validated configurations](docs/project/validated-configurations.md).
 
-Install the wheel into **exo's** virtual environment:
+## Installation
+
+exo-tbccl needs an exo that contains the TBCCL integration, which upstream exo does not: the immutable tag `tbccl-integration-v1` of [exo-fork](https://github.com/tensorsofthewall/exo-fork). You do not install TBCCL: the wheel contains it. Install on **every** node, in exo's own uv environment (the `.venv` of the exo-fork checkout; every command names it, so nothing is activated).
+
+**Supported today** (Python 3.13, uv, node and Rust as for any exo source install):
 
 ```sh
-# Linux (CUDA):
-uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
-# macOS (Apple silicon):
-uv pip install --python <exo venv>/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-macosx_14_0_arm64.whl
-<exo venv>/bin/python -c "import exo_tbccl; print(exo_tbccl.__version__, exo_tbccl.is_available())"    # 0.3.0 (True, '')
+git clone --branch tbccl-integration-v1 --depth 1 https://github.com/tensorsofthewall/exo-fork.git
+cd exo-fork && (cd dashboard && npm install && npm run build)
+# Linux x86-64 (CUDA 13):
+uv sync --no-dev --extra mlx-cuda13
+uv pip install --python .venv/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+# macOS arm64 (Metal), instead of the two lines above:
+#   uv sync --no-dev --extra mlx
+#   uv pip install --python .venv/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-macosx_14_0_arm64.whl
 ```
+
+A plain `uv sync` removes packages it did not install, including this wheel: after installing it run later syncs as `uv sync --inexact ...`, or reinstall the wheel. `--no-deps` keeps the installer from touching exo's MLX and PyTorch pins.
+
+**Pending, not yet released: the optional extra.** A development revision of exo-fork declares `exo-tbccl` as an optional extra (`--extra tbccl`) with wheel sources for Linux x86-64 and macOS arm64, so that `uv sync --no-dev --extra mlx-cuda13 --extra tbccl` (Linux) or `uv sync --no-dev --extra mlx --extra tbccl` (macOS) installs it and repeated syncs keep it. It is not part of the supported tag and becomes the recommended path only when a new integration tag carrying it is released and qualified; `tbccl-integration-v1` is never changed. exo-tbccl stays optional: exo works without it. [Installing](docs/getting-started/install.md) explains both paths.
+
+## Verify the installation
+
+```sh
+.venv/bin/python -c "import exo_tbccl; print(exo_tbccl.__version__, exo_tbccl.is_available())"    # 0.3.0 (True, '')
+```
+
+`(False, reason)` says what is missing. Run it on every node.
+
+## Quick start: a two-node pipeline
 
 Start exo on both hosts (see [running across two hosts](docs/guides/two-host.md): on the Mac, launch exo from a live `ssh -tt` session, not from detached tmux or nohup), then select the pipeline type:
 
@@ -55,23 +81,13 @@ comm.close()
 
 Rank and world size come from exo's `PipelineShardMetadata`. Errors are typed exceptions built from TBCCL's structured result codes. See the [quickstart](docs/getting-started/quickstart.md).
 
-## Supported configurations
-
-| | Validated |
-|---|---|
-| Stages | Mac Metal and Linux CUDA over Thunderbolt 4 (also CPU and loopback) |
-| Models | Qwen3-0.6B (two hosts, release-candidate wheels, three full start-to-shutdown cycles) and `Qwen3.8-27B-4bit` (two hosts, wire protocol 4, both pipeline orders) |
-| TBCCL | C ABI 1, wire protocol 4 (bundled) |
-
-Optional fast paths and Metal activity policies are off by default ([fast paths](docs/concepts/fast-paths.md)). See [compatibility](docs/reference/compatibility.md), the [current ecosystem status](https://tbccl.tensorsofthewall.com/en/latest/project/ecosystem.html) and the ecosystem [compatibility matrix](https://tbccl.tensorsofthewall.com/en/latest/reference/compatibility-matrix.html) and [validated configurations](docs/project/validated-configurations.md).
-
 ## Documentation
 
-Hosted documentation: https://exo-tbccl.tensorsofthewall.com/ (`latest` is development documentation built from `main`; released versions appear as numbered versions and `stable` is the latest final release). Build it locally with `make docs`. Start with [getting started](docs/getting-started/index.md), [running across two hosts](docs/guides/two-host.md), [discovery troubleshooting](docs/guides/discovery-troubleshooting.md) and [known limitations](docs/project/limitations.md).
+Hosted documentation: https://exo-tbccl.tensorsofthewall.com/ (`stable` is the latest final release, numbered versions are earlier releases, and `latest` is development documentation built from `main`). Build it locally with `make docs`. Start with [getting started](docs/getting-started/index.md), [running across two hosts](docs/guides/two-host.md), [discovery troubleshooting](docs/guides/discovery-troubleshooting.md) and [known limitations](docs/project/limitations.md).
 
-## Known limitations
+## Limitations
 
-Pipeline sharding and text generation only; one address per node; the exo integration is a fork tag, not yet in upstream exo; on macOS the exo node must be started from a live session and no other program may listen on UDP port 52413 (a validated operational workaround, not a Thunderbolt requirement). See [known limitations](docs/project/limitations.md).
+Pipeline sharding and text generation only; one address per node; the exo integration is a fork tag, not in upstream exo; on macOS the exo node must be started from a live session and no other program may listen on UDP port 52413 (a validated operational workaround, not a Thunderbolt requirement). See [known limitations](docs/project/limitations.md).
 
 ## Development
 
