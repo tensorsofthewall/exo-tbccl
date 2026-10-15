@@ -6,3 +6,6 @@ contact_links:
   - name: Current ecosystem status and compatibility
     url: https://tbccl.tensorsofthewall.com/en/latest/project/ecosystem.html
     about: Check the current stable versions and framework pins before you report a version mismatch.
+  - name: Getting help and what to include
+    url: https://tbccl.tensorsofthewall.com/en/latest/project/getting-help.html
+    about: Which issue form to use, what to run before you post, and what to expect (best effort, no support contract). Installation problems and tested-configuration reports are filed in the tbccl repository.
