@@ -1,6 +1,6 @@
 # Quickstart
 
-Form a two-node exo cluster, place a model with `MlxTbccl`, and generate. This is the flow validated with the published wheels (a Linux CUDA host and a Mac, joined by Thunderbolt 4). Install exo and exo-tbccl on both hosts first ([installing](install.md)).
+Form a two-node exo cluster, place a model with `MlxTbccl`, and generate. This is the flow validated with the published wheels (a Linux CUDA host and a Mac, joined by Thunderbolt 4). Install exo and exo-tbccl on both hosts first ([installing](install.md)), connect the machines with [Two machines over Thunderbolt](https://tbccl.tensorsofthewall.com/en/latest/getting-started/two-machine-thunderbolt.html), and read [Before you start](../guides/two-host.md): the model must already be on both machines and IPv6 link-local must work on the link.
 
 ## 1. Start exo on both hosts
 
@@ -17,7 +17,7 @@ On the Mac, start exo from a **live Terminal or `ssh -tt` session** (not a detac
 ssh -tt <mac> 'export PATH=/opt/homebrew/bin:$PATH EXO_HOME=$HOME/.exo EXO_ZENOH_NAMESPACE=mycluster; cd <exo-fork checkout at tag tbccl-integration-v2> && exec uv run --no-sync exo'
 ```
 
-`EXO_ZENOH_NAMESPACE` (or `--namespace`) must be the same on every node of the cluster. Add `EXO_OFFLINE=true` (or `--offline`) when the models are pre-staged locally and nothing should be downloaded. Within seconds of the second node starting, both should see each other.
+`EXO_ZENOH_NAMESPACE` (or `--namespace`) must be the same on every node of the cluster. Add `EXO_OFFLINE=true` (or `--offline`) when the models are pre-staged locally and nothing should be downloaded; this guide assumes the model is already in each machine's models directory ([where exo looks](../guides/two-host.md#before-you-start)). Within seconds of the second node starting, both should see each other.
 
 ## 2. Check the cluster
 
