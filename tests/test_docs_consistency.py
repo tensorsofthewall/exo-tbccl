@@ -116,3 +116,10 @@ def test_install_commands_default_to_the_extra_and_keep_the_legacy_wheel_path():
         assert "tbccl-integration-v2" in text and "--extra tbccl" in text and "pending" not in text.lower()
         assert "tbccl-integration-v1" in text and "Legacy" in text
         assert "uv sync --inexact" in text or "--inexact" in text
+
+
+def test_two_host_guide_states_prerequisites_that_a_first_run_trips_over():
+    text = _read("docs", "guides", "two-host.md")
+    for needle in ("Before you start", "IPv6 link-local", "EXO_OFFLINE=true", "mlx-community--Qwen3-0.6B-8bit", "Shutting down"):
+        assert needle in text, needle
+    assert "setup_tbccl" not in text
