@@ -59,6 +59,8 @@ uv pip install --python .venv/bin/python --no-deps https://github.com/tensorsoft
 
 With v1, a plain `uv sync` removes the manually installed wheel: later syncs use `uv sync --inexact ...`, or reinstall the wheel. [Installing](docs/getting-started/install.md) explains both paths.
 
+**Optional check and sync helper.** The development line of exo-fork (`main`, not the `tbccl-integration-v2` tag) has `tools/setup_tbccl.py`: `check` reports, without changing anything, whether the tools are present and prints the exact `uv sync` command for your platform, `sync` runs that locked sync, and `doctor` prints the installed exo, adapter and TBCCL runtime versions, the model directories and whether the discovery and API ports are free. It installs nothing system-wide and changes no network setting. Future integration tags will contain it; the commands above remain the supported path for the tag.
+
 ## Verify the installation
 
 ```sh
@@ -94,6 +96,8 @@ Rank and world size come from exo's `PipelineShardMetadata`. Errors are typed ex
 ## Documentation
 
 Hosted documentation: https://exo-tbccl.tensorsofthewall.com/ (`stable` is the latest final release, numbered versions are earlier releases, and `latest` is development documentation built from `main`). Build it locally with `make docs`. Start with [getting started](docs/getting-started/index.md), [running across two hosts](docs/guides/two-host.md), [discovery troubleshooting](docs/guides/discovery-troubleshooting.md) and [known limitations](docs/project/limitations.md).
+
+Questions, feedback and what to include in a report: [getting help](https://tbccl.tensorsofthewall.com/en/latest/project/getting-help.html). The projects collect [no telemetry](https://tbccl.tensorsofthewall.com/en/latest/project/privacy.html).
 
 ## Limitations
 
