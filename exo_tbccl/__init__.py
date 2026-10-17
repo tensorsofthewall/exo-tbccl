@@ -10,7 +10,7 @@ from .errors import (
     TbcclUnsupportedError,
 )
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 
 def is_available() -> tuple[bool, str]:
