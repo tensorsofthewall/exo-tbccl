@@ -9,7 +9,7 @@
     "development_version": "0.3.1",
     "release_candidate": false,
     "target_release": "0.3.1",
-    "released": false,
+    "released": true,
     "note": "0.3.1 is a patch release of 0.3.0: it adds the public benchmark provider and no change to the adapter. The tbccl extra of the immutable tbccl-integration-v2 fork tag still resolves to the 0.3.0 wheel, which has the same adapter code."
   },
   "python": {
