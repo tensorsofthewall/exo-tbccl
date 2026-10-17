@@ -32,17 +32,17 @@ Run it on **every** node. It installs exactly one extra package (`exo-tbccl 0.3.
 
 ### Legacy: `tbccl-integration-v1` and a manual wheel
 
-The earlier immutable tag `tbccl-integration-v1` has no extra. The 0.3.0 wheels are attached to the GitHub release [`v0.3.0`](https://github.com/tensorsofthewall/exo-tbccl/releases/tag/v0.3.0). They are not published on PyPI or TestPyPI. The wheel does **not** need an editable install, and nobody has to build libtbccl or the adapter from source to use it. Use exo's own uv environment (`.venv` in the checkout), named explicitly in each command:
+The earlier immutable tag `tbccl-integration-v1` has no extra. The 0.3.1 wheels are attached to the GitHub release [`v0.3.1`](https://github.com/tensorsofthewall/exo-tbccl/releases/tag/v0.3.1). They are not published on PyPI or TestPyPI. The wheel does **not** need an editable install, and nobody has to build libtbccl or the adapter from source to use it. Use exo's own uv environment (`.venv` in the checkout), named explicitly in each command:
 
 ```sh
 git clone --branch tbccl-integration-v1 --depth 1 https://github.com/tensorsofthewall/exo-fork.git
 cd exo-fork && (cd dashboard && npm install && npm run build)
 # Linux x86-64 (CUDA 13):
 uv sync --no-dev --extra mlx-cuda13
-uv pip install --python .venv/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+uv pip install --python .venv/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.1/exo_tbccl-0.3.1-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
 # macOS arm64 (Metal):
 uv sync --no-dev --extra mlx
-uv pip install --python .venv/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.0/exo_tbccl-0.3.0-cp313-cp313-macosx_14_0_arm64.whl
+uv pip install --python .venv/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.3.1/exo_tbccl-0.3.1-cp313-cp313-macosx_14_0_arm64.whl
 ```
 
 Install it on **every** node, with the same version. `--no-deps` keeps the installer from touching exo's MLX environment. `uv sync` is an exact sync and removes the wheel again: after installing it, synchronise with `uv sync --inexact --no-dev --extra ...` (verified to keep it) or reinstall the wheel. An exo that lives somewhere else works the same way with its own `.venv/bin/python`.
@@ -51,7 +51,7 @@ Install it on **every** node, with the same version. `--no-deps` keeps the insta
 
 ```python
 import exo_tbccl
-print(exo_tbccl.__version__, exo_tbccl.is_available())    # 0.3.0 (True, '')
+print(exo_tbccl.__version__, exo_tbccl.is_available())    # 0.3.1 (True, '') for the wheel installed above; 0.3.0 with the tbccl extra
 ```
 
 `is_available()` returns `(True, "")` when the native binding loads and the bundled TBCCL C ABI matches; otherwise `(False, reason)`. Run it with exo's Python (`.venv/bin/python`), on every node.

@@ -2,6 +2,29 @@
 
 All notable user-facing changes are recorded here. The format follows Keep a Changelog, and the project follows Semantic Versioning once it has releases. exo-tbccl has had no final release. 0.3.0rc1 is a release candidate (pre-release), not production-ready.
 
+## 0.3.1
+
+Patch release. It adds the public Exo benchmark provider and its documentation. There is no change to the adapter (`MlxTbccl`), the Exo fork pin (`tbccl-integration-v2`, and `tbccl-integration-v1`), the validated MLX versions, the Python version (CPython 3.13), the TBCCL C ABI (1) or the wire protocol (4), and nothing in this release is a performance improvement. The wheels are built against TBCCL 0.6.1 (a patch release of 0.6.0 without runtime change); the minimum TBCCL package stays 0.6.0.
+
+### Installation
+
+- The same two CI-built wheels as 0.3.0, named `exo_tbccl-0.3.1-...`, attached to the GitHub release with an SPDX SBOM, `SHA256SUMS` and a build-provenance attestation.
+- The immutable `tbccl-integration-v2` tag of the Exo fork keeps resolving its `tbccl` extra to the 0.3.0 wheel, which has the same adapter code; install the 0.3.1 wheel by hand to have 0.3.1 in the environment.
+- The benchmark provider is **not** in the wheel. It is the `benchmarks/provider` directory of the source of this release (the source archive of the tag `v0.3.1`); the shared runner from the `tbccl` repository runs it with the interpreter of your Exo environment. The provider records the installed adapter version and the hashes of its own scripts, so a 0.3.1 provider running with the 0.3.0 wheel is visible in the result.
+
+### Added
+
+- A benchmark provider (provider protocol 1) for the shared `tbccl` benchmark suite: streamed Exo requests on the `MlxRing` and `MlxTbccl` backends with matched placements, TTFT/TPOT/ITL/end-to-end latency, concurrency scaling, backend and placement verification, strict stream accounting and lifecycle cleanup, with `describe` and `validate` steps. The experimental activity-step policy is configurable and is off by default.
+- Benchmark documentation: the workloads, how they are timed, the measured reference results (including a 27B short-context run) with their hardware, software and limits, and a quickstart.
+
+### Compatibility
+
+- CPython 3.13, TBCCL 0.6.0 or newer (C ABI 1, wire protocol 4), Linux x86-64 and macOS arm64, with the Exo fork stack named in the compatibility page.
+
+### Known limitations
+
+- The reference benchmark results were measured on one Linux CUDA / Apple Metal machine pair. The activity-step comparison and the 27B results are exploratory.
+
 ## 0.3.0
 
 First release. Promoted from release candidate 0.3.0rc2 without a code change. Wire protocol and C ABI are unchanged (C ABI 1, wire protocol 4).

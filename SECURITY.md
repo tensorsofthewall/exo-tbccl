@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-0.3.0 is the first release of exo-tbccl. Once releases exist, security fixes are made against the latest release series only. Development versions and unreleased branches are not supported.
+Security fixes are made against the latest release series only (currently 0.3.x). Development versions and unreleased branches are not supported.
 
 ## Reporting a vulnerability
 
