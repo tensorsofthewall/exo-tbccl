@@ -6,11 +6,11 @@
     "exo_tbccl-{version}-cp313-cp313-macosx_14_0_arm64.whl"
   ],
   "package": {
-    "development_version": "0.3.0",
+    "development_version": "0.3.1",
     "release_candidate": false,
-    "target_release": "0.3.0",
-    "released": true,
-    "note": "0.3.0 is the first release; promoted from the release candidate 0.3.0rc2 without a code change"
+    "target_release": "0.3.1",
+    "released": false,
+    "note": "0.3.1 is a patch release of 0.3.0: it adds the public benchmark provider and no change to the adapter. The tbccl extra of the immutable tbccl-integration-v2 fork tag still resolves to the 0.3.0 wheel, which has the same adapter code."
   },
   "python": {
     "requires": ">=3.13"
@@ -36,7 +36,7 @@
         "fork_revision": "1416807b46efd87c3601c69ce5784f51c9dd4c75",
         "upstream_base": "75d8ad2bc1eac25aaf7adb39c0784ad0def8c1b6",
         "upstream_base_date": "2026-10-12",
-        "install": "tag checkout plus the exo-tbccl 0.3.0 wheel installed manually (no optional extra)"
+        "install": "tag checkout plus an exo-tbccl 0.3.x wheel installed manually (no optional extra)"
       }
     }
   },
