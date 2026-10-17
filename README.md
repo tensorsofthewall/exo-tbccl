@@ -99,6 +99,10 @@ Hosted documentation: https://exo-tbccl.tensorsofthewall.com/ (`stable` is the l
 
 Questions, feedback and what to include in a report: [getting help](https://tbccl.tensorsofthewall.com/en/latest/project/getting-help.html). The projects collect [no telemetry](https://tbccl.tensorsofthewall.com/en/latest/project/privacy.html).
 
+## Benchmarks
+
+Run the Exo pipeline benchmarks (placement and backend verification, TTFT, TPOT, throughput, CPU cost, MlxRing against MlxTbccl) on your own hardware, standalone or through the TBCCL benchmark runner: [benchmarks](docs/benchmarks/index.md). Reference measurements from one machine pair, with their limits and the exploratory results labelled, are in the [results](docs/benchmarks/results.md).
+
 ## Limitations
 
 Pipeline sharding and text generation only; one address per node; the exo integration is a fork tag, not in upstream exo; on macOS the exo node must be started from a live session and no other program may listen on UDP port 52413 (a validated operational workaround, not a Thunderbolt requirement). See [known limitations](docs/project/limitations.md).
