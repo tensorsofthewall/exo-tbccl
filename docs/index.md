@@ -28,6 +28,13 @@ concepts/fast-paths
 
 ```{toctree}
 :maxdepth: 2
+:caption: Benchmarks
+
+benchmarks/index
+```
+
+```{toctree}
+:maxdepth: 2
 :caption: Architecture
 
 concepts/index
