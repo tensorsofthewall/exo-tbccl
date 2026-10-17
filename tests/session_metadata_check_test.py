@@ -4,6 +4,7 @@ import contextlib
 import importlib.util
 import io
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -85,6 +86,7 @@ class Accepted(unittest.TestCase):
         self.assertEqual(check_text(text)[0], 1)
 
 
+@unittest.skipUnless(shutil.which("git"), "git is not installed (for example in a bare clean-install image)")
 class GitIntegration(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()

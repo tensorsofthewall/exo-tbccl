@@ -4,7 +4,7 @@ The shared maintenance policy of the TBCCL ecosystem (branches, tag immutability
 
 ## Supported release
 
-exo-tbccl 0.3.0: CPython 3.13, TBCCL 0.6.0 (C ABI 1), Linux x86-64 and macOS arm64, with the exo fork stack below. The current ecosystem status (all four projects and their pins) is in the [ecosystem page](https://tbccl.tensorsofthewall.com/en/latest/project/ecosystem.html), built from [`release/ecosystem.json`](https://github.com/tensorsofthewall/tbccl/blob/main/release/ecosystem.json). Documentation built from a release tag describes that release only and is not updated when other projects release.
+exo-tbccl 0.3.1: CPython 3.13, TBCCL 0.6.0 (C ABI 1), Linux x86-64 and macOS arm64, with the exo fork stack below. The current ecosystem status (all four projects and their pins) is in the [ecosystem page](https://tbccl.tensorsofthewall.com/en/latest/project/ecosystem.html), built from [`release/ecosystem.json`](https://github.com/tensorsofthewall/tbccl/blob/main/release/ecosystem.json). Documentation built from a release tag describes that release only and is not updated when other projects release.
 
 ## Pins
 
