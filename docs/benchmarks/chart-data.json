@@ -1,0 +1,117 @@
+{
+  "schema": "tbccl-doc-chart-data/1",
+  "accent": "exo",
+  "provenance": "Curated by hand from the tables of docs/benchmarks/results.md. These are published aggregates, not raw measurement records: each value carries the exact text of the table cell it was read from, and no error bar or repetition count has been added that the page does not state. The Markdown tables are authoritative; a test fails when a chart input no longer appears in them.",
+  "charts": [
+    {
+      "id": "ring-vs-tbccl",
+      "title": "Exo pipeline backends: MlxRing against default MlxTbccl, time per output token",
+      "summary": "Horizontal bars, lower is better, with two panels. Time per output token: Mac-first 19/9, MlxRing 10.22 ms against MlxTbccl 15.54 ms (6 and 9 lifecycles, classified regression); Linux-first 9/19 with interleaved controls, 11.44 ms against 14.44 ms (4 and 4 lifecycles, regression); Linux-first 9/19 from earlier sessions, 11.70 ms against 12.82 ms (4 and 1 lifecycles, insufficient evidence). End-to-end latency, Mac-first 19/9: 478.7 ms against 643.2 ms (regression). The default MlxTbccl integration was slower in the measured configurations. This is an application-level comparison of two backends, not an isolated transport comparison.",
+      "conditions": "Exo 0.3.70 with exo-tbccl 0.3.0 over TBCCL 0.6.0, Qwen3-0.6B-8bit, prompt of about 128 tokens, 32 generated tokens, one direct Thunderbolt 4 link. Each row compares only runs with the same stage order and layer split. The classes are the comparison tool's labels.",
+      "page": "results.md",
+      "section": "MlxRing against default MlxTbccl",
+      "statistic": "the median over independent lifecycles of each lifecycle's median request; lifecycles are separate cluster starts, and requests inside one are not replicates",
+      "kind": "bars",
+      "series": [
+        {"id": "ring", "style": "hatch"},
+        {"id": "tbccl", "style": "solid"}
+      ],
+      "panels": [
+        {
+          "title": "Time per output token (TPOT)",
+          "unit": "milliseconds per output token",
+          "direction": "lower is better",
+          "note": ["Application-level comparison of two backends, not of a transport"],
+          "groups": [
+            {"label": "Mac-first 19/9: regression (p = 0.0004)", "bars": [
+              {"label": "MlxRing, 6 lifecycles", "series": "ring", "value": 10.22, "published": "10.22 ms", "exact": true, "n": 6},
+              {"label": "MlxTbccl, 9 lifecycles", "series": "tbccl", "value": 15.54, "published": "15.54 ms", "exact": true, "n": 9, "classification": "regression"}
+            ]},
+            {"label": "Linux-first 9/19, interleaved: regression (p = 0.0286)", "bars": [
+              {"label": "MlxRing, 4 lifecycles", "series": "ring", "value": 11.44, "published": "11.44 ms", "exact": true, "n": 4},
+              {"label": "MlxTbccl, 4 lifecycles", "series": "tbccl", "value": 14.44, "published": "14.44 ms", "exact": true, "n": 4, "classification": "regression"}
+            ]},
+            {"label": "Linux-first 9/19, earlier sessions: insufficient evidence", "bars": [
+              {"label": "MlxRing, 4 lifecycles", "series": "ring", "value": 11.70, "published": "11.70 ms", "exact": true, "n": 4},
+              {"label": "MlxTbccl, 1 lifecycle", "series": "tbccl", "value": 12.82, "published": "12.82 ms", "exact": true, "n": 1, "classification": "insufficient_evidence"}
+            ]}
+          ]
+        },
+        {
+          "title": "End-to-end latency",
+          "unit": "milliseconds per request",
+          "direction": "lower is better",
+          "groups": [
+            {"label": "Mac-first 19/9: regression (p = 0.0004)", "bars": [
+              {"label": "MlxRing, 6 lifecycles", "series": "ring", "value": 478.7, "published": "478.7 ms", "exact": true, "n": 6},
+              {"label": "MlxTbccl, 9 lifecycles", "series": "tbccl", "value": 643.2, "published": "643.2 ms", "exact": true, "n": 9, "classification": "regression"}
+            ]}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "concurrency-throughput",
+      "title": "Output tokens per second against concurrency (exploratory, descriptive only)",
+      "summary": "Line chart of closed-loop output throughput at concurrency 1, 2, 4 and 8 for three backend and stage-order combinations. Linux-first 9/19 MlxRing: 57.4, 90.7, 124.8, 141.1. Mac-first 19/9 MlxRing: 63.3, 92.6, 122.5, 137.6. Linux-first 9/19 default MlxTbccl: 46.3, 76.9, 112.9, 134.9. Default MlxTbccl was below MlxRing at every concurrency, and the gap narrowed as concurrency rose. These are exploratory descriptive figures from one or two lifecycles and establish no statistical difference.",
+      "conditions": "Closed loop, Qwen3-0.6B-8bit. Passes are pooled per backend and stage order and are not independent: the lifecycles behind each line are 1 (MlxRing, both orders) and 2 (MlxTbccl, Linux-first), and the first pass of a lifecycle was often the highest.",
+      "page": "results.md",
+      "section": "Concurrency",
+      "statistic": "output tokens per second, passes pooled per backend and stage order (3 passes for MlxRing, 6 for MlxTbccl); passes inside a lifecycle are not independent",
+      "kind": "lines",
+      "x_label": "Concurrent requests",
+      "y_label": "Output throughput",
+      "y_unit": "output tokens per second",
+      "y_scale": "linear",
+      "x_ticks": [{"x": 1, "label": "1"}, {"x": 2, "label": "2"}, {"x": 4, "label": "4"}, {"x": 8, "label": "8"}],
+      "series": [
+        {"label": "MlxTbccl (default), Linux-first 9/19", "marker": "circle", "dash": "solid", "color": "accent", "points": [
+          {"x": 1, "value": 46.3, "published": "46.3", "exact": true, "n": 2},
+          {"x": 2, "value": 76.9, "published": "76.9", "exact": true, "n": 2},
+          {"x": 4, "value": 112.9, "published": "112.9", "exact": true, "n": 2},
+          {"x": 8, "value": 134.9, "published": "134.9", "exact": true, "n": 2}
+        ]},
+        {"label": "MlxRing, Linux-first 9/19", "marker": "square", "dash": "dashed", "color": "neutral", "points": [
+          {"x": 1, "value": 57.4, "published": "57.4", "exact": true, "n": 1},
+          {"x": 2, "value": 90.7, "published": "90.7", "exact": true, "n": 1},
+          {"x": 4, "value": 124.8, "published": "124.8", "exact": true, "n": 1},
+          {"x": 8, "value": 141.1, "published": "141.1", "exact": true, "n": 1}
+        ]},
+        {"label": "MlxRing, Mac-first 19/9", "marker": "diamond", "dash": "dotted", "color": "neutral", "points": [
+          {"x": 1, "value": 63.3, "published": "63.3", "exact": true, "n": 1},
+          {"x": 2, "value": 92.6, "published": "92.6", "exact": true, "n": 1},
+          {"x": 4, "value": 122.5, "published": "122.5", "exact": true, "n": 1},
+          {"x": 8, "value": 137.6, "published": "137.6", "exact": true, "n": 1}
+        ]}
+      ]
+    },
+    {
+      "id": "activity-step-experimental",
+      "title": "Experimental: Metal activity-step policy against default MlxTbccl (not a default result)",
+      "summary": "Two horizontal bars, lower is better. Time per output token with the Linux host first (9/19): default MlxTbccl 14.44 ms from four lifecycles, experimental activity-step 9.48 ms from two lifecycles, a descriptive difference of minus 34 percent. The classification is insufficient evidence: two lifecycles cannot reach p of 0.05 or less in an exact test, so this is an exploratory observation, not a confirmed improvement and not a validated production optimisation. The policy costs about one busy Mac core.",
+      "conditions": "Linux-first 9/19, Qwen3-0.6B-8bit, prompt of about 128 tokens, 32 generated tokens, experimental tier (EXO_TBCCL_ACTIVITY_MODE enabled), controls from the same campaign. Experimental results are never pooled with the default and are not part of any default-performance summary.",
+      "page": "results.md",
+      "section": "Experimental: Metal activity-step (exploratory)",
+      "statistic": "the median over independent lifecycles (4 default, 2 experimental) of each lifecycle's median request",
+      "kind": "bars",
+      "classification": "insufficient_evidence",
+      "series": [
+        {"id": "default", "style": "solid"},
+        {"id": "experimental", "style": "hatch-accent"}
+      ],
+      "panels": [
+        {
+          "unit": "milliseconds per output token",
+          "direction": "lower is better",
+          "note": ["EXPERIMENTAL, classification: insufficient evidence", "Costs about one busy Mac core (CPU 94% against 72% of one core, sampled runs)"],
+          "groups": [
+            {"label": "Linux-first 9/19", "bars": [
+              {"label": "Default MlxTbccl, 4 lifecycles", "series": "default", "value": 14.44, "published": "14.44 ms", "exact": true, "n": 4},
+              {"label": "Activity-step, 2 lifecycles", "series": "experimental", "value": 9.48, "published": "9.48 ms", "exact": true, "n": 2, "classification": "insufficient_evidence"}
+            ]}
+          ]
+        }
+      ]
+    }
+  ]
+}

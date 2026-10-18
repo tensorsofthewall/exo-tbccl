@@ -15,12 +15,14 @@ methodology
 
 | I want to... | Read |
 |---|---|
-| check my environment and run a first measurement | [Getting started](getting-started.md) |
+| see reference measurements with charts | [Results](results.md) |
 | compare `MlxRing` with `MlxTbccl` correctly | [MlxRing versus MlxTbccl](ring-vs-tbccl.md) |
-| know what each workload and metric means | [Inference workloads](workloads.md) |
-| see reference numbers and how they were obtained | [Results](results.md) |
-| understand the optional, exploratory settings | [Experimental settings](experimental.md) |
 | understand what a number does and does not mean | [Methodology and limitations](methodology.md) |
+| check my environment and run a first measurement | [Getting started](getting-started.md) |
+| know what each workload and metric means | [Inference workloads](workloads.md) |
+| understand the optional, exploratory settings | [Experimental settings](experimental.md) |
+| generate a report from my run, or compare two runs | the TBCCL runner: [report generation](https://tbccl.tensorsofthewall.com/en/latest/benchmarks/reports.html) and [comparing runs](https://tbccl.tensorsofthewall.com/en/latest/benchmarks/comparing.html) |
+| find out why a run failed | [Getting started](getting-started.md) for the client, [runner troubleshooting](https://tbccl.tensorsofthewall.com/en/latest/benchmarks/troubleshooting.html) for the runner |
 
 Two ways to run the same workloads:
 

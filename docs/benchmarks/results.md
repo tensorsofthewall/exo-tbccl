@@ -2,6 +2,19 @@
 
 These are reference measurements from one pair of machines. They show what the benchmarks produce and how large the effects were there; they are not a statement about other hardware, other link types, other models or other Exo versions. Run the benchmarks on your own systems for numbers that apply to them.
 
+## Performance at a glance
+
+Default configuration only; the one experimental result is shown separately [below](#experimental-metal-activity-step-exploratory) and is not part of this summary.
+
+| What was measured | Result on this pair of machines |
+|---|---|
+| Time per output token, Mac-first 19/9 | MlxRing 10.22 ms, default MlxTbccl 15.54 ms (6 / 9 lifecycles): classified *regression* |
+| Time per output token, Linux-first 9/19, interleaved controls | MlxRing 11.44 ms, default MlxTbccl 14.44 ms (4 / 4 lifecycles): classified *regression* |
+| Output tokens per second, concurrency 1 to 8 | MlxTbccl below MlxRing in the Linux-first order, 19% at concurrency 1 and 4.4% at concurrency 8; exploratory (one and two lifecycles) |
+| 27B 4-bit model, short prompt | 127.1 ms (MlxRing) against 138.0 ms (MlxTbccl): a limited demonstration, not a scaling result |
+
+**The default MlxTbccl integration was slower than MlxRing in the configurations measured here.** That is a comparison of two integrations of the same pipeline, not of a transport. These numbers come from one pair of machines joined by one Thunderbolt 4 cable. Each chart below is drawn from the table next to it; the table is the record and the chart only makes its shape easier to see. The charts need no scripts and follow the light and dark theme.
+
 ## What was measured
 
 | | Linux host | macOS host |
@@ -28,6 +41,12 @@ A stage order is written *Mac-first 19/9* (Mac runs stage 0 with 19 layers, the 
 
 **How to read this.** This is an application-level difference between two integrations of the same pipeline (see [MlxRing versus MlxTbccl](ring-vs-tbccl.md)), not the cost of a transport protocol. The same data moved over the link per token in both (about 10 kB); the difference is in how the steps wait and synchronise. The fourth row has a single MlxTbccl lifecycle and shows why lifecycle counts matter: it supports no conclusion.
 
+```{raw} html
+:file: charts/ring-vs-tbccl.html
+```
+
+The chart keeps the lifecycle counts and the class of each comparison in its labels. The first two comparisons are separated statistically; the third has one MlxTbccl lifecycle and carries no conclusion, and it is shown for that reason. The bars are an application-level comparison of the two backends and say nothing about where the extra time of a MlxTbccl step goes.
+
 ## Experimental: Metal activity-step (exploratory)
 
 | Linux-first 9/19, TPOT | default MlxTbccl | activity-step | Change | Lifecycles | Class |
@@ -35,6 +54,12 @@ A stage order is written *Mac-first 19/9* (Mac runs stage 0 with 19 layers, the 
 | descriptive only | 14.44 ms | 9.48 ms | -34.4% | 4 / 2 | insufficient evidence |
 
 Per-lifecycle TPOT: activity-step 9.46 and 9.50 ms; default 14.39, 14.43, 14.46, 14.47 ms; MlxRing 11.34, 11.43, 11.45, 12.06 ms. The two experimental lifecycles are completely separated from the four controls, but two lifecycles cannot reach p ≤ 0.05 in an exact test. This is **an exploratory observation, not the default result and not a validated optimisation**; it costs about one busy Mac core. See [Experimental settings](experimental.md).
+
+```{raw} html
+:file: charts/activity-step-experimental.html
+```
+
+The chart is separate from the default comparison on purpose and says so in its title. The two experimental lifecycles are fewer than an exact test needs, so no improvement is confirmed.
 
 ## Concurrency
 
@@ -47,6 +72,12 @@ Closed loop, output tokens per second (passes pooled per backend and stratum; pa
 | Linux-first 9/19, MlxTbccl | 2 / 6 | 46.3 | 76.9 | 112.9 | 134.9 |
 
 At concurrency 1 default MlxTbccl was 19% below MlxRing in the Linux-first order and 4.4% below at concurrency 8: the per-step cost is amortised by batching. This is **exploratory**: one MlxRing lifecycle and two MlxTbccl lifecycles, and the first pass of a lifecycle was often the highest.
+
+```{raw} html
+:file: charts/concurrency-throughput.html
+```
+
+The lines are descriptive. They come from one or two lifecycles per line and from passes that are not independent of each other, so they show a trend, not a statistically established difference.
 
 ## CPU cost per generated token
 
@@ -84,3 +115,14 @@ Aligned per-stage timing inside the full Exo server was not available: the diagn
 * Four to nine lifecycles in the main comparisons, one or two in the exploratory ones.
 * The Metal activity-step result and the 27B result are exploratory.
 * AER was unavailable (see above).
+
+## Reproducing and reading these results
+
+* What a lifecycle is, what may be compared and how classifications are assigned: [Methodology and limitations](methodology.md) and [MlxRing versus MlxTbccl](ring-vs-tbccl.md).
+* What each workload and metric means: [Inference workloads](workloads.md).
+* The optional, off-by-default settings behind the experimental chart: [Experimental settings](experimental.md).
+* To run the workloads yourself, start with [Getting started](getting-started.md).
+
+## How the charts are made
+
+The chart inputs are in `docs/benchmarks/chart-data.json`, copied by hand from the tables on this page. They are published aggregates, not raw records, and carry the exact text of each cell. `python3 tools/benchmark_charts.py` regenerates the figures in `docs/benchmarks/charts/` deterministically and `--check` fails when they are out of date; a test fails when a chart input no longer appears in the table it cites.
