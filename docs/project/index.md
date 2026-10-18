@@ -8,4 +8,5 @@ limitations
 validated-configurations
 changelog
 security-policy
+branding
 ```
