@@ -1,6 +1,25 @@
 # How do I know TBCCL is being used?
 
-A silent fall-back to exo's default MLX backends (for example `MlxRing`) or to a single-node placement would invalidate a benchmark. These checks show that the pipeline runs on exo-tbccl and TBCCL.
+A silent fall-back to exo's default MLX backends (for example `MlxRing`) or to a single-node placement would invalidate a benchmark. Use this page when the backend does not seem to be active (placement fails, or the instance is not `MlxTbcclInstance`), and to show that the pipeline runs on exo-tbccl and TBCCL.
+
+## The verification order
+
+Go down this list on **every** node, in order. Each row checks one layer; discovery (which finds the other machine) and transport (which moves the activations) are different layers and are verified separately. Stop at the first row that fails.
+
+```{table}
+:class: tb-stack tb-stack-ladder
+
+| # | Question | Layer | Check | A pass looks like |
+|---|---|---|---|---|
+| 1 | Which Exo integration is this? | exo-fork | `git -C <exo-fork checkout> describe --tags --exact-match` | `tbccl-integration-v2` (or `-v1` for the legacy path) |
+| 2 | Is the adapter available? | exo-tbccl | [step 1](#1-the-package-is-usable-on-every-node) below | `(True, '')` with the version for your path (0.3.0 for the extra, 0.3.1 for the manual wheel) |
+| 3 | Are both nodes' environments compatible? | exo-tbccl and exo | run row 2 on both: the same version; both on the same exo tag; the same `EXO_ZENOH_NAMESPACE` | identical output |
+| 4 | Did the cluster discover both hosts? | **Exo** (IPv6 link-local discovery) | `/state` shows the nodes ([discovery troubleshooting](discovery-troubleshooting.md)) | `2 nodes`; this says nothing yet about TBCCL |
+| 5 | Was `MlxTbccl` selected? | Exo placement | [step 2](#2-the-instance-type-is-mlxtbccl) below | `['MlxTbcclInstance']` with layers on both nodes |
+| 6 | Does the pipeline communicate through TBCCL? | **TBCCL** (TCP over IPv4) | [step 3](#3-the-runners-built-a-tbccl-communicator) and [step 4](#4-operation-level-evidence) below | `TBCCL communicator ready` on both ranks, on the link addresses you expect |
+```
+
+A cluster that forms (row 4) does not prove that TBCCL carries the pipeline, and a working TBCCL path does not prove that discovery works: the first needs IPv6 link-local multicast, the second IPv4 TCP.
 
 ## 1. The package is usable on every node
 

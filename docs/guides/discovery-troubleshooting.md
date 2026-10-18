@@ -43,7 +43,7 @@ ping -6 -c3 'fe80::PEER-ADDRESS%thunderbolt0'      # Linux; PEER-ADDRESS = the M
 ping6 -c3 'fe80::PEER-ADDRESS%bridge0'              # macOS; PEER-ADDRESS = the Linux thunderbolt0 link-local address
 ```
 
-Both directions must work. Find the addresses with `ip -6 addr show thunderbolt0` (Linux) and `ifconfig bridge0` (macOS). Also check IPv4 (`ping 192.168.3.x`) and that nothing blocks TCP port 52414 between the nodes. The validated link had IPv6 link-local addresses on both ends; whether other macOS Thunderbolt Bridge IPv6 settings matter was not isolated, so do not assume a particular setting is required.
+Both directions must work. If the IPv6 ping fails while the IPv4 ping works, the link is up but Exo's discovery cannot work: see [IPv4 works, IPv6 link-local does not](https://tbccl.tensorsofthewall.com/en/latest/guides/thunderbolt-troubleshooting.html) (entry 11 of the Thunderbolt link troubleshooting guide), which is read-only and does not ask you to change settings. Find the addresses with `ip -6 addr show thunderbolt0` (Linux) and `ifconfig bridge0` (macOS). Also check IPv4 (`ping 192.168.3.x`) and that nothing blocks TCP port 52414 between the nodes. The validated link had IPv6 link-local addresses on both ends; whether other macOS Thunderbolt Bridge IPv6 settings matter was not isolated, so do not assume a particular setting is required.
 
 ## 7. Is `MlxTbccl` actually selected?
 

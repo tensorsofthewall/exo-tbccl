@@ -2,6 +2,21 @@
 
 exo-tbccl is installed into **exo's** virtual environment. exo works without it: selecting the `MlxTbccl` instance type without the package is a clear placement error, and `exo_tbccl.is_available()` explains why. The wheel contains libtbccl (statically linked); you do not install tbccl separately.
 
+## Which integration do I have, and which do I want?
+
+exo-tbccl installs into the environment of an **exo that carries the TBCCL integration**. Two immutable tags of [exo-fork](https://github.com/tensorsofthewall/exo-fork) exist, with different install paths. Read the tag of your checkout (read-only):
+
+```sh
+git -C <exo-fork checkout> describe --tags --exact-match      # prints tbccl-integration-v2 or tbccl-integration-v1
+```
+
+| Tag | How exo-tbccl gets in | exo-tbccl version | Bundled TBCCL | Choose it when |
+|---|---|---|---|---|
+| `tbccl-integration-v2` | the `tbccl` optional extra of `uv sync` (see [Default](#default-the-optional-extra-of-tbccl-integration-v2)) | **0.3.0** | 0.6.0 | you are starting now: this is the supported path |
+| `tbccl-integration-v1` | a manually installed wheel (see [Legacy](#legacy-tbccl-integration-v1-and-a-manual-wheel)) | **0.3.1** | 0.6.1 | you already run the earlier integration |
+
+These versions are intentional: the tag is immutable and 0.3.0 carries the same adapter code as 0.3.1. Do not mix the two paths' requirements, and do not "upgrade" one to the other's version. Every node must use the same integration and the same exo-tbccl version. The verification order after installing is in [how do I know TBCCL is being used?](../guides/verify-active.md): integration, adapter, matching nodes, discovery, placement, then transport.
+
 ## Requirements
 
 | | |

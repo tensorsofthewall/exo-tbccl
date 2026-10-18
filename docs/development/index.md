@@ -9,13 +9,14 @@ This repository, **exo-tbccl**, is the exo adapter. It owns the MLX bridge, the 
 | `TbcclPipelineComm`, typed errors, optional fast paths | a dependency on torch-tbccl, vllm-tbccl or PyTorch |
 | tests and probes for the above | model loading and scheduling |
 
-Start with [contributing](contributing.md) and [where should this change go?](where-should-this-change-go.md). The rules for the code base are in `AGENTS.md`.
+Start with [contributing](contributing.md) and [where should this change go?](where-should-this-change-go.md) and the [code map](code-map.md). The rules for the code base are in `AGENTS.md`.
 
 ```{toctree}
 :maxdepth: 1
 
 contributing
 where-should-this-change-go
+code-map
 testing
 building-docs
 release-process

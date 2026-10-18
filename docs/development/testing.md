@@ -30,6 +30,26 @@ make docs-linkcheck    # checks local links and anchors
 python tools/check_compatibility_manifest.py    # compatibility.json against pyproject.toml and the extension's C ABI constant
 ```
 
+## What needs what
+
+You do not need a GPU, a Mac, Thunderbolt hardware or an Exo cluster to contribute. Pick the lowest tier that covers your change and say in the pull request which tiers you ran.
+
+```{table}
+:class: tb-stack tb-stack-tiers
+
+| Tier | Needs | Commands | Covers |
+|---|---|---|---|
+| Documentation only | Python 3 | `make docs`, `make docs-linkcheck`, `python tools/check_compatibility_manifest.py`, `python tools/check_doc_commands.py`, `python tools/check_release_docs.py` | links, build, commands named in the docs, version facts |
+| Unit and loopback | exo's environment (MLX), a built exo-tbccl | `<exo venv>/bin/python -m pytest -q -p no:asyncio tests` | the communicator, the bridge and lifecycle, one process per rank on `127.0.0.1` |
+| Docs gates | the same | `tests/test_docs_consistency.py` | environment variables, versions and independence match the docs |
+| Platform device | Linux with CUDA, or an Apple-silicon Mac | the same suite (device tests skip elsewhere) | CUDA-managed and Metal arrays through the bridge |
+| Two hosts | two machines, a direct link and a local model | `examples/link_probe.py`, `examples/two_host_fastpath.py`; opt-in; read the link's PCIe error counters before and after | real-link behavior |
+| Benchmarks | exo's environment and the TBCCL benchmark suite | `benchmarks/` tools and the provider; opt-in; they never download a model | measurements, never part of a generic run |
+| Packaging | a clean environment | the wheel build and inspection above | the wheel contents |
+```
+
+Changes to the Python-side communicator, configuration or documentation need only the first three tiers. A change to the bridge or a device path should be run on that platform by someone who has it; say so in the pull request instead of skipping it silently.
+
 ## Notes
 
 - Tests run one process per rank and use `spawn`, never `fork`.

@@ -60,6 +60,7 @@ hosts:
       exo_bench_dir: <PATH_TO_THIS_REPOSITORY>/benchmarks/provider
 ```
 
+<!-- doccheck: skip (runs from a TBCCL checkout; the runner is not in this repository) -->
 ```sh
 python3 -m benchmarks.suite providers my-config.yaml          # shows exo-tbccl with its state and versions per host
 python3 -m benchmarks.suite run my-config.yaml --dry-run      # prints the node, sampler and client commands; launches nothing
