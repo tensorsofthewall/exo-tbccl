@@ -114,7 +114,7 @@ Pipeline sharding and text generation only; one address per node; the exo integr
 
 ## Development
 
-[MAINTENANCE.md](MAINTENANCE.md) records the maintenance policy and what needs physical requalification. `CONTRIBUTING.md` explains the workflow and `AGENTS.md` the rules for the code base; the [development documentation](docs/development/index.md) covers building, testing and where a change belongs. Security: `SECURITY.md`. Changes for users: `CHANGELOG.md`. Releasing: `RELEASE.md`.
+[MAINTENANCE.md](MAINTENANCE.md) records the maintenance policy and what needs physical requalification. `CONTRIBUTING.md` explains the workflow and `AGENTS.md` the rules for the code base; the [development documentation](docs/development/index.md) covers building, testing and where a change belongs. The [code map](docs/development/code-map.md) points to the first files for each topic, and [testing](docs/development/testing.md) says which checks need a GPU, a Mac or a Thunderbolt link (most do not). Security: `SECURITY.md`. Changes for users: `CHANGELOG.md`. Releasing: `RELEASE.md`.
 
 ## License
 
