@@ -20,7 +20,7 @@ MlxPipelineComm   TbcclPipelineComm   <- this package
 | Project | Owns |
 |---|---|
 | exo | discovery, topology, placement, shard assignment, model loading, scheduling, the `PipelineComm` seam, the generic runner byte exchange |
-| exo-tbccl | the MLX to TBCCL bridge, the C-ABI binding, `TbcclPipelineComm`, typed errors |
+| exo-tbccl | the MLX to TBCCL bridge, the C ABI binding, `TbcclPipelineComm`, typed errors |
 | libtbccl | bytes, collectives, transports, memory providers, work and failure semantics |
 
 Scope: pipeline parallelism for text generation only. Not tensor parallelism, not image or classifier-free-guidance models. TBCCL never discovers anything ({doc}`../adr/0001-c-abi-only`).

@@ -1,6 +1,6 @@
 # Development
 
-This repository, **exo-tbccl**, is the exo adapter. It owns the MLX bridge, the C-ABI binding and `TbcclPipelineComm`, and nothing of the transport or of exo's orchestration.
+This repository, **exo-tbccl**, is the exo adapter. It owns the MLX bridge, the C ABI binding and `TbcclPipelineComm`, and nothing of the transport or of exo's orchestration.
 
 | Belongs here | Does not belong here |
 |---|---|

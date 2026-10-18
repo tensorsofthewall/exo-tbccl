@@ -99,7 +99,7 @@ Qwen3.8-27B-4bit (Mac 43 layers, Linux 21), a short prompt:
 | MlxRing | 127.1 ms and 127.0 ms (two lifecycles, one of them the reference run) |
 | MlxTbccl, Mac-first | 138.0 ms (one lifecycle); 137.8 ms Linux-first |
 
-MlxTbccl was 8.6% above MlxRing in this demonstration. **Exploratory**: two and two lifecycles, one Mac-first MlxTbccl run. A prompt of 138 tokens ran out of CUDA memory in prefill on the 8 GiB GPU; longer prompts are not demonstrated. A 27B model at a short prompt and a 0.6B model at a long prompt are not a model-size scaling comparison.
+MlxTbccl was 8.6% above MlxRing in this demonstration. **Exploratory**: two and two lifecycles, one Mac-first MlxTbccl run. A prompt of 138 tokens ran out of CUDA memory in prefill on the 8 GiB GPU in this benchmark run; longer prompts are not demonstrated. (The earlier validation of the 27B pipeline, with exo's memory override, recorded a 138-token prefill that completed: see [validated configurations](../project/validated-configurations.md). The two runs were not compared setting for setting, so read neither as a general memory limit.) A 27B model at a short prompt and a 0.6B model at a long prompt are not a model-size scaling comparison.
 
 ## Layer split and tracing
 
