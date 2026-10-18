@@ -128,10 +128,11 @@ Only configurations that were actually exercised are listed as validated. Everyt
 - Pipeline parallelism for text generation only: tensor parallelism and image models are rejected.
 - The integration is not in upstream exo; it needs the exo fork tag `tbccl-integration-v2`.
 - Two stages were validated on hardware; models other than Qwen3, and larger prompts on an 8 GB GPU, are not claimed.
-- CPython 3.13 or newer; the published wheels are `cp313`.
 - One advertised address per node; a node started from a detached tmux session on a Mac did not join the cluster.
 :::
 ::::
+
+**Python.** The package metadata requires CPython 3.13 or newer (`requires-python`). CPython 3.13 is the only interpreter with a validated prebuilt wheel: the published wheels are `cp313` only (Linux x86-64 and macOS 14 or newer on Apple silicon), so any other interpreter would need a source build, which is not validated. Details: [compatibility](reference/compatibility.md) and [installing exo-tbccl](getting-started/install.md).
 
 Authoritative pages: [compatibility](reference/compatibility.md), [validated configurations](project/validated-configurations.md) and [known limitations](project/limitations.md).
 
@@ -140,6 +141,7 @@ Authoritative pages: [compatibility](reference/compatibility.md), [validated con
 exo-tbccl is one of three independent adapters over the [TBCCL](https://tbccl.tensorsofthewall.com/en/latest/) runtime; the others are torch-tbccl (PyTorch) and vllm-tbccl (vLLM). It depends on neither. See the [ecosystem overview](project/ecosystem.md).
 
 ```{toctree}
+:hidden:
 :maxdepth: 2
 :caption: Getting started
 
@@ -149,6 +151,7 @@ getting-started/quickstart
 ```
 
 ```{toctree}
+:hidden:
 :maxdepth: 2
 :caption: User guide
 
@@ -158,6 +161,7 @@ concepts/fast-paths
 ```
 
 ```{toctree}
+:hidden:
 :maxdepth: 2
 :caption: Benchmarks
 
@@ -165,6 +169,7 @@ benchmarks/index
 ```
 
 ```{toctree}
+:hidden:
 :maxdepth: 2
 :caption: Architecture
 
@@ -173,6 +178,7 @@ adr/index
 ```
 
 ```{toctree}
+:hidden:
 :maxdepth: 2
 :caption: Reference
 
@@ -180,6 +186,7 @@ reference/index
 ```
 
 ```{toctree}
+:hidden:
 :maxdepth: 2
 :caption: Troubleshooting
 
@@ -189,6 +196,7 @@ guides/verify-active
 ```
 
 ```{toctree}
+:hidden:
 :maxdepth: 2
 :caption: Development
 
@@ -196,6 +204,7 @@ development/index
 ```
 
 ```{toctree}
+:hidden:
 :maxdepth: 2
 :caption: Project
 
