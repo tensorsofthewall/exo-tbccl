@@ -51,6 +51,14 @@ curl -s localhost:52415/state | python3 -c "import json,sys; d=json.load(sys.std
 
 See [how do I know TBCCL is being used?](../guides/verify-active.md). Delete the instance with `curl -X DELETE localhost:52415/instance/<instance id>` and stop each exo node with Ctrl-C (or `kill -TERM`). `kill -9` is a last resort.
 
+## What success looks like
+
+- `/state` shows `2 nodes`, one of them acting as master.
+- Both runners reported ready, and `/state` lists `['MlxTbcclInstance']`.
+- The chat request returns text, and each node's log has `TBCCL communicator ready` for its rank.
+
+**What this showed:** two machines formed one Exo cluster (Exo's discovery), Exo placed a pipeline of a small model with the `MlxTbccl` instance type, and its activations crossed the link through TBCCL. **What it did not show:** that `MlxTbccl` is faster than Exo's own `MlxRing` (in the [measured configurations](../benchmarks/results.md) the default `MlxTbccl` was slower), larger models, or recovery after a node dies. **Read next:** [verification order](../guides/verify-active.md), [running across two hosts](../guides/two-host.md), [limitations](../project/limitations.md). **If it fails:** [troubleshooting](../guides/troubleshooting.md), starting at "Start here" (discovery problems: [discovery troubleshooting](../guides/discovery-troubleshooting.md)).
+
 ## Using the API directly
 
 You normally do not call exo-tbccl yourself; this is what exo does:
