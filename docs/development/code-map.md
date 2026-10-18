@@ -2,6 +2,9 @@
 
 Where to start reading, by topic. It is a map to the directories and the first files, not a walk through the source; the rules for the code base are in `AGENTS.md` and the design is in the [architecture](../concepts/architecture.md) page. Every path below is checked by a test, so a rename that leaves this page stale fails the documentation checks.
 
+```{table}
+:class: tb-stack tb-stack-map
+
 | Topic | Start at | Read with |
 |---|---|---|
 | The Exo integration boundary (what exo calls) | `exo_tbccl/__init__.py`, `exo_tbccl/group.py` | [Architecture](../concepts/architecture.md), [API](../reference/api.md) |
@@ -16,5 +19,6 @@ Where to start reading, by topic. It is a map to the directories and the first f
 | Process-per-rank tests | `tests/test_group.py`, `tests/test_lifecycle.py`, `tests/harness.py` | [Testing](testing.md) |
 | Two-host probes and benchmarks | `examples/link_probe.py`, `examples/two_host_fastpath.py`, `benchmarks/provider/` | [Benchmarks](../benchmarks/index.md) |
 | Diagnostics | `tools/collect_diagnostics.py` | [Troubleshooting](../guides/troubleshooting.md) |
+```
 
 The runtime itself (transport, algorithms, protocol, the C ABI) is not in this repository; its [code map](https://tbccl.tensorsofthewall.com/en/latest/development/code-map.html) lives in TBCCL. Exo's own code (discovery, topology, placement, the runner) belongs to the exo project; this repository covers the integration seam and `MlxTbccl`'s communication ([where should this change go?](where-should-this-change-go.md)).

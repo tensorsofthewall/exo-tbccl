@@ -34,6 +34,9 @@ python tools/check_compatibility_manifest.py    # compatibility.json against pyp
 
 You do not need a GPU, a Mac, Thunderbolt hardware or an Exo cluster to contribute. Pick the lowest tier that covers your change and say in the pull request which tiers you ran.
 
+```{table}
+:class: tb-stack tb-stack-tiers
+
 | Tier | Needs | Commands | Covers |
 |---|---|---|---|
 | Documentation only | Python 3 | `make docs`, `make docs-linkcheck`, `python tools/check_compatibility_manifest.py`, `python tools/check_doc_commands.py`, `python tools/check_release_docs.py` | links, build, commands named in the docs, version facts |
@@ -43,6 +46,7 @@ You do not need a GPU, a Mac, Thunderbolt hardware or an Exo cluster to contribu
 | Two hosts | two machines, a direct link and a local model | `examples/link_probe.py`, `examples/two_host_fastpath.py`; opt-in; read the link's PCIe error counters before and after | real-link behavior |
 | Benchmarks | exo's environment and the TBCCL benchmark suite | `benchmarks/` tools and the provider; opt-in; they never download a model | measurements, never part of a generic run |
 | Packaging | a clean environment | the wheel build and inspection above | the wheel contents |
+```
 
 Changes to the Python-side communicator, configuration or documentation need only the first three tiers. A change to the bridge or a device path should be run on that platform by someone who has it; say so in the pull request instead of skipping it silently.
 

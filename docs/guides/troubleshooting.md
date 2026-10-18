@@ -6,20 +6,27 @@ Find the symptom, check the likely cause with the diagnostic, apply the fix. For
 
 ### Work through it in this order
 
-Each step is read-only. Stop at the first step that fails: later steps depend on it. Discovery (Exo finding the other machine) and transport (TBCCL moving the activations) are different layers; do not skip from one to the other.
+Each step is marked **Observe** (it reads state; nothing starts, stops or changes) or **Action** (you start, stop or configure a process, or run a test). No step changes network, firewall, driver or hardware settings. Stop at the first step that fails: later steps depend on it. Discovery (Exo finding the other machine) and transport (TBCCL moving the activations) are different layers; do not skip from one to the other.
+
+```{table}
+:class: tb-stack tb-stack-steps
 
 | Step | Question | Check | If it fails |
 |---|---|---|---|
-| 1 | Which integration and versions? | `git -C <exo-fork checkout> describe --tags --exact-match`; `.venv/bin/python -c "import exo_tbccl; print(exo_tbccl.__version__, exo_tbccl.is_available())"` on **every** node | [Symptoms](#symptoms-and-fixes); [installing](../getting-started/install.md) |
-| 2 | Is the device and backend there? | `is_available()` prints `(True, '')`; MLX runs on the node | [Symptoms](#symptoms-and-fixes) |
-| 3 | Is the link ready? | `python3 thunderbolt_link_doctor.py --peer <peer-link-address>` (read-only; [how to get it](https://tbccl.tensorsofthewall.com/en/latest/guides/thunderbolt-troubleshooting.html)) | [Thunderbolt link troubleshooting](https://tbccl.tensorsofthewall.com/en/latest/guides/thunderbolt-troubleshooting.html) |
-| 4 | Do the nodes discover each other? | `/state` shows `2 nodes` | [Discovery troubleshooting](discovery-troubleshooting.md) |
-| 5 | Is `MlxTbccl` placed? | `/state` lists `MlxTbcclInstance`, layers on both nodes | [Symptoms](#symptoms-and-fixes); [verify](verify-active.md) |
-| 6 | Does the TBCCL bootstrap finish? | each node logs `TBCCL communicator ready` within the 120 s bootstrap | [Ping works but exo or TBCCL does not connect](#ping-works-but-exo-or-tbccl-does-not-connect) |
-| 7 | Did stopping leave a process? | stop each node with Ctrl-C; `ps` for stale `exo` processes | [Symptoms](#symptoms-and-fixes) (the exit rows) |
-| 8 | Is it only slow? | the [benchmark methodology](../benchmarks/methodology.md) | [Results](../benchmarks/results.md) |
+| 1 | Which integration and versions? | **Observe:** `git -C <exo-fork checkout> describe --tags --exact-match`; `.venv/bin/python -c "import exo_tbccl; print(exo_tbccl.__version__, exo_tbccl.is_available())"` on **every** node | [Symptoms](#symptoms-and-fixes); [installing](../getting-started/install.md) |
+| 2 | Is the device and backend there? | **Observe:** `is_available()` prints `(True, '')`; MLX runs on the node | [Symptoms](#symptoms-and-fixes) |
+| 3 | Is the link ready? | **Observe:** `python3 thunderbolt_link_doctor.py --peer <peer-link-address>` (with `--peer` it also sends a ping and opens one TCP connection to the peer, and changes nothing; [how to get it](https://tbccl.tensorsofthewall.com/en/latest/guides/thunderbolt-troubleshooting.html)) | [Thunderbolt link troubleshooting](https://tbccl.tensorsofthewall.com/en/latest/guides/thunderbolt-troubleshooting.html) |
+| 4 | Do the nodes discover each other? | **Observe:** `/state` shows `2 nodes` | [Discovery troubleshooting](discovery-troubleshooting.md) |
+| 5 | Is `MlxTbccl` placed? | **Observe:** `/state` lists `MlxTbcclInstance`, layers on both nodes | [Symptoms](#symptoms-and-fixes); [verify](verify-active.md) |
+| 6 | Does the TBCCL bootstrap finish? | **Observe:** each node logs `TBCCL communicator ready` within the 120 s bootstrap | [Ping works but exo or TBCCL does not connect](#ping-works-but-exo-or-tbccl-does-not-connect) |
+| 7 | Did stopping leave a process? | **Action:** stop each node with Ctrl-C; then **Observe:** `ps` for stale `exo` processes | [Symptoms](#symptoms-and-fixes) (the exit rows) |
+| 8 | Is it only slow? | **Observe:** the [benchmark methodology](../benchmarks/methodology.md) | [Results](../benchmarks/results.md) |
+```
 
 ### Find your symptom
+
+```{table}
+:class: tb-stack tb-stack-find
 
 | You see | Go to |
 |---|---|
@@ -32,8 +39,12 @@ Each step is read-only. Stop at the first step that fails: later steps depend on
 | a CUDA node runs out of memory while loading | [Symptoms](#symptoms-and-fixes) (`OVERRIDE_MEMORY_MB`) |
 | the exo process does not exit | [Symptoms](#symptoms-and-fixes) |
 | slower than `MlxRing` | not a fault: [MlxRing versus MlxTbccl](../benchmarks/ring-vs-tbccl.md) and the [results](../benchmarks/results.md) |
+```
 
 ### Which layer owns the error
+
+```{table}
+:class: tb-stack tb-stack-owner
 
 | Layer | What it looks like | What to do |
 |---|---|---|
@@ -44,6 +55,7 @@ Each step is read-only. Stop at the first step that fails: later steps depend on
 | Operating system | macOS Local Network prompt or firewall, a detached session, a port in use | [link troubleshooting entries 9 and 10](https://tbccl.tensorsofthewall.com/en/latest/guides/thunderbolt-troubleshooting.html) |
 | Network configuration | no IPv6 link-local address, wrong subnet, traffic over Wi-Fi | [link troubleshooting](https://tbccl.tensorsofthewall.com/en/latest/guides/thunderbolt-troubleshooting.html), entries 5 to 8 and 11 |
 | External dependencies | `uv sync`, the dashboard build, Xcode and the Metal toolchain | their own notes |
+```
 
 ## Symptoms and fixes
 
@@ -70,14 +82,14 @@ A peer that dies surfaces as a structured transport error on the survivors withi
 
 **Which layer.** `ping` proves an IPv4 ICMP path. Exo's discovery needs IPv6 link-local multicast (UDP 52413) and then a TCP connection (52414); TBCCL then needs IPv4 TCP connections between the runners' own ports. Any one can fail while ping works.
 
-**Checks (read-only).**
+**Checks.** The ping and the log line are observations. The connection test is an **action**: it opens one TCP connection and closes it at once, which the listening side may log as a failed handshake, so run it only when no job you care about is starting. The link doctor's listener on a spare port (`--listen` / `--tcp-port`) tests the same path without touching a running job. Run them while the listening side is waiting.
 
 ```sh
-# 1. Discovery: scoped IPv6 reachability, both directions (Linux; on macOS use ping6 and bridge0, see discovery troubleshooting)
+# 1. observe (sends three ping packets) - discovery: scoped IPv6 reachability, both directions (Linux; on macOS use ping6 and bridge0, see discovery troubleshooting)
 ping -6 -c3 'fe80::PEER-ADDRESS%thunderbolt0'
-# 2. Exo's TCP port on the other node (run from the other machine while exo is running there)
+# 2. ACTION (opens and closes one TCP connection) - Exo's TCP port on the other node (run from the other machine while exo is running there)
 python3 -c "import socket; socket.create_connection(('<peer-link-address>', 52414), timeout=3).close(); print('TCP connect ok')"
-# 3. Is the bootstrap address the link? (the log line "TBCCL bootstrap on <address>")
+# 3. observe - is the bootstrap address the link? Read the log line "TBCCL bootstrap on <address>" in each node's exo log
 ```
 
 - Step 1 fails: discovery cannot work. [Discovery troubleshooting](discovery-troubleshooting.md), question 6, and entry 11 of the [link guide](https://tbccl.tensorsofthewall.com/en/latest/guides/thunderbolt-troubleshooting.html).

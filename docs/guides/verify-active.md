@@ -6,6 +6,9 @@ A silent fall-back to exo's default MLX backends (for example `MlxRing`) or to a
 
 Go down this list on **every** node, in order. Each row checks one layer; discovery (which finds the other machine) and transport (which moves the activations) are different layers and are verified separately. Stop at the first row that fails.
 
+```{table}
+:class: tb-stack tb-stack-ladder
+
 | # | Question | Layer | Check | A pass looks like |
 |---|---|---|---|---|
 | 1 | Which Exo integration is this? | exo-fork | `git -C <exo-fork checkout> describe --tags --exact-match` | `tbccl-integration-v2` (or `-v1` for the legacy path) |
@@ -14,6 +17,7 @@ Go down this list on **every** node, in order. Each row checks one layer; discov
 | 4 | Did the cluster discover both hosts? | **Exo** (IPv6 link-local discovery) | `/state` shows the nodes ([discovery troubleshooting](discovery-troubleshooting.md)) | `2 nodes`; this says nothing yet about TBCCL |
 | 5 | Was `MlxTbccl` selected? | Exo placement | [step 2](#2-the-instance-type-is-mlxtbccl) below | `['MlxTbcclInstance']` with layers on both nodes |
 | 6 | Does the pipeline communicate through TBCCL? | **TBCCL** (TCP over IPv4) | [step 3](#3-the-runners-built-a-tbccl-communicator) and [step 4](#4-operation-level-evidence) below | `TBCCL communicator ready` on both ranks, on the link addresses you expect |
+```
 
 A cluster that forms (row 4) does not prove that TBCCL carries the pipeline, and a working TBCCL path does not prove that discovery works: the first needs IPv6 link-local multicast, the second IPv4 TCP.
 
