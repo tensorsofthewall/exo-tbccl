@@ -1,4 +1,9 @@
-# exo-tbccl
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="branding/lockups/exo-tbccl-horizontal-dark.svg">
+    <img src="branding/lockups/exo-tbccl-horizontal-light.svg" alt="exo-tbccl" height="72">
+  </picture>
+</h1>
 
 [![docs](https://github.com/tensorsofthewall/exo-tbccl/actions/workflows/docs.yml/badge.svg)](https://github.com/tensorsofthewall/exo-tbccl/actions/workflows/docs.yml) [![license](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE) [![release](https://img.shields.io/github/v/release/tensorsofthewall/exo-tbccl?label=release)](https://github.com/tensorsofthewall/exo-tbccl/releases)
 
@@ -114,3 +119,7 @@ Pipeline sharding and text generation only; one address per node; the exo integr
 ## License
 
 exo-tbccl is licensed under the Apache License, Version 2.0 (see `LICENSE`). Copyright 2026 Sandesh Bharadwaj.
+
+## Independence
+
+exo-tbccl is an independent project. It is not affiliated with, sponsored by or endorsed by exo labs or the exo project. exo, MLX, CUDA, Metal and other product and company names mentioned here are trademarks of their respective owners. See [Branding and independence](docs/project/branding.md).

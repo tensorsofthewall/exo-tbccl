@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "generator": "branding/tools/build_lockups.py",
+  "command": "python3 branding/tools/build_lockups.py --project exo-tbccl",
+  "tools": {
+    "uharfbuzz": "0.56.3",
+    "fonttools": "4.67.0"
+  },
+  "typeface": {
+    "id": "inter-600",
+    "family": "Inter",
+    "style": "SemiBold",
+    "weight": 600,
+    "variations": null,
+    "file": "Inter-SemiBold.otf",
+    "version": "Version 3.019;git-0a5106e0b",
+    "file_sha256": "8c1990b6012254ea2b487161697d107357dd0ee55811cfd91c8c11227bbef457",
+    "license": "SIL Open Font License 1.1",
+    "copyright": "Copyright 2020 The Inter Project Authors (https://github.com/rsms/inter)",
+    "embedded": false,
+    "note": "Text is converted to paths; no font data is embedded or distributed."
+  },
+  "mark": {
+    "source": "branding/logo/tbccl-mark.svg",
+    "sha256": "aacd87aaf5709973eb6beed41b4b43ef2413697c59d51bd17081bd9c2d3282c4",
+    "modified": false
+  },
+  "projects": {
+    "exo-tbccl": {
+      "accent": {
+        "light": "#026E2B",
+        "dark": "#58D68D"
+      }
+    }
+  },
+  "files": {
+    "exo-tbccl-compact-dark.svg": "293a153115b9f6d04215ceb643ca6e1dd09760770cfaf9786b9fc26b2b40fd6e",
+    "exo-tbccl-compact-light.svg": "bb441428bce534318f36a2a86a3c003318fb07df6d8db4a8c05004ff03bd6718",
+    "exo-tbccl-compact-mono-black.svg": "43ec40a972be1cf671835f087a970345f5a314b84b877f166ded418f10dce8d1",
+    "exo-tbccl-compact-mono-white.svg": "ccf606518982674f4785a041ca34451e6bade9b9b09284f6aac0425cbc18f9a0",
+    "exo-tbccl-horizontal-dark.svg": "f8542f77a94d9fa253015518300616a03a0a1f1894234e60f209a94786dd3b1a",
+    "exo-tbccl-horizontal-light.svg": "fbc85f0d97b88b5c51df0778fe4057132e16a6331675750ad9d23ccbd21ece74",
+    "exo-tbccl-horizontal-mono-black.svg": "ef07634ebbcad9a6b768ec52842cafaa9a149bdbddeff754c763e9b19b16e541",
+    "exo-tbccl-horizontal-mono-white.svg": "0aac834f4f80e7100b6ffb077d8479a492d40da33e2fcafaa465a7a258b29057",
+    "exo-tbccl-stacked-dark.svg": "632f014acb390c8bcadd66816c75a6c14cbda27a319dc6012824bd24b0935840",
+    "exo-tbccl-stacked-light.svg": "ff3cf3105c75a7f490d837a4f1810b3039da135f9bcff6fe914d320d61fb5d91",
+    "exo-tbccl-stacked-mono-black.svg": "38b15a43aa2003e1def268a936b88006596fe21272e92f1a303070ee4a94f28d",
+    "exo-tbccl-stacked-mono-white.svg": "487b71e0e96081bc8cc12406d8624f9601cf23e6ed2c9b8800397c30bbc60ee8"
+  }
+}
