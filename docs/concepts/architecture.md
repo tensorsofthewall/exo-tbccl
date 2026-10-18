@@ -39,3 +39,7 @@ Scope: pipeline parallelism for text generation only. Not tensor parallelism, no
 3. **Generation.** The runner threads a `CommGroup` (an `mx.distributed.Group` or a `PipelineComm`) through the pipeline layers, the prefill queue and the runner-level agreements (barrier, any, task agreement, KV-cache pressure).
 4. **Lifetime boundary.** `PipelineLastLayer` calls `comm.step_complete()` right after the stage output has been evaluated; `TbcclPipelineComm` uses it to recycle receive destinations when reuse is enabled (a no-op for `MlxPipelineComm`).
 5. **Shutdown.** The engine releases the communicator before model state is destroyed.
+
+## Where this sits
+
+The runtime below this adapter is described in TBCCL's [architecture](https://tbccl.tensorsofthewall.com/en/latest/concepts/architecture.html) and [transports](https://tbccl.tensorsofthewall.com/en/latest/concepts/transports.html) pages; the Thunderbolt link that Exo's discovery and TBCCL's transport both depend on is covered by the [link troubleshooting guide](https://tbccl.tensorsofthewall.com/en/latest/guides/thunderbolt-troubleshooting.html). This adapter adds no transport, algorithm or protocol of its own.

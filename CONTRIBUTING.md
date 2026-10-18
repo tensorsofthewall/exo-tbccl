@@ -15,7 +15,7 @@ TBCCL_ROOT=<installed tbccl prefix> uv pip install --python <exo venv>/bin/pytho
 
 The package is installed into exo's environment; syncing exo's dependencies can uninstall it. Rebuild after editing `src/native/`.
 
-Run `tests/` (loopback, process-per-rank) for any change. Sanitizers can run the non-MLX tests only. Two-host runs and benchmarks are opt-in; say in the pull request what you ran. Never download model weights.
+Run `tests/` (loopback, process-per-rank) for any change. Sanitizers can run the non-MLX tests only. Two-host runs and benchmarks are opt-in; say in the pull request what you ran. Never download model weights. `docs/development/testing.md` ("What needs what") lists which checks need which hardware, and `docs/development/code-map.md` points to the first files for each topic.
 
 ## Contribution workflow
 
