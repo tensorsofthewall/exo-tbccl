@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "repo": "tensorsofthewall/exo-tbccl",
+  "scan": [
+    "README.md",
+    "MAINTENANCE.md",
+    "RELEASE.md",
+    "docs/**/*.md"
+  ],
+  "exclude": [
+    "docs/validation/*",
+    "docs/adr/*",
+    "docs/project/changelog.md",
+    "docs/benchmarks/results.md"
+  ],
+  "exclude_reason": "Validation reports, decision records, the changelog page and the benchmark results page record what was true or measured for an earlier version and must keep those versions. They are not scanned for release URLs or artifact names.",
+  "versions": {
+    "bundled_tbccl": "0.6.1",
+    "fork_extra_wheel": "0.3.0",
+    "fork_extra_bundled_tbccl": "0.6.0"
+  },
+  "statements": [
+    {
+      "file": "README.md",
+      "find": "^> \\*\\*Status:\\*\\* \\*\\*(?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?)\\*\\*",
+      "expect": "current",
+      "describe": "README status line"
+    },
+    {
+      "file": "README.md",
+      "find": "TBCCL (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) in the 0\\.3\\.1 wheel",
+      "expect": "version:bundled_tbccl",
+      "describe": "README TBCCL bundled in the current wheel"
+    },
+    {
+      "file": "README.md",
+      "find": "TBCCL (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) in the 0\\.3\\.0 wheel",
+      "expect": "version:fork_extra_bundled_tbccl",
+      "describe": "README TBCCL bundled in the fork-installed wheel"
+    },
+    {
+      "file": "README.md",
+      "find": "The `tbccl` extra installs the (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) release wheel",
+      "expect": "version:fork_extra_wheel",
+      "describe": "README wheel installed by the fork's tbccl extra"
+    },
+    {
+      "file": "README.md",
+      "find": "# (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) \\(True, ''\\) with the tbccl extra",
+      "expect": "version:fork_extra_wheel",
+      "describe": "README expected version with the tbccl extra"
+    },
+    {
+      "file": "README.md",
+      "find": "; (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) \\(True, ''\\) after installing the 0\\.3\\.1 wheel",
+      "expect": "current",
+      "describe": "README expected version with the standalone wheel"
+    },
+    {
+      "file": "docs/index.md",
+      "find": "The current release is (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?)",
+      "expect": "current",
+      "describe": "documentation homepage release statement"
+    },
+    {
+      "file": "docs/getting-started/install.md",
+      "find": "The (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) wheels are attached",
+      "expect": "current",
+      "describe": "installation page release statement"
+    },
+    {
+      "file": "docs/getting-started/install.md",
+      "find": "resolved to the published (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) release wheel",
+      "expect": "version:fork_extra_wheel",
+      "describe": "installation page wheel installed by the fork's tbccl extra"
+    },
+    {
+      "file": "docs/getting-started/install.md",
+      "find": "installs exactly one extra package \\(`exo-tbccl (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?)`",
+      "expect": "version:fork_extra_wheel",
+      "describe": "installation page package installed by the tbccl extra"
+    },
+    {
+      "file": "docs/getting-started/install.md",
+      "find": "# (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) \\(True, ''\\) for the 0\\.3\\.1 wheel",
+      "expect": "current",
+      "describe": "expected version of the standalone wheel"
+    },
+    {
+      "file": "docs/getting-started/install.md",
+      "find": "; (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) \\(True, ''\\) with the tbccl extra",
+      "expect": "version:fork_extra_wheel",
+      "describe": "expected version with the tbccl extra"
+    },
+    {
+      "file": "docs/getting-started/install.md",
+      "find": "The 0\\.3\\.1 wheel bundles TBCCL (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?)",
+      "expect": "version:bundled_tbccl",
+      "describe": "installation page TBCCL bundled in the current wheel"
+    },
+    {
+      "file": "docs/guides/verify-active.md",
+      "find": "# (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) \\(True, ''\\) with the tbccl extra",
+      "expect": "version:fork_extra_wheel",
+      "describe": "verify page expected version with the tbccl extra"
+    },
+    {
+      "file": "docs/reference/compatibility.md",
+      "find": "^\\| Package version \\| (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) \\|",
+      "expect": "current",
+      "describe": "compatibility page package version"
+    },
+    {
+      "file": "docs/reference/compatibility.md",
+      "find": "The 0\\.3\\.1 wheel bundles TBCCL (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?)",
+      "expect": "version:bundled_tbccl",
+      "describe": "compatibility page TBCCL bundled in the current wheel"
+    },
+    {
+      "file": "MAINTENANCE.md",
+      "find": "^exo-tbccl (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?):",
+      "expect": "current",
+      "describe": "MAINTENANCE supported release"
+    },
+    {
+      "file": "MAINTENANCE.md",
+      "find": "TBCCL (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) bundled",
+      "expect": "version:bundled_tbccl",
+      "describe": "MAINTENANCE bundled TBCCL"
+    }
+  ],
+  "allow": []
+}
