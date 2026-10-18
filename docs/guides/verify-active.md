@@ -5,7 +5,7 @@ A silent fall-back to exo's default MLX backends (for example `MlxRing`) or to a
 ## 1. The package is usable on every node
 
 ```sh
-.venv/bin/python -c "import exo_tbccl; print(exo_tbccl.__version__, exo_tbccl.is_available())"      # 0.3.0 (True, '')
+.venv/bin/python -c "import exo_tbccl; print(exo_tbccl.__version__, exo_tbccl.is_available())"      # 0.3.0 (True, '') with the tbccl extra of tbccl-integration-v2; 0.3.1 (True, '') with the 0.3.1 wheel installed by hand
 ```
 
 ## 2. The instance type is `MlxTbccl`

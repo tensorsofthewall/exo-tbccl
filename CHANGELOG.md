@@ -1,6 +1,8 @@
 # Changelog
 
-All notable user-facing changes are recorded here. The format follows Keep a Changelog, and the project follows Semantic Versioning once it has releases. exo-tbccl has had no final release. 0.3.0rc1 is a release candidate (pre-release), not production-ready.
+All notable user-facing changes are recorded here. The format follows Keep a Changelog, and the project follows Semantic Versioning once it has releases. The first final release is 0.3.0; the current release is 0.3.1. Both are experimental. 0.3.0rc1 and 0.3.0rc2 were release candidates (pre-releases) and are superseded.
+
+Two final wheels are in use on purpose: 0.3.1 (bundles TBCCL 0.6.1) is the current standalone wheel, and 0.3.0 (bundles TBCCL 0.6.0) is what the `tbccl` extra of the immutable `tbccl-integration-v2` fork tag installs. The two have the same adapter code and the same C ABI 1 / wire protocol 4. The 0.3.0 installation through the extra is intentional, not a stale dependency: a tag cannot be changed.
 
 ## 0.3.1
 

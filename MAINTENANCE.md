@@ -4,7 +4,7 @@ The shared maintenance policy of the TBCCL ecosystem (branches, tag immutability
 
 ## Supported release
 
-exo-tbccl 0.3.1: CPython 3.13, TBCCL 0.6.0 (C ABI 1), Linux x86-64 and macOS arm64, with the exo fork stack below. The current ecosystem status (all four projects and their pins) is in the [ecosystem page](https://tbccl.tensorsofthewall.com/en/latest/project/ecosystem.html), built from [`release/ecosystem.json`](https://github.com/tensorsofthewall/tbccl/blob/main/release/ecosystem.json). Documentation built from a release tag describes that release only and is not updated when other projects release.
+exo-tbccl 0.3.1: CPython 3.13 (the wheels are `cp313`), TBCCL 0.6.1 bundled (minimum 0.6.0; C ABI 1; the 0.3.0 wheel of the fork's `tbccl` extra bundles 0.6.0), Linux x86-64 and macOS arm64, with the exo fork stack below. The current ecosystem status (all four projects and their pins) is in the [ecosystem page](https://tbccl.tensorsofthewall.com/en/latest/project/ecosystem.html), built from [`release/ecosystem.json`](https://github.com/tensorsofthewall/tbccl/blob/main/release/ecosystem.json). Documentation built from a release tag describes that release only and is not updated when other projects release.
 
 ## Pins
 
@@ -16,7 +16,7 @@ Runtime sources of this repository: `src/` and `exo_tbccl/`. A change to them, t
 
 ## Automation in this repository
 
-`docs` workflow (every pull request, offline): release state, tooling tests, internal links, framework pin. `maintenance` workflow (weekly and by hand): release state, stable release surface, links, documentation hosts and the documentation build, the online framework pin. `release-preflight` workflow (by hand, with the intended tag). The `guard` job of `release-artifacts` refuses a build whose tag, version, manifest, pin or TBCCL line disagree. `tools/verify_public_release.py` verifies a published release from the outside, and `tools/collect_diagnostics.py` prints the environment report requested by the issue template.
+`docs` workflow (every pull request, offline): release state, release documentation (README, homepage and installation commands against the package version), tooling tests, internal links, framework pin. `maintenance` workflow (weekly and by hand): release state, stable release surface, links, documentation hosts and the documentation build, the online framework pin. `release-preflight` workflow (by hand, with the intended tag; it checks the release documentation against that tag before anything is tagged). The `guard` job of `release-artifacts` refuses a build whose tag, version, manifest, pin or TBCCL line disagree. `tools/verify_public_release.py` verifies a published release from the outside, and `tools/collect_diagnostics.py` prints the environment report requested by the issue template.
 
 ## Pin integrity versus current-ecosystem consistency
 

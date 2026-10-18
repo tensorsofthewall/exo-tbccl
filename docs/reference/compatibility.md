@@ -3,8 +3,8 @@
 | | Value |
 |---|---|
 | Package version | 0.3.1 |
-| Python | 3.13 or newer (`requires-python`); the wheels are `cp313` |
-| TBCCL | bundled and statically linked: C ABI 1, wire protocol 4 (minimum TBCCL package 0.6.0 when building from source) |
+| Python | `requires-python` is 3.13 or newer; the published wheels are `cp313` only, and no other interpreter has a validated prebuilt wheel |
+| TBCCL | bundled and statically linked: C ABI 1, wire protocol 4. The 0.3.1 wheel bundles TBCCL 0.6.1 and the 0.3.0 wheel (installed by the `tbccl` extra of `tbccl-integration-v2`) bundles TBCCL 0.6.0; the minimum TBCCL package when building from source is 0.6.0 |
 | exo | the exo integration described below |
 | MLX | 0.32 (Linux CUDA 13, macOS Metal) |
 | Platforms | Linux x86-64 (CUDA, CPU), macOS arm64 (Metal, CPU) |
