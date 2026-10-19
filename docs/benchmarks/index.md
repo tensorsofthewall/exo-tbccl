@@ -10,6 +10,7 @@ ring-vs-tbccl
 workloads
 results
 experimental
+decode-timeline
 methodology
 ```
 
