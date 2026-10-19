@@ -112,7 +112,9 @@ jobs:
             pip install -q pytest numpy psutil "mlx[cpu]==0.32.*"
             # a copy of the checkout WITHOUT the package sources, so the installed wheel is what gets imported
             mkdir /r && cd /repo && tar --exclude=./exo_tbccl --exclude=./src --exclude=./.git -cf - . | tar -xf - -C /r && cd /r
-            python -m pytest -q -p no:cacheprovider -p no:asyncio tests'
+            # test_code_map_paths_exist checks the paths named in docs/development/code-map.md against the source tree (exo_tbccl/, src/), which this copy
+            # deliberately lacks. It runs against the full checkout in the docs workflow; everything else runs here against the installed wheel.
+            python -m pytest -q -p no:cacheprovider -p no:asyncio -k "not test_code_map_paths_exist" tests'
 
   macos-wheel:
     name: macOS arm64 wheel (deployment target 14.0)
