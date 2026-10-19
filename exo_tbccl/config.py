@@ -13,7 +13,7 @@ Environment overrides (benchmarking/debugging, read once at ``FastPathConfig.fro
                                                               docs/mac_activity_policy.md); Metal only, ignored elsewhere (default off). ``EXO_TBCCL_STEP_ACTIVITY=1`` is the step-activity alias of ``step``
     ``EXO_TBCCL_ACTIVITY_DUTY``       0 < float <= 1            fraction of each 1 ms period the helper burns inside an open window (default 1.0)
     ``EXO_TBCCL_ACTIVITY_MAX_MS``     float                     hard bound of one activity window (default 100)
-    ``EXO_TBCCL_ALLOC_STREAM``        gpu | cpu                 stream that allocates fresh receive/all_gather destinations (the per-token timeline work experiment, default gpu; honoured on Metal only, ignored on CUDA)
+    ``EXO_TBCCL_ALLOC_STREAM``        gpu | cpu                 stream that allocates fresh receive/all_gather destinations (default gpu). On Metal, cpu also evaluates the metadata-only borrow views on the CPU stream, avoiding GPU-stream queueing for those views; producer evaluation and required synchronization may still wait for GPU work. Experimental, Metal only, ignored on CUDA
 """
 
 from __future__ import annotations

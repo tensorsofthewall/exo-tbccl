@@ -161,7 +161,7 @@ def _is_mlx(array: object) -> bool:
     return type(array).__module__.startswith("mlx.")
 
 
-def borrow(array: object, stats: CopyStats | None = None, *, writable: bool = False, managed_as_host: bool = False) -> Borrow:
+def borrow(array: object, stats: CopyStats | None = None, *, writable: bool = False, managed_as_host: bool = False, view_on_cpu: bool = False) -> Borrow:
     """Borrow the bytes of an MLX array (or any DLPack producer with a C-contiguous layout).
 
     For MLX the array is evaluated (the same ``mx.eval`` boundary exo's pipeline already requires) and made row-contiguous when it is not;
@@ -169,6 +169,9 @@ def borrow(array: object, stats: CopyStats | None = None, *, writable: bool = Fa
 
     ``managed_as_host`` (policy decided by the caller, never inferred here) describes a kDLCUDAManaged export to TBCCL as host memory.
     ``__dlpack_device__`` stays authoritative for what the storage is; this only changes how TBCCL is told to touch it.
+
+    ``view_on_cpu`` (policy decided by the caller, Metal only) evaluates the metadata-only uint view on the CPU stream. A view evaluated on the default (GPU) stream is queued behind GPU work that
+    is still running even though it moves no data. The producer evaluation above is unchanged and may still wait for GPU work, and MLX orders the CPU-stream view after its producer.
     """
     if _is_mlx(array):
         import mlx.core as mx
@@ -183,7 +186,7 @@ def borrow(array: object, stats: CopyStats | None = None, *, writable: bool = Fa
         # A same-width unsigned view is metadata-only and keeps the strides, so the native consumer can tell whether `arr` is row-contiguous
         # and hands back the array's real storage pointer (bfloat16 cannot go through __dlpack__ directly; its uint16 alias can).
         owner: object = arr
-        probe = arr.view(uint)
+        probe = mx.view(arr, uint, stream=mx.cpu) if view_on_cpu else arr.view(uint)
         mx.eval(probe)
         try:
             exp = native.Export(probe)
@@ -194,7 +197,7 @@ def borrow(array: object, stats: CopyStats | None = None, *, writable: bool = Fa
                 stats.materialized_copies += 1
             owner = mx.contiguous(arr)
             mx.eval(owner)
-            probe = owner.view(uint)
+            probe = mx.view(owner, uint, stream=mx.cpu) if view_on_cpu else owner.view(uint)
             mx.eval(probe)
             exp = native.Export(probe)
         if exp.device != (device_type, device_id):

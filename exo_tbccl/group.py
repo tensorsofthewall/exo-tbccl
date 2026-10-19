@@ -97,6 +97,7 @@ class TbcclPipelineComm:
         self.config = config or FastPathConfig.from_env()
         self.wait_stats = WaitStats()
         self._spin_s = self.config.wait_spin_ms / 1000.0 if self.config.wait_spin_ms > 0 and _metal_available() else 0.0
+        self._view_cpu = self.config.alloc_cpu and _metal_available()  # EXO_TBCCL_ALLOC_STREAM=cpu also keeps the borrow's metadata views off the GPU stream (Metal only)
         self._act: MetalActivityPolicy | None = None
         if self.config.activity_mode == "step" and _metal_available():
             self._act = MetalActivityPolicy(self.config.activity_max_ms, self.config.activity_duty)
@@ -302,14 +303,14 @@ class TbcclPipelineComm:
 
     def send_async(self, array: "mx.array", dst: int) -> Transfer:
         self._reap()
-        b = borrow(array, self.stats, managed_as_host=self._managed_as_host(True, False, array))
+        b = borrow(array, self.stats, managed_as_host=self._managed_as_host(True, False, array), view_on_cpu=self._view_cpu)
         self.pool.pin_aliased(b.ptr, b.nbytes)
         self._trace("send", dst, b)
         return self._submit("send", dst, [b], lambda: self._comm.send(b.ptr, b.nbytes, b.kind, b.device, dst))  # pyright: ignore[reportAttributeAccessIssue]
 
     def recv_into_async(self, dest: "mx.array", src: int) -> Transfer:
         self._reap()
-        b = borrow(dest, self.stats, writable=True, managed_as_host=self._managed_as_host(False, True, dest))
+        b = borrow(dest, self.stats, writable=True, managed_as_host=self._managed_as_host(False, True, dest), view_on_cpu=self._view_cpu)
         self._trace("recv", src, b)
         return self._submit("recv", src, [b], lambda: self._comm.recv(b.ptr, b.nbytes, b.kind, b.device, src))  # pyright: ignore[reportAttributeAccessIssue]
 
@@ -369,9 +370,9 @@ class TbcclPipelineComm:
         dest = self._alloc(out_shape, array.dtype)
         mx.eval(dest)
         as_host = self._managed_as_host(True, True, array)
-        sb = borrow(array, self.stats, managed_as_host=as_host)
+        sb = borrow(array, self.stats, managed_as_host=as_host, view_on_cpu=self._view_cpu)
         try:
-            rb = borrow(dest, self.stats, writable=True, managed_as_host=as_host)
+            rb = borrow(dest, self.stats, writable=True, managed_as_host=as_host, view_on_cpu=self._view_cpu)
         except TbcclError:
             sb.release()
             raise
