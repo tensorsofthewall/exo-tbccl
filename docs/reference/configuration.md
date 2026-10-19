@@ -11,7 +11,7 @@ exo-tbccl needs no configuration: every variable below is an optional benchmarki
 | `EXO_TBCCL_RECV` | `fresh`, `reuse` | receive destination policy |
 | `EXO_TBCCL_RECV_POISON` | unset, e.g. `0xA5` | overwrites released pool slots with a pattern (negative control) |
 | `EXO_TBCCL_ASYNC_SEND` | `0`, `1` | decode sends are not waited for immediately |
-| `EXO_TBCCL_ALLOC_STREAM` | `gpu`, `cpu` | stream that allocates fresh receive and all_gather destinations (experiment) |
+| `EXO_TBCCL_ALLOC_STREAM` | `gpu` (default), `cpu` | stream that allocates fresh receive and all_gather destinations. On Metal, `cpu` also evaluates the metadata-only borrow views on the CPU stream, avoiding unnecessary GPU-stream queueing for those views; producer evaluation and required synchronization may still wait for GPU work, so not every GPU wait is removed. Experimental; Metal only, ignored on CUDA, default behavior unchanged |
 | `EXO_TBCCL_WAIT_SPIN_MS` | `0` (block) or milliseconds | poll a pending `Work` before blocking (Metal only) |
 | `EXO_TBCCL_ACTIVITY_MODE`, `EXO_TBCCL_STEP_ACTIVITY` | `off`, `step`; alias `1` | Metal activity policy ([experimental](../concepts/mac-activity.md)) |
 | `EXO_TBCCL_ACTIVITY_DUTY` | 1.0 (0 < d <= 1) | fraction of each millisecond the helper burns inside an open window |
