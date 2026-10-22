@@ -13,6 +13,8 @@ Environment overrides (benchmarking/debugging, read once at ``FastPathConfig.fro
                                                               docs/mac_activity_policy.md); Metal only, ignored elsewhere (default off). ``EXO_TBCCL_STEP_ACTIVITY=1`` is the step-activity alias of ``step``
     ``EXO_TBCCL_ACTIVITY_DUTY``       0 < float <= 1            fraction of each 1 ms period the helper burns inside an open window (default 1.0)
     ``EXO_TBCCL_ACTIVITY_MAX_MS``     float                     hard bound of one activity window (default 100)
+    ``EXO_TBCCL_PREALLOC_GATHER``     0 | 1                     prepare the next all_gather destination while a posted receive is in flight, so its allocation and evaluation leave the critical path
+                                                              (Metal only, ignored elsewhere; default off; the destination is a fresh zeroed array exactly as without the setting)
     ``EXO_TBCCL_ALLOC_STREAM``        gpu | cpu                 stream that allocates fresh receive/all_gather destinations (default gpu). On Metal, cpu also evaluates the metadata-only borrow views on the CPU stream, avoiding GPU-stream queueing for those views; producer evaluation and required synchronization may still wait for GPU work. Experimental, Metal only, ignored on CUDA
 """
 
@@ -39,6 +41,7 @@ class FastPathConfig:
     activity_mode: str = "off"
     activity_duty: float = 1.0
     activity_max_ms: float = 100.0
+    prealloc_gather: bool = False
 
     @classmethod
     def from_env(cls) -> "FastPathConfig":
@@ -58,4 +61,4 @@ class FastPathConfig:
         activity_duty = float(env.get("EXO_TBCCL_ACTIVITY_DUTY", "1.0") or 1.0)
         if not 0.0 < activity_duty <= 1.0:
             raise ValueError(f"EXO_TBCCL_ACTIVITY_DUTY must be in (0, 1], got {activity_duty}")
-        return cls(mode, "send" in dirs, "recv" in dirs, int(env.get("EXO_TBCCL_MANAGED_MAX_BYTES", "16384")), recv == "reuse", env.get("EXO_TBCCL_ASYNC_SEND", "0") not in ("", "0"), env.get("EXO_TBCCL_ALLOC_STREAM", "gpu").lower() == "cpu", float(env.get("EXO_TBCCL_WAIT_SPIN_MS", "0") or 0), activity_mode, activity_duty, float(env.get("EXO_TBCCL_ACTIVITY_MAX_MS", "100") or 100))
+        return cls(mode, "send" in dirs, "recv" in dirs, int(env.get("EXO_TBCCL_MANAGED_MAX_BYTES", "16384")), recv == "reuse", env.get("EXO_TBCCL_ASYNC_SEND", "0") not in ("", "0"), env.get("EXO_TBCCL_ALLOC_STREAM", "gpu").lower() == "cpu", float(env.get("EXO_TBCCL_WAIT_SPIN_MS", "0") or 0), activity_mode, activity_duty, float(env.get("EXO_TBCCL_ACTIVITY_MAX_MS", "100") or 100), env.get("EXO_TBCCL_PREALLOC_GATHER", "0") not in ("", "0"))
