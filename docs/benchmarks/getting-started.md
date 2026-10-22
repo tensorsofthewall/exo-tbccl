@@ -6,7 +6,7 @@ These commands run from a clone of this repository. The supported tuple is in `c
 
 Two things are called exo-tbccl here, and they can have different versions:
 
-* **The runtime** is the installed `exo-tbccl` wheel in your Exo environment. The immutable `tbccl-integration-v2` tag of the Exo fork installs the **0.3.0** wheel through its `tbccl` extra and that stays so; 0.3.1 has the same adapter code, so installing the 0.3.1 wheel by hand is optional.
+* **The runtime** is the installed `exo-tbccl` wheel in your Exo environment. The immutable `tbccl-integration-v2` tag of the Exo fork installs the **0.3.0** wheel through its `tbccl` extra and that stays so; 0.3.1 has the same adapter code as 0.3.0, so installing it by hand is optional; the 0.4.x wheels add opt-in options and bundle a newer TBCCL, and are installed by hand.
 * **The benchmark provider** is the `benchmarks/provider` directory of the **0.3.1** source (the source archive of the tag `v0.3.1`). It is not part of any wheel.
 
 So the normal setup is the 0.3.0 wheel running and the 0.3.1 provider directory configured as `exo_bench_dir`. The result records both: `provider_version` is the installed wheel (0.3.0 in that setup), and the hashes of the provider scripts identify the 0.3.1 source. Do not read `0.3.0` in a result as a statement about the provider scripts. The historical measurements on the results page used the 0.3.0 wheel.

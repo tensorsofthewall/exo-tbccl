@@ -1,8 +1,40 @@
 # Changelog
 
-All notable user-facing changes are recorded here. The format follows Keep a Changelog, and the project follows Semantic Versioning once it has releases. The first final release is 0.3.0; the current release is 0.3.1. Both are experimental. 0.3.0rc1 and 0.3.0rc2 were release candidates (pre-releases) and are superseded.
+All notable user-facing changes are recorded here. The format follows Keep a Changelog, and the project follows Semantic Versioning once it has releases. The first final release is 0.3.0; the latest final release is 0.3.1; 0.4.0rc1 is a release candidate (pre-release). All are experimental. 0.3.0rc1 and 0.3.0rc2 were release candidates (pre-releases) and are superseded.
 
-Two final wheels are in use on purpose: 0.3.1 (bundles TBCCL 0.6.1) is the current standalone wheel, and 0.3.0 (bundles TBCCL 0.6.0) is what the `tbccl` extra of the immutable `tbccl-integration-v2` fork tag installs. The two have the same adapter code and the same C ABI 1 / wire protocol 4. The 0.3.0 installation through the extra is intentional, not a stale dependency: a tag cannot be changed.
+Two wheel lines are in use on purpose: 0.3.1 (bundles TBCCL 0.6.1) and the 0.4 line (0.4.0rc1 bundles TBCCL 0.7.0rc1) are installed by hand, and 0.3.0 (bundles TBCCL 0.6.0) is what the `tbccl` extra of the immutable `tbccl-integration-v2` fork tag installs. All have the same C ABI 1 / wire protocol 4; 0.3.0 and 0.3.1 have the same adapter code, and 0.4 adds only opt-in options. The 0.3.0 installation through the extra is intentional, not a stale dependency: a tag cannot be changed.
+
+## 0.4.0rc1
+
+Release candidate (pre-release). First release candidate of 0.4.0, the first minor release after 0.3. Every default is unchanged: all additions are opt-in, Metal only, and ignored on CUDA and CPU. There is no change to the adapter's default behaviour, the Exo fork pins (`tbccl-integration-v2` and `tbccl-integration-v1`), the validated MLX versions, the Python version (CPython 3.13), the TBCCL C ABI (1) or the wire protocol (4). Release candidates are for validation on real hardware; expect an rc2 if a blocker is found.
+
+### Installation
+
+- Two CI-built wheels, named `exo_tbccl-0.4.0rc1-...`, attached to the GitHub pre-release with an SPDX SBOM, `SHA256SUMS` and a build-provenance attestation. They are built against TBCCL 0.7.0rc1 and statically link it.
+- The immutable `tbccl-integration-v2` tag of the Exo fork keeps resolving its `tbccl` extra to the 0.3.0 wheel. Install the 0.4.0rc1 wheel by hand over it (`uv pip install --no-deps`) to have the changes below.
+
+### Changed
+
+- The bundled TBCCL 0.7.0 runs the two-rank `all_gather` of the pipeline's per-token exchange as a concurrent exchange (default). In a two-stage run of a 0.6B model over a direct Thunderbolt 4 link the per-token time was 1.7% to 3.4% lower than with the TBCCL of 0.3.1, with identical output tokens.
+
+### Added
+
+- `EXO_TBCCL_PREALLOC_GATHER=1` (off by default, Metal only): while a posted receive is in flight, the next `all_gather` destination is built, so its allocation leaves the critical path of the receiving stage. If building it fails, the posted receive is aborted and drained before its memory is released, the original error is raised with any cleanup failure attached as a note, and an unused prepared array is dropped on close. With a 0.6B model it lowered the per-token time by about 0.3 ms when the Mac is the receiving stage and made no measurable difference in the other orientation.
+- `EXO_TBCCL_ALLOC_STREAM=cpu` also evaluates the metadata-only borrow views on the CPU stream on Metal (experimental; off by default).
+- Opt-in decode-timeline diagnostics in the benchmark provider.
+
+### Documentation
+
+- The Mac activity-policy page (`EXO_TBCCL_ACTIVITY_MODE=step`, `EXO_TBCCL_WAIT_SPIN_MS`, `EXO_TBCCL_PREALLOC_GATHER`) now carries current measurements with a 0.6B model in both pipeline orientations, the CPU cost of the step helper and the dependence on orientation. These options remain experimental and off by default; none of them spins by default.
+
+### Compatibility
+
+- Exo fork `tbccl-integration-v2` (and `-v1`), MLX 0.32, CPython 3.13, TBCCL C ABI 1, wire protocol 4. The minimum TBCCL package when building from source stays 0.6.0.
+
+### Known limitations
+
+- The measurements above come from one Linux CUDA / Apple Metal machine pair with a small model; the 27-billion-parameter campaign was not repeated. PCIe AER reporting was unavailable on the Linux host, so no statement about AER errors is made.
+- The step helper costs about one busy core on the Mac during decode and closed about a third to a half of the gap to MlxRing on the 0.6B model, depending on orientation.
 
 ## 0.3.1
 
