@@ -9,7 +9,7 @@ exo-tbccl is an optional package that lets [exo](https://github.com/exo-explore/
 :::
 
 ```{note}
-**Release.** The current release is 0.4.0rc1 (TBCCL C ABI 1 / wire protocol 4, MLX 0.32), a release candidate (pre-release) that bundles TBCCL 0.7.0rc1 and adds two opt-in Metal options. The latest final release is 0.3.1. It is experimental.
+**Release.** The current release is 0.4.0 (TBCCL C ABI 1 / wire protocol 4, MLX 0.32), which bundles TBCCL 0.7.0 and adds two opt-in Metal options. It is experimental.
 ```
 
 <nav class="tb-eco" aria-label="TBCCL ecosystem: the four documentation sites">
