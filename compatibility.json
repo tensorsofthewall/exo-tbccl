@@ -9,7 +9,7 @@
     "development_version": "0.4.0",
     "release_candidate": false,
     "target_release": "0.4.0",
-    "released": false,
+    "released": true,
     "note": "0.4.0 is a minor release of 0.3.1: it bundles TBCCL 0.7.0 and adds opt-in Metal options (EXO_TBCCL_PREALLOC_GATHER and a CPU-stream option for the borrow views) and decode-timeline diagnostics; every default is unchanged. The tbccl extra of the immutable tbccl-integration-v2 fork tag still resolves to the 0.3.0 wheel; the 0.4.0 wheel is installed by hand over it."
   },
   "python": {
