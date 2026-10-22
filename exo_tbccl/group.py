@@ -102,6 +102,10 @@ class TbcclPipelineComm:
         if self.config.activity_mode == "step" and _metal_available():
             self._act = MetalActivityPolicy(self.config.activity_max_ms, self.config.activity_duty)
         self._managed_verified: dict[int, bool] = {}
+        self._prealloc = self.config.prealloc_gather and _metal_available()
+        self.prealloc_used = 0  # all_gather destinations that came from _prepare_gather_dest
+        self._gather_key: tuple | None = None  # (shape, dtype) of the last all_gather destination
+        self._next_dest: "mx.array | None" = None  # a fresh zeroed destination prepared for the next all_gather, never shared before it is handed out
         poison = os.environ.get("EXO_TBCCL_RECV_POISON")
         self.pool = ReceivePool(poison=int(poison, 0) & 0xFF if poison else None)
         self._deferred_error: TbcclError | None = None
@@ -343,10 +347,13 @@ class TbcclPipelineComm:
         if not self.config.recv_reuse:
             dest = self._alloc(template.shape, template.dtype)
             mx.eval(dest)
-            self.wait(self.recv_into_async(dest, src))
+            t = self.recv_into_async(dest, src)
+            self._prepare_gather_dest()
+            self.wait(t)
             return dest
         slot = self.pool.acquire(tuple(template.shape), template.dtype)
         t = self.recv_into_async(slot.array, src)
+        self._prepare_gather_dest()
         ptr = t.borrows[0].ptr
         try:
             self.wait(t)
@@ -355,6 +362,13 @@ class TbcclPipelineComm:
             raise
         self.pool.mark_received(slot, ptr)
         return slot.array
+
+    def _prepare_gather_dest(self) -> None:
+        """EXO_TBCCL_PREALLOC_GATHER: with the receive already posted, build the next all_gather destination now. The caller was going to block on its input anyway,
+        so the allocation and its evaluation leave the critical path; the array is the same fresh zeroed one all_gather would have made."""
+        if self._prealloc and self._gather_key is not None and self._next_dest is None:
+            shape, dtype = self._gather_key
+            self._next_dest = self._alloc(shape, dtype)
 
     def step_complete(self) -> None:
         """exo's lifetime boundary: the stage output of the current forward step has been evaluated, so every consumer of the activations
@@ -367,7 +381,16 @@ class TbcclPipelineComm:
         self._reap()
         shape = tuple(array.shape)
         out_shape = (self._size,) if len(shape) == 0 else (self._size * shape[0], *shape[1:])
-        dest = self._alloc(out_shape, array.dtype)
+        key = (out_shape, array.dtype)
+        dest = None
+        if self._prealloc and self._next_dest is not None and self._gather_key == key:
+            dest, self._next_dest = self._next_dest, None
+            self.prealloc_used += 1
+        else:
+            self._next_dest = None  # absent, or prepared for another shape/dtype
+        if dest is None:
+            dest = self._alloc(out_shape, array.dtype)
+        self._gather_key = key
         mx.eval(dest)
         as_host = self._managed_as_host(True, True, array)
         sb = borrow(array, self.stats, managed_as_host=as_host, view_on_cpu=self._view_cpu)
@@ -450,6 +473,7 @@ class TbcclPipelineComm:
                 pass
             t._finish()
         self._async_sends.clear()
+        self._next_dest = None
         self.pool.clear()
         self._comm.close()  # pyright: ignore[reportAttributeAccessIssue]
 
