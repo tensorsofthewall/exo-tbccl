@@ -6,8 +6,8 @@
     "exo_tbccl-{version}-cp313-cp313-macosx_14_0_arm64.whl"
   ],
   "package": {
-    "development_version": "0.4.0rc1",
-    "release_candidate": true,
+    "development_version": "0.4.0",
+    "release_candidate": false,
     "target_release": "0.4.0",
     "released": false,
     "note": "0.4.0 is a minor release of 0.3.1: it bundles TBCCL 0.7.0 and adds opt-in Metal options (EXO_TBCCL_PREALLOC_GATHER and a CPU-stream option for the borrow views) and decode-timeline diagnostics; every default is unchanged. The tbccl extra of the immutable tbccl-integration-v2 fork tag still resolves to the 0.3.0 wheel; the 0.4.0 wheel is installed by hand over it."

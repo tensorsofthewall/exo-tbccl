@@ -15,7 +15,7 @@
   ],
   "exclude_reason": "Validation reports, decision records, the changelog page and the benchmark results page record what was true or measured for an earlier version and must keep those versions. They are not scanned for release URLs or artifact names.",
   "versions": {
-    "bundled_tbccl": "0.7.0rc1",
+    "bundled_tbccl": "0.7.0",
     "fork_extra_wheel": "0.3.0",
     "fork_extra_bundled_tbccl": "0.6.0"
   },
@@ -28,7 +28,7 @@
     },
     {
       "file": "README.md",
-      "find": "TBCCL (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) in the 0\\.4\\.0rc1 wheel",
+      "find": "TBCCL (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) in the 0\\.4\\.0 wheel",
       "expect": "version:bundled_tbccl",
       "describe": "README TBCCL bundled in the current wheel"
     },
@@ -52,7 +52,7 @@
     },
     {
       "file": "README.md",
-      "find": "; (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) \\(True, ''\\) after installing the 0\\.4\\.0rc1 wheel",
+      "find": "; (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) \\(True, ''\\) after installing the 0\\.4\\.0 wheel",
       "expect": "current",
       "describe": "README expected version with the standalone wheel"
     },
@@ -82,7 +82,7 @@
     },
     {
       "file": "docs/getting-started/install.md",
-      "find": "# (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) \\(True, ''\\) for the 0\\.4\\.0rc1 wheel",
+      "find": "# (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?) \\(True, ''\\) for the 0\\.4\\.0 wheel",
       "expect": "current",
       "describe": "expected version of the standalone wheel"
     },
@@ -94,7 +94,7 @@
     },
     {
       "file": "docs/getting-started/install.md",
-      "find": "The 0\\.4\\.0rc1 wheel bundles TBCCL (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?)",
+      "find": "The 0\\.4\\.0 wheel bundles TBCCL (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?)",
       "expect": "version:bundled_tbccl",
       "describe": "installation page TBCCL bundled in the current wheel"
     },
@@ -112,7 +112,7 @@
     },
     {
       "file": "docs/reference/compatibility.md",
-      "find": "The 0\\.4\\.0rc1 wheel bundles TBCCL (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?)",
+      "find": "The 0\\.4\\.0 wheel bundles TBCCL (?P<v>\\d+\\.\\d+\\.\\d+(?:rc\\d+)?)",
       "expect": "version:bundled_tbccl",
       "describe": "compatibility page TBCCL bundled in the current wheel"
     },

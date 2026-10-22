@@ -1,17 +1,17 @@
 # Changelog
 
-All notable user-facing changes are recorded here. The format follows Keep a Changelog, and the project follows Semantic Versioning once it has releases. The first final release is 0.3.0; the latest final release is 0.3.1; 0.4.0rc1 is a release candidate (pre-release). All are experimental. 0.3.0rc1 and 0.3.0rc2 were release candidates (pre-releases) and are superseded.
+All notable user-facing changes are recorded here. The format follows Keep a Changelog, and the project follows Semantic Versioning once it has releases. The first final release is 0.3.0; the latest final release is 0.4.0 (0.3.1 is the previous patch line). All are experimental. The release candidates 0.3.0rc1, 0.3.0rc2 and 0.4.0rc1 are superseded.
 
-Two wheel lines are in use on purpose: 0.3.1 (bundles TBCCL 0.6.1) and the 0.4 line (0.4.0rc1 bundles TBCCL 0.7.0rc1) are installed by hand, and 0.3.0 (bundles TBCCL 0.6.0) is what the `tbccl` extra of the immutable `tbccl-integration-v2` fork tag installs. All have the same C ABI 1 / wire protocol 4; 0.3.0 and 0.3.1 have the same adapter code, and 0.4 adds only opt-in options. The 0.3.0 installation through the extra is intentional, not a stale dependency: a tag cannot be changed.
+Two wheel lines are in use on purpose: 0.3.1 (bundles TBCCL 0.6.1) and the 0.4 line (0.4.0 bundles TBCCL 0.7.0) are installed by hand, and 0.3.0 (bundles TBCCL 0.6.0) is what the `tbccl` extra of the immutable `tbccl-integration-v2` fork tag installs. All have the same C ABI 1 / wire protocol 4; 0.3.0 and 0.3.1 have the same adapter code, and 0.4 adds only opt-in options. The 0.3.0 installation through the extra is intentional, not a stale dependency: a tag cannot be changed.
 
-## 0.4.0rc1
+## 0.4.0
 
-Release candidate (pre-release). First release candidate of 0.4.0, the first minor release after 0.3. Every default is unchanged: all additions are opt-in, Metal only, and ignored on CUDA and CPU. There is no change to the adapter's default behaviour, the Exo fork pins (`tbccl-integration-v2` and `tbccl-integration-v1`), the validated MLX versions, the Python version (CPython 3.13), the TBCCL C ABI (1) or the wire protocol (4). Release candidates are for validation on real hardware; expect an rc2 if a blocker is found.
+The first minor release after 0.3, promoted from release candidate 0.4.0rc1 with no code change. Every default is unchanged: all additions are opt-in, Metal only, and ignored on CUDA and CPU. There is no change to the adapter's default behaviour, the Exo fork pins (`tbccl-integration-v2` and `tbccl-integration-v1`), the validated MLX versions, the Python version (CPython 3.13), the TBCCL C ABI (1) or the wire protocol (4).
 
 ### Installation
 
-- Two CI-built wheels, named `exo_tbccl-0.4.0rc1-...`, attached to the GitHub pre-release with an SPDX SBOM, `SHA256SUMS` and a build-provenance attestation. They are built against TBCCL 0.7.0rc1 and statically link it.
-- The immutable `tbccl-integration-v2` tag of the Exo fork keeps resolving its `tbccl` extra to the 0.3.0 wheel. Install the 0.4.0rc1 wheel by hand over it (`uv pip install --no-deps`) to have the changes below.
+- Two CI-built wheels, named `exo_tbccl-0.4.0-...`, attached to the GitHub release with an SPDX SBOM, `SHA256SUMS` and a build-provenance attestation. They are built against TBCCL 0.7.0 and statically link it.
+- The immutable `tbccl-integration-v2` tag of the Exo fork keeps resolving its `tbccl` extra to the 0.3.0 wheel. Install the 0.4.0 wheel by hand over it (`uv pip install --no-deps`) to have the changes below.
 
 ### Changed
 

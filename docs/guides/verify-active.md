@@ -12,7 +12,7 @@ Go down this list on **every** node, in order. Each row checks one layer; discov
 | # | Question | Layer | Check | A pass looks like |
 |---|---|---|---|---|
 | 1 | Which Exo integration is this? | exo-fork | `git -C <exo-fork checkout> describe --tags --exact-match` | `tbccl-integration-v2` (or `-v1` for the legacy path) |
-| 2 | Is the adapter available? | exo-tbccl | [step 1](#1-the-package-is-usable-on-every-node) below | `(True, '')` with the version for your path (0.3.0 for the extra, 0.4.0rc1 for the manual wheel) |
+| 2 | Is the adapter available? | exo-tbccl | [step 1](#1-the-package-is-usable-on-every-node) below | `(True, '')` with the version for your path (0.3.0 for the extra, 0.4.0 for the manual wheel) |
 | 3 | Are both nodes' environments compatible? | exo-tbccl and exo | run row 2 on both: the same version; both on the same exo tag; the same `EXO_ZENOH_NAMESPACE` | identical output |
 | 4 | Did the cluster discover both hosts? | **Exo** (IPv6 link-local discovery) | `/state` shows the nodes ([discovery troubleshooting](discovery-troubleshooting.md)) | `2 nodes`; this says nothing yet about TBCCL |
 | 5 | Was `MlxTbccl` selected? | Exo placement | [step 2](#2-the-instance-type-is-mlxtbccl) below | `['MlxTbcclInstance']` with layers on both nodes |
@@ -24,7 +24,7 @@ A cluster that forms (row 4) does not prove that TBCCL carries the pipeline, and
 ## 1. The package is usable on every node
 
 ```sh
-.venv/bin/python -c "import exo_tbccl; print(exo_tbccl.__version__, exo_tbccl.is_available())"      # 0.3.0 (True, '') with the tbccl extra of tbccl-integration-v2; 0.4.0rc1 (True, '') with the 0.4.0rc1 wheel installed by hand
+.venv/bin/python -c "import exo_tbccl; print(exo_tbccl.__version__, exo_tbccl.is_available())"      # 0.3.0 (True, '') with the tbccl extra of tbccl-integration-v2; 0.4.0 (True, '') with the 0.4.0 wheel installed by hand
 ```
 
 ## 2. The instance type is `MlxTbccl`
