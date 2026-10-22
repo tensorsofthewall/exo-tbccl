@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 from . import _cuda_caps
 from ._loader import native
 from .bridge import TRACE, Borrow, CopyStats, borrow
-from .recv_pool import ReceivePool
+from .recv_pool import ReceivePool, Slot
 from .step_activity import MetalActivityPolicy
 from .config import MANAGED_AUTO, MANAGED_CUDA, MANAGED_HOST, FastPathConfig
 from .errors import TbcclAbortedError, TbcclError, TbcclInvalidArgumentError, error_for
@@ -32,6 +32,8 @@ log = logging.getLogger("exo_tbccl")
 ByteExchange = Callable[[str, bytes], Sequence[bytes]]
 """All-gather of opaque bytes supplied by the host application: ``exchange(purpose, payload)`` returns every rank's payload in rank order."""
 
+
+_ABANDON_DRAIN_MS = 5000  # bound on draining a receive abandoned after a destination-preparation failure (the communicator is aborted first)
 
 _PROVEN_MANAGED_HOST_SIGNATURES = (
     # Linux, discrete GPU, driver-managed pageable access without host page tables: CPU access to managed pages is legal while the GPU runs and
@@ -348,12 +350,12 @@ class TbcclPipelineComm:
             dest = self._alloc(template.shape, template.dtype)
             mx.eval(dest)
             t = self.recv_into_async(dest, src)
-            self._prepare_gather_dest()
+            self._prepare_while_receiving(t)
             self.wait(t)
             return dest
         slot = self.pool.acquire(tuple(template.shape), template.dtype)
         t = self.recv_into_async(slot.array, src)
-        self._prepare_gather_dest()
+        self._prepare_while_receiving(t, slot)
         ptr = t.borrows[0].ptr
         try:
             self.wait(t)
@@ -362,6 +364,43 @@ class TbcclPipelineComm:
             raise
         self.pool.mark_received(slot, ptr)
         return slot.array
+
+    def _prepare_while_receiving(self, t: Transfer, slot: Slot | None = None) -> None:
+        """Run the destination preparation with the receive ``t`` already posted. If it raises, the receive must not stay outstanding without an owner: the
+        communicator is aborted (a single receive cannot be cancelled), the receive is drained within a bound so its borrow and pool slot are released only
+        once it is terminal, and the original exception is re-raised; a failure of the cleanup itself is attached to it as a note, never raised in its place."""
+        try:
+            self._prepare_gather_dest()
+        except BaseException as exc:
+            for note in self._abandon_receive(t, slot):
+                exc.add_note(note)
+            raise
+
+    def _abort_for_abandon(self, reason: str) -> None:
+        self._comm.abort(reason)  # pyright: ignore[reportAttributeAccessIssue]
+
+    def _abandon_receive(self, t: Transfer, slot: Slot | None) -> list[str]:
+        notes: list[str] = []
+        try:
+            self._abort_for_abandon("receive abandoned: all_gather destination preparation failed")
+        except BaseException as e:  # noqa: BLE001 - cleanup must not mask the original failure
+            notes.append(f"exo-tbccl cleanup: abort failed: {e!r}")
+        terminal = False
+        try:
+            terminal, _ = t.work.wait(_ABANDON_DRAIN_MS)  # pyright: ignore[reportAttributeAccessIssue]
+        except TbcclError:
+            terminal = True  # a terminal Work that carries the (expected) aborted result
+        except BaseException as e:  # noqa: BLE001
+            notes.append(f"exo-tbccl cleanup: drain failed: {e!r}")
+        if terminal:
+            t._finish()
+            with self._lock:
+                self._pending.discard(t)
+        else:
+            notes.append("exo-tbccl cleanup: the receive was not terminal within the bound; its buffer stays owned until close()")
+        if slot is not None:
+            self.pool.discard(slot)  # never reused: the receive may have written it
+        return notes
 
     def _prepare_gather_dest(self) -> None:
         """EXO_TBCCL_PREALLOC_GATHER: with the receive already posted, build the next all_gather destination now. The caller was going to block on its input anyway,
@@ -455,6 +494,7 @@ class TbcclPipelineComm:
         if self._closed:
             return
         self._closed = True
+        self._next_dest = None  # released first so no later step of the teardown can skip it
         if self._act is not None:
             self._act.shutdown()
         self._reap_for_close()
@@ -473,7 +513,6 @@ class TbcclPipelineComm:
                 pass
             t._finish()
         self._async_sends.clear()
-        self._next_dest = None
         self.pool.clear()
         self._comm.close()  # pyright: ignore[reportAttributeAccessIssue]
 
