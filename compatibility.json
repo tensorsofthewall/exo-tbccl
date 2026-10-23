@@ -125,6 +125,17 @@
         "7/21"
       ],
       "cycles": 1
+    },
+    {
+      "name": "thunderbolt-real-exo-v3-qwen3-0.6b-8bit",
+      "stages": ["macos-metal", "linux-cuda"],
+      "model": "Qwen3-0.6B-8bit",
+      "tbccl_wire_protocol": 4,
+      "exo_fork_tag": "tbccl-integration-v3",
+      "exo_fork_revision": "4724b8bfa1ee3a58faa7832ddc0d6609eb1d6da0",
+      "adapter": "exo-tbccl 0.5.0 wheels installed over the locked environments",
+      "orientations": ["linux-rank0", "mac-rank0"],
+      "cycles": 3
     }
   ]
 }
