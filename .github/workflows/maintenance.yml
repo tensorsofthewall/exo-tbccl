@@ -46,6 +46,7 @@ jobs:
           check "release state (the version must be released)" python3 tools/check_release_state.py --require-released
           check "release documentation describes the released version" python3 tools/check_release_docs.py
           check "maintenance tooling tests" python3 -m unittest tests/test_maintenance_tools.py
+          check "trust-store dependency policy" python3 tools/check_trust_dependencies.py
           check "framework pin (online, with provenance)" python3 tools/check_framework_pin.py --online
           check "stable GitHub Release, tag, artifacts and SBOMs" python3 tools/verify_public_release.py --metadata-only
           check "links (repository-internal)" python3 tools/check_links.py
