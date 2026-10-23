@@ -7,6 +7,10 @@ set -euo pipefail
 OUT=${1:?output directory}
 SRC=/src
 git config --global --add safe.directory '*'
+HERE=$(cd "$(dirname "$0")" && pwd)
+# The system bundle of the image still lists the emSign roots revoked in October 2026
+bash "$HERE/distrust_emsign.sh"
+bash "$HERE/bootstrap_pip.sh" /opt/python/cp313-cp313/bin/python
 dnf config-manager --add-repo https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/cuda-rhel8.repo
 dnf install -y -q cuda-nvcc-13-0-13.0.88-1 cuda-cudart-devel-13-0-13.0.96-1 cuda-driver-devel-13-0-13.0.96-1
 export PATH=/usr/local/cuda-13.0/bin:/opt/python/cp313-cp313/bin:$PATH
