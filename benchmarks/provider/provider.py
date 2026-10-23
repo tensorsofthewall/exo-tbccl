@@ -29,7 +29,7 @@ REQUIRED_PACKAGES = [('exo', 'exo'), ('exo_tbccl', 'exo-tbccl'), ('mlx', 'mlx')]
 OPTIONAL_PACKAGES = [('psutil', 'psutil')]
 REQUIRED_VERSIONS = {'python': '>=3.13',
  'exo-tbccl': '>=0.3,<0.4',
- 'exo': 'tensorsofthewall/exo-fork tag tbccl-integration-v2 (revision d1497b28b89618172d273e70e9ac7992811635f5)',
+ 'exo': 'tensorsofthewall/exo-fork tag tbccl-integration-v3 (revision 4724b8bfa1ee3a58faa7832ddc0d6609eb1d6da0)',
  'mlx': "0.32.0 (Linux CUDA); 0.32.4.dev20261013+0e3ff3643 (macOS, exo's pin)",
  'libtbccl': {'c_abi': [1], 'minimum_package': '0.6.0'}}
 RUNTIME_CAPABILITIES = ['exo cluster with the MlxRing and MlxTbccl placements', 'TBCCL communicator (MlxTbccl)', 'MLX CUDA on Linux, MLX Metal on macOS (DLPack compatibility check on Metal)']

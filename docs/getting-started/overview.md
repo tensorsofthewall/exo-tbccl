@@ -36,7 +36,7 @@ The device path is the usual TBCCL one: CUDA arrays are staged through pinned ho
 
 ## Requirements to know before installing
 
-exo-tbccl needs an exo that contains the `PipelineComm` seam, the `MlxTbccl` instance type and the runner byte exchange. These are not in upstream exo yet; they are published as the immutable tag `tbccl-integration-v2` of the maintained fork (v1 remains available) `tensorsofthewall/exo-fork` ([compatibility](../reference/compatibility.md)).
+exo-tbccl needs an exo that contains the `PipelineComm` seam, the `MlxTbccl` instance type and the runner byte exchange. These are not in upstream exo yet; they are published as the immutable tag `tbccl-integration-v3` of the maintained fork (v1 remains available) `tensorsofthewall/exo-fork` ([compatibility](../reference/compatibility.md)).
 
 ## Next steps
 

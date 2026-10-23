@@ -4,11 +4,11 @@ The shared maintenance policy of the TBCCL ecosystem (branches, tag immutability
 
 ## Supported release
 
-exo-tbccl 0.4.0: CPython 3.13 (the wheels are `cp313`), TBCCL 0.7.0 bundled (minimum 0.6.0; C ABI 1; the 0.3.0 wheel of the fork's `tbccl` extra bundles 0.6.0), Linux x86-64 and macOS arm64, with the exo fork stack below. The current ecosystem status (all four projects and their pins) is in the [ecosystem page](https://tbccl.tensorsofthewall.com/en/latest/project/ecosystem.html), built from [`release/ecosystem.json`](https://github.com/tensorsofthewall/tbccl/blob/main/release/ecosystem.json). Documentation built from a release tag describes that release only and is not updated when other projects release.
+exo-tbccl 0.5.0: CPython 3.13 (the wheels are `cp313`), TBCCL 0.7.1 bundled (minimum 0.6.0; C ABI 1; the 0.3.0 wheel of the fork's `tbccl` extra bundles 0.6.0), Linux x86-64 and macOS arm64, with the exo fork stack below. The current ecosystem status (all four projects and their pins) is in the [ecosystem page](https://tbccl.tensorsofthewall.com/en/latest/project/ecosystem.html), built from [`release/ecosystem.json`](https://github.com/tensorsofthewall/tbccl/blob/main/release/ecosystem.json). Documentation built from a release tag describes that release only and is not updated when other projects release.
 
 ## Pins
 
-exo is installed from `tensorsofthewall/exo-fork` at the immutable tag `tbccl-integration-v2` (`d1497b28b89618172d273e70e9ac7992811635f5`, upstream exo `bc412e2230f395e652c23426a5eb88dfa515769b` plus the integration; `tbccl-integration-v1` is the legacy tag and is never changed). `python3 tools/check_framework_pin.py` checks the pin offline; `--online` confirms the tag and that it still descends from the recorded upstream base.
+exo is installed from `tensorsofthewall/exo-fork` at the immutable tag `tbccl-integration-v3` (`4724b8bfa1ee3a58faa7832ddc0d6609eb1d6da0`, upstream exo `bc412e2230f395e652c23426a5eb88dfa515769b` plus the integration; `tbccl-integration-v2` is the previous tag and `tbccl-integration-v1` the legacy tag; neither is ever changed). `python3 tools/check_framework_pin.py` checks the pin offline; `--online` confirms the tag and that it still descends from the recorded upstream base.
 
 ## What needs physical requalification here
 

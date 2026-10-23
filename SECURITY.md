@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Security fixes are made against the latest release series only (currently 0.4.x). Development versions and unreleased branches are not supported.
+Security fixes are made against the latest release series only (currently 0.5.x). Development versions and unreleased branches are not supported.
 
 ## Package-manager and trust-store notice (October 2026)
 

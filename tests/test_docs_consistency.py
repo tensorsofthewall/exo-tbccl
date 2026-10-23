@@ -83,7 +83,8 @@ def test_the_exo_base_is_recorded_consistently_and_stale_bases_are_gone():
 def test_the_exo_fork_tag_is_the_published_anchor():
     manifest = json.loads(_read("compatibility.json"))
     exo = manifest["frameworks"]["exo"]
-    assert exo["fork"] == "tensorsofthewall/exo-fork" and exo["fork_tag"] == "tbccl-integration-v2"
+    assert exo["fork"] == "tensorsofthewall/exo-fork" and exo["fork_tag"] == "tbccl-integration-v3" and exo["fork_revision"] == "4724b8bfa1ee3a58faa7832ddc0d6609eb1d6da0"
+    assert exo["previous_integration"]["fork_tag"] == "tbccl-integration-v2" and exo["previous_integration"]["fork_revision"] == "d1497b28b89618172d273e70e9ac7992811635f5"
     assert exo["legacy_integration"]["fork_tag"] == "tbccl-integration-v1" and exo["legacy_integration"]["fork_revision"] == "1416807b46efd87c3601c69ce5784f51c9dd4c75"
     for name in ("README.md", "docs/reference/compatibility.md", "docs/getting-started/install.md"):
         text = _read(*name.split("/"))
@@ -113,7 +114,7 @@ def test_install_commands_default_to_the_extra_and_keep_the_legacy_wheel_path():
         assert wheel_lines
         for ln in wheel_lines:
             assert "--no-deps" in ln and "--python .venv/bin/python" in ln, ln
-        assert "tbccl-integration-v2" in text and "--extra tbccl" in text and "pending" not in text.lower()
+        assert "tbccl-integration-v3" in text and "--extra tbccl" in text and "pending" not in text.lower()
         assert "tbccl-integration-v1" in text and "Legacy" in text
         assert "uv sync --inexact" in text or "--inexact" in text
 

@@ -9,7 +9,7 @@ Each limitation is labelled with the project that owns it. The same categories a
 | Parallelism | exo-tbccl | pipeline parallelism for text generation only. Tensor parallelism is rejected at placement; image and classifier-free-guidance models are rejected |
 | Addresses | exo-tbccl / exo | one advertised address per node; topologies that need different addresses for different peers are rejected |
 | Python | exo-tbccl | CPython 3.13 or newer; the wheels are `cp313` |
-| The required exo | exo integration | exo-tbccl needs the `PipelineComm` seam, `MlxTbccl` and the runner byte exchange, which are not in upstream exo; they are published as the fork tag `tensorsofthewall/exo-fork@tbccl-integration-v2`, based on upstream exo `bc412e22` (`tbccl-integration-v1`, upstream `75d8ad2b`, remains available) ([compatibility](../reference/compatibility.md)) |
+| The required exo | exo integration | exo-tbccl needs the `PipelineComm` seam, `MlxTbccl` and the runner byte exchange, which are not in upstream exo; they are published as the fork tag `tensorsofthewall/exo-fork@tbccl-integration-v3`, based on upstream exo `bc412e22` (`tbccl-integration-v1`, upstream `75d8ad2b`, remains available) ([compatibility](../reference/compatibility.md)) |
 | Reductions beyond `Sum`, recovery after a communicator failure | TBCCL | see the TBCCL limitations |
 
 ## Supported but not validated

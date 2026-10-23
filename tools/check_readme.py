@@ -34,7 +34,7 @@ REQUIRED_TOKENS = {
     "tbccl": ["TBCCL::tbccl_c", "tbccl-info"],
     "torch-tbccl": ['"tbccl"', "torch_tbccl", "--no-deps"],
     "vllm-tbccl": ["VLLM_TBCCL_ENABLE", "vllm_tbccl", "v0.31.0-tbccl1"],
-    "exo-tbccl": ["MlxTbccl", "exo_tbccl", "tbccl-integration-v2"],
+    "exo-tbccl": ["MlxTbccl", "exo_tbccl", "tbccl-integration-v3"],
 }
 REQUIRED_LINKS = {
     "tbccl": ["docs/project/limitations.md", "docs/guides/troubleshooting.md", "docs/reference/compatibility-matrix.md", "CONTRIBUTING.md", "docs/development/code-map.md", "LICENSE"],

@@ -208,7 +208,7 @@ class Onboarding(unittest.TestCase):
 
     def test_immutable_tags_and_pins_are_unchanged(self):
         facts = {
-            "exo-tbccl": ["tbccl-integration-v2", "tbccl-integration-v1", "d1497b28b89618172d273e70e9ac7992811635f5", "0.3.0", CURRENT_VERSION],
+            "exo-tbccl": ["tbccl-integration-v3", "tbccl-integration-v2", "tbccl-integration-v1", "4724b8bfa1ee3a58faa7832ddc0d6609eb1d6da0", "0.3.0", CURRENT_VERSION],
             "vllm-tbccl": ["v0.31.0-tbccl1", "fa4f934586bc27ac974a54183237594d1dc28fc5", "0.31.0"],
             "torch-tbccl": ["--no-deps", "2.13.0", "cu130"],
             "tbccl": ["tbccl-0.6.1-linux-x86_64.tar.gz", "SHA256SUMS", "TBCCL::tbccl_c"],
@@ -221,6 +221,7 @@ class Onboarding(unittest.TestCase):
         if SITE != "exo-tbccl":
             self.skipTest("exo only")
         t = read("getting-started/install.md")
+        self.assertRegex(t, r"`tbccl-integration-v3`[^\n]*\*\*0\.3\.0\*\*")
         self.assertRegex(t, r"`tbccl-integration-v2`[^\n]*\*\*0\.3\.0\*\*")
         self.assertRegex(t, r"`tbccl-integration-v1`[^\n]*\*\*" + re.escape(CURRENT_VERSION) + r"\*\*")
         ladder = read("guides/verify-active.md")
