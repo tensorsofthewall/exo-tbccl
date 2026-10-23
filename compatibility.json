@@ -9,7 +9,7 @@
     "development_version": "0.5.0",
     "release_candidate": false,
     "target_release": "0.5.0",
-    "released": false,
+    "released": true,
     "note": "0.5.0 is a minor release of 0.4.0 whose only change is the pinned exo fork tag, now the immutable tbccl-integration-v3 (a security revision of tbccl-integration-v2 with the same integration code and updated trust-store dependencies; a pin move is a minor release by the versioning policy), and the bundled TBCCL 0.7.1. It has no runtime change: the opt-in Metal options and decode-timeline diagnostics of 0.4.0 are unchanged and every default is unchanged. The tbccl extra of the immutable tbccl-integration-v3 and tbccl-integration-v2 fork tags still resolves to the 0.3.0 wheel; the 0.5.0 wheel is installed by hand over it."
   },
   "python": {
