@@ -9,7 +9,7 @@ exo-tbccl is an optional package that lets [exo](https://github.com/exo-explore/
 :::
 
 ```{note}
-**Release.** The current release is 0.4.0 (TBCCL C ABI 1 / wire protocol 4, MLX 0.32), which bundles TBCCL 0.7.0 and adds two opt-in Metal options. It is experimental.
+**Release.** The current release is 0.5.0 (TBCCL C ABI 1 / wire protocol 4, MLX 0.32), which bundles TBCCL 0.7.1 and adds two opt-in Metal options. It is experimental.
 ```
 
 <nav class="tb-eco" aria-label="TBCCL ecosystem: the four documentation sites">
@@ -126,7 +126,7 @@ Only configurations that were actually exercised are listed as validated. Everyt
 **Not supported or not claimed**
 
 - Pipeline parallelism for text generation only: tensor parallelism and image models are rejected.
-- The integration is not in upstream exo; it needs the exo fork tag `tbccl-integration-v2`.
+- The integration is not in upstream exo; it needs the exo fork tag `tbccl-integration-v3`.
 - Two stages were validated on hardware; models other than Qwen3, and larger prompts on an 8 GB GPU, are not claimed.
 - One advertised address per node; a node started from a detached tmux session on a Mac did not join the cluster.
 :::

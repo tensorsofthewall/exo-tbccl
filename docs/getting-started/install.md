@@ -4,40 +4,41 @@ exo-tbccl is installed into **exo's** virtual environment. exo works without it:
 
 ## Which integration do I have, and which do I want?
 
-exo-tbccl installs into the environment of an **exo that carries the TBCCL integration**. Two immutable tags of [exo-fork](https://github.com/tensorsofthewall/exo-fork) exist, with different install paths. Read the tag of your checkout (read-only):
+exo-tbccl installs into the environment of an **exo that carries the TBCCL integration**. Three immutable tags of [exo-fork](https://github.com/tensorsofthewall/exo-fork) exist; v3 and v2 share an install path, v1 has another. Read the tag of your checkout (read-only):
 
 ```sh
-git -C <exo-fork checkout> describe --tags --exact-match      # prints tbccl-integration-v2 or tbccl-integration-v1
+git -C <exo-fork checkout> describe --tags --exact-match      # prints tbccl-integration-v3, tbccl-integration-v2 or tbccl-integration-v1
 ```
 
 | Tag | How exo-tbccl gets in | exo-tbccl version | Bundled TBCCL | Choose it when |
 |---|---|---|---|---|
-| `tbccl-integration-v2` | the `tbccl` optional extra of `uv sync` (see [Default](#default-the-optional-extra-of-tbccl-integration-v2)) | **0.3.0** | 0.6.0 | you are starting now: this is the supported path |
-| `tbccl-integration-v1` | a manually installed wheel (see [Legacy](#legacy-tbccl-integration-v1-and-a-manual-wheel)) | **0.4.0** | 0.7.0 | you already run the earlier integration |
+| `tbccl-integration-v3` | the `tbccl` optional extra of `uv sync` (see [Default](#default-the-optional-extra-of-tbccl-integration-v3)) | **0.3.0** | 0.6.0 | you are starting now: this is the supported path |
+| `tbccl-integration-v2` | the same optional extra (see [Default](#default-the-optional-extra-of-tbccl-integration-v3)) | **0.3.0** | 0.6.0 | you already run it; its `uv.lock` pins certifi 2026.1.4, so prefer v3 (same integration code) or upgrade certifi in that environment |
+| `tbccl-integration-v1` | a manually installed wheel (see [Legacy](#legacy-tbccl-integration-v1-and-a-manual-wheel)) | **0.5.0** | 0.7.1 | you already run the earlier integration |
 
-These versions are intentional: the tag is immutable, so the extra keeps resolving to the 0.3.0 wheel, which lacks the 0.4 additions (the opt-in Metal options and the TBCCL 0.7.0 runtime). To have them on either path, install the 0.4.0 wheel by hand over the extra, as shown under Legacy (`uv pip install --python .venv/bin/python --no-deps <wheel URL>`; `uv sync --inexact` keeps it). Do not mix the two paths' requirements, and do not "upgrade" one to the other's version. Every node must use the same integration and the same exo-tbccl version. The verification order after installing is in [how do I know TBCCL is being used?](../guides/verify-active.md): integration, adapter, matching nodes, discovery, placement, then transport.
+These versions are intentional: the tag is immutable, so the extra keeps resolving to the 0.3.0 wheel, which lacks the 0.4 additions (the opt-in Metal options and the TBCCL 0.7.1 runtime). To have them on either path, install the 0.5.0 wheel by hand over the extra, as shown under Legacy (`uv pip install --python .venv/bin/python --no-deps <wheel URL>`; `uv sync --inexact` keeps it). Do not mix the two paths' requirements, and do not "upgrade" one to the other's version. Every node must use the same integration and the same exo-tbccl version. The verification order after installing is in [how do I know TBCCL is being used?](../guides/verify-active.md): integration, adapter, matching nodes, discovery, placement, then transport.
 
 ## Requirements
 
 | | |
 |---|---|
 | Python | the package metadata allows 3.13 or newer; the published wheels are `cp313` only, so CPython 3.13 is the only interpreter with a validated prebuilt wheel (anything else would need a [source build](#build-from-source), which is not validated) |
-| exo | the exo fork with the TBCCL integration: `tensorsofthewall/exo-fork` at the immutable tag `tbccl-integration-v2` (commit `d1497b28b89618172d273e70e9ac7992811635f5`, upstream exo `bc412e22` plus the TBCCL integration; the earlier `tbccl-integration-v1` remains available) ([compatibility](../reference/compatibility.md)) |
+| exo | the exo fork with the TBCCL integration: `tensorsofthewall/exo-fork` at the immutable tag `tbccl-integration-v3` (commit `4724b8bfa1ee3a58faa7832ddc0d6609eb1d6da0`, upstream exo `bc412e22` plus the TBCCL integration; the earlier `tbccl-integration-v1` remains available) ([compatibility](../reference/compatibility.md)) |
 | MLX | 0.32.x (`mlx-cuda13` extra on Linux with CUDA 13, `mlx` on macOS), from exo's own environment; validated with 0.32.0 (Linux CUDA) and the 0.32.4 development build `0e3ff3643` that upstream exo pins on macOS |
 | Tools | uv 0.13.4 or later, pip 26.2.2 or later and certifi 2026.10.19 or later (the October 2026 emSign CA removal; see the [security policy](https://tbccl.tensorsofthewall.com/en/latest/project/security-policy.html)). The wheel contains no CA bundle |
 | Platforms | Linux x86-64 (CUDA, CPU) and macOS arm64 (Metal, CPU); wheels `manylinux_2_24`/`2_28` and `macosx_14_0_arm64` |
-| TBCCL | bundled: C ABI 1, wire protocol 4. The 0.4.0 wheel bundles TBCCL 0.7.0; the 0.3.0 wheel that the `tbccl` extra installs bundles TBCCL 0.6.0 |
+| TBCCL | bundled: C ABI 1, wire protocol 4. The 0.5.0 wheel bundles TBCCL 0.7.1; the 0.3.0 wheel that the `tbccl` extra installs bundles TBCCL 0.6.0 |
 
 ## Install
 
-exo-tbccl goes into the environment of an exo that carries the integration. There are two paths; do not mix their requirements. The default is the optional extra of `tbccl-integration-v2`; the manual wheel belongs to `tbccl-integration-v1`.
+exo-tbccl goes into the environment of an exo that carries the integration. There are two paths; do not mix their requirements. The default is the optional extra of `tbccl-integration-v3`; the manual wheel belongs to `tbccl-integration-v1`.
 
-### Default: the optional extra of `tbccl-integration-v2`
+### Default: the optional extra of `tbccl-integration-v3`
 
-The immutable tag `tbccl-integration-v2` of [exo-fork](https://github.com/tensorsofthewall/exo-fork) declares `exo-tbccl` as an optional dependency (`tbccl` extra), resolved to the published 0.3.0 release wheel (bundling TBCCL 0.6.0) on purpose, because the tag is immutable (the current 0.4.0 adds opt-in Metal options and bundles a newer TBCCL; see the table above for installing it by hand), on Linux x86-64 and macOS arm64 (and doing nothing elsewhere), with the lock recording both wheels and their hashes. The wheel bundles the native TBCCL runtime: nothing else is installed or built, and exo works without the extra. The tag's own README predates this installation method; follow these commands:
+The immutable tag `tbccl-integration-v3` of [exo-fork](https://github.com/tensorsofthewall/exo-fork) declares `exo-tbccl` as an optional dependency (`tbccl` extra), resolved to the published 0.3.0 release wheel (bundling TBCCL 0.6.0) on purpose, because the tag is immutable (the current 0.4.0 and later add opt-in Metal options and bundles a newer TBCCL; see the table above for installing it by hand), on Linux x86-64 and macOS arm64 (and doing nothing elsewhere), with the lock recording both wheels and their hashes. The wheel bundles the native TBCCL runtime: nothing else is installed or built, and exo works without the extra. The tag's own README predates this installation method; follow these commands:
 
 ```sh
-git clone --depth 1 --branch tbccl-integration-v2 https://github.com/tensorsofthewall/exo-fork.git
+git clone --depth 1 --branch tbccl-integration-v3 https://github.com/tensorsofthewall/exo-fork.git
 cd exo-fork && (cd dashboard && npm install && npm run build)
 uv sync --no-dev --locked --extra mlx-cuda13 --extra tbccl     # Linux x86-64, CUDA 13
 uv sync --no-dev --locked --extra mlx --extra tbccl            # macOS arm64, Metal
@@ -48,17 +49,17 @@ Run it on **every** node. It installs exactly one extra package (`exo-tbccl 0.3.
 
 ### Legacy: `tbccl-integration-v1` and a manual wheel
 
-The earlier immutable tag `tbccl-integration-v1` has no extra. The 0.4.0 wheels are attached to the GitHub release [`v0.4.0`](https://github.com/tensorsofthewall/exo-tbccl/releases/tag/v0.4.0). They are not published on PyPI or TestPyPI. The wheel does **not** need an editable install, and nobody has to build libtbccl or the adapter from source to use it. Use exo's own uv environment (`.venv` in the checkout), named explicitly in each command:
+The earlier immutable tag `tbccl-integration-v1` has no extra. The 0.5.0 wheels are attached to the GitHub release [`v0.5.0`](https://github.com/tensorsofthewall/exo-tbccl/releases/tag/v0.5.0). They are not published on PyPI or TestPyPI. The wheel does **not** need an editable install, and nobody has to build libtbccl or the adapter from source to use it. Use exo's own uv environment (`.venv` in the checkout), named explicitly in each command:
 
 ```sh
 git clone --branch tbccl-integration-v1 --depth 1 https://github.com/tensorsofthewall/exo-fork.git
 cd exo-fork && (cd dashboard && npm install && npm run build)
 # Linux x86-64 (CUDA 13):
 uv sync --no-dev --extra mlx-cuda13
-uv pip install --python .venv/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.4.0/exo_tbccl-0.4.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+uv pip install --python .venv/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.5.0/exo_tbccl-0.5.0-cp313-cp313-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
 # macOS arm64 (Metal):
 uv sync --no-dev --extra mlx
-uv pip install --python .venv/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.4.0/exo_tbccl-0.4.0-cp313-cp313-macosx_14_0_arm64.whl
+uv pip install --python .venv/bin/python --no-deps https://github.com/tensorsofthewall/exo-tbccl/releases/download/v0.5.0/exo_tbccl-0.5.0-cp313-cp313-macosx_14_0_arm64.whl
 ```
 
 Install it on **every** node, with the same version. `--no-deps` keeps the installer from touching exo's MLX environment. `uv sync` is an exact sync and removes the wheel again: after installing it, synchronise with `uv sync --inexact --no-dev --extra ...` (verified to keep it) or reinstall the wheel. An exo that lives somewhere else works the same way with its own `.venv/bin/python`.
@@ -67,7 +68,7 @@ Install it on **every** node, with the same version. `--no-deps` keeps the insta
 
 ```python
 import exo_tbccl
-print(exo_tbccl.__version__, exo_tbccl.is_available())    # 0.4.0 (True, '') for the 0.4.0 wheel installed by hand (legacy path); 0.3.0 (True, '') with the tbccl extra, which is expected
+print(exo_tbccl.__version__, exo_tbccl.is_available())    # 0.5.0 (True, '') for the 0.5.0 wheel installed by hand (legacy path); 0.3.0 (True, '') with the tbccl extra, which is expected
 ```
 
 `is_available()` returns `(True, "")` when the native binding loads and the bundled TBCCL C ABI matches; otherwise `(False, reason)`. Run it with exo's Python (`.venv/bin/python`), on every node.

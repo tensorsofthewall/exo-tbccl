@@ -6,11 +6,11 @@
     "exo_tbccl-{version}-cp313-cp313-macosx_14_0_arm64.whl"
   ],
   "package": {
-    "development_version": "0.4.0",
+    "development_version": "0.5.0",
     "release_candidate": false,
-    "target_release": "0.4.0",
-    "released": true,
-    "note": "0.4.0 is a minor release of 0.3.1: it bundles TBCCL 0.7.0 and adds opt-in Metal options (EXO_TBCCL_PREALLOC_GATHER and a CPU-stream option for the borrow views) and decode-timeline diagnostics; every default is unchanged. The tbccl extra of the immutable tbccl-integration-v2 fork tag still resolves to the 0.3.0 wheel; the 0.4.0 wheel is installed by hand over it."
+    "target_release": "0.5.0",
+    "released": false,
+    "note": "0.5.0 is a minor release of 0.4.0 whose only change is the pinned exo fork tag, now the immutable tbccl-integration-v3 (a security revision of tbccl-integration-v2 with the same integration code and updated trust-store dependencies; a pin move is a minor release by the versioning policy), and the bundled TBCCL 0.7.1. It has no runtime change: the opt-in Metal options and decode-timeline diagnostics of 0.4.0 are unchanged and every default is unchanged. The tbccl extra of the immutable tbccl-integration-v3 and tbccl-integration-v2 fork tags still resolves to the 0.3.0 wheel; the 0.5.0 wheel is installed by hand over it."
   },
   "python": {
     "requires": ">=3.13"
@@ -26,11 +26,18 @@
     "exo": {
       "integration": "the TBCCL integration series (PipelineComm seam, MlxTbccl placement, runner byte exchange) published as an immutable signed tag of the maintained exo fork",
       "fork": "tensorsofthewall/exo-fork",
-      "fork_tag": "tbccl-integration-v2",
-      "fork_revision": "d1497b28b89618172d273e70e9ac7992811635f5",
+      "fork_tag": "tbccl-integration-v3",
+      "fork_revision": "4724b8bfa1ee3a58faa7832ddc0d6609eb1d6da0",
       "upstream_base": "bc412e2230f395e652c23426a5eb88dfa515769b",
       "upstream_base_date": "2026-10-13",
       "install": "uv sync --no-dev --locked --extra mlx-cuda13 --extra tbccl (Linux) or --extra mlx --extra tbccl (macOS), in a checkout of the tag",
+      "previous_integration": {
+        "fork_tag": "tbccl-integration-v2",
+        "fork_revision": "d1497b28b89618172d273e70e9ac7992811635f5",
+        "upstream_base": "bc412e2230f395e652c23426a5eb88dfa515769b",
+        "upstream_base_date": "2026-10-13",
+        "install": "the same as the current tag; its uv.lock pins certifi 2026.1.4 (superseded by tbccl-integration-v3 for that reason)"
+      },
       "legacy_integration": {
         "fork_tag": "tbccl-integration-v1",
         "fork_revision": "1416807b46efd87c3601c69ce5784f51c9dd4c75",

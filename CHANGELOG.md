@@ -4,6 +4,22 @@ All notable user-facing changes are recorded here. The format follows Keep a Cha
 
 Two wheel lines are in use on purpose: 0.3.1 (bundles TBCCL 0.6.1) and the 0.4 line (0.4.0 bundles TBCCL 0.7.0) are installed by hand, and 0.3.0 (bundles TBCCL 0.6.0) is what the `tbccl` extra of the immutable `tbccl-integration-v2` fork tag installs. All have the same C ABI 1 / wire protocol 4; 0.3.0 and 0.3.1 have the same adapter code, and 0.4 adds only opt-in options. The 0.3.0 installation through the extra is intentional, not a stale dependency: a tag cannot be changed.
 
+## 0.5.0
+
+Security-maintenance minor release. The only functional change is the exo fork pin: the supported fork tag moves from `tbccl-integration-v2` to the new immutable `tbccl-integration-v3`, which has the same integration code and updates the trust-store dependencies of the fork (certifi 2026.10.19 in `uv.lock`, webpki-roots 1.0.11 in `Cargo.lock`, uv 0.13.4 or later). A pin move is a minor release under the versioning policy. There is no change to the adapter source (`src/`, `exo_tbccl/`) other than the version string, to the opt-in Metal options of 0.4.0, to any default, to the TBCCL C ABI (1) or to the wire protocol (4). It is experimental.
+
+This is **not** a fix for a vulnerability in exo-tbccl or in 0.4.0. In October 2026 the emSign root affected by the eMudhra intermediate-key compromise was removed from the CA bundles of Python tooling (certifi 2026.10.19, pip 26.2.2, uv 0.13.4). None of the published 0.4.0 wheels contains a CA bundle or TLS code. The exposure was in the fork: `tbccl-integration-v1` and `-v2` lock certifi 2026.1.4, which exo uses for its model downloads. The tags v1 and v2 stay as published.
+
+### Installation
+
+- Two CI-built wheels, named `exo_tbccl-0.5.0-...`, attached to the GitHub release with an SPDX SBOM, `SHA256SUMS` and a build-provenance attestation. They are not published on PyPI or TestPyPI. The wheels statically link TBCCL 0.7.1 and are built in a patched manylinux image with pip 26.2.2 and uv 0.13.5.
+- Install exo from `tbccl-integration-v3`. The `tbccl` extra of v3 (like v2) still resolves to the 0.3.0 wheel, which is intentional; install the 0.5.0 wheel by hand over it for the current adapter (`uv sync --inexact` keeps it).
+
+### Security
+
+- The documentation build pins certifi 2026.10.19; the release and documentation jobs install pip 26.2.2 from its hash-pinned wheel before their first pip use; the build container blocks the revoked emSign root; `tools/check_trust_dependencies.py` rejects affected pins and TLS-verification bypasses.
+- To keep a v2 or v1 environment: upgrade certifi in exo's environment (`uv pip install --python .venv/bin/python certifi==2026.10.19`) and use uv 0.13.4 or later and pip 26.2.2 or later. See `SECURITY.md` and the fork's `TBCCL-FORK.md`.
+
 ## 0.4.0
 
 The first minor release after 0.3, promoted from release candidate 0.4.0rc1 with no code change. Every default is unchanged: all additions are opt-in, Metal only, and ignored on CUDA and CPU. There is no change to the adapter's default behaviour, the Exo fork pins (`tbccl-integration-v2` and `tbccl-integration-v1`), the validated MLX versions, the Python version (CPython 3.13), the TBCCL C ABI (1) or the wire protocol (4).
