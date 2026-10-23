@@ -57,6 +57,7 @@ jobs:
           check "release documentation describes $INTENDED_TAG" python3 tools/check_release_docs.py --tbccl-root tbccl-core --tag "$INTENDED_TAG"
           check "release-documentation check tests" python3 -m unittest tests/test_release_docs.py
           check "maintenance tooling tests" python3 -m unittest tests/test_maintenance_tools.py
+          check "trust-store dependency policy" python3 tools/check_trust_dependencies.py
           check "framework pin (online)" python3 tools/check_framework_pin.py --online
           check "links (repository-internal)" python3 tools/check_links.py
           check "release notes carry no private session metadata" python3 tools/check_session_metadata.py --message-file CHANGELOG.md

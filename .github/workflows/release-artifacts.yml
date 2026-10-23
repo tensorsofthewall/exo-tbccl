@@ -27,8 +27,8 @@ permissions:
   contents: read
 
 env:
-  MANYLINUX_IMAGE: quay.io/pypa/manylinux_2_28_x86_64@sha256:39df0042d5cc900b085aa25a0659368b42a0006c54c474299b785b44c1b4ff82
-  SLIM_IMAGE: python@sha256:bf44cdfcb76cd3b41e879bc058fc37ec5872002ccfde7fcb765e218cde0cd79c
+  MANYLINUX_IMAGE: quay.io/pypa/manylinux_2_28_x86_64@sha256:076b19ef6e698f28649fa817c49d14443201e01da85240e8e52f93e8daa49bff
+  SLIM_IMAGE: python@sha256:fe14fd57a4c0361110eaa0c284112b189750bcb43fb04bb5d1ee7b7744027ccf
   TBCCL_REF: ${{ inputs.tbccl_ref || 'main' }}
 
 jobs:
@@ -105,6 +105,7 @@ jobs:
           docker run --rm -v "$PWD/wh:/wh:ro" -v "$PWD:/repo:ro" "$SLIM_IMAGE" bash -c '
             set -e
             python -m venv /clean && . /clean/bin/activate
+            bash /repo/tools/ci/bootstrap_pip.sh
             pip install -q /wh/*.whl
             python -c "import exo_tbccl; print(\"imported from\", exo_tbccl.__file__, exo_tbccl.__version__)"
             echo "libraries the native module needs:"; ldd /clean/lib/python3.13/site-packages/exo_tbccl/_native*.so
@@ -136,6 +137,7 @@ jobs:
         env:
           MACOSX_DEPLOYMENT_TARGET: "14.0"
         run: |
+          bash exo-tbccl/tools/ci/bootstrap_pip.sh
           python -m pip install --quiet "build==1.6.1" "delocate==0.13.0" "scikit-build-core==0.11.6" ninja
           mkdir -p out/inputs
           (cd tbccl && scripts/package_native.sh --out "$PWD/../core")
@@ -154,6 +156,7 @@ jobs:
       - name: Clean install in a fresh environment and import
         run: |
           python -m venv /tmp/clean && . /tmp/clean/bin/activate
+          bash "$GITHUB_WORKSPACE/exo-tbccl/tools/ci/bootstrap_pip.sh"
           pip install --quiet out/*.whl
           cd /tmp && python -c "import exo_tbccl; print('imported from', exo_tbccl.__file__, exo_tbccl.__version__)"
           otool -L /tmp/clean/lib/python3.13/site-packages/exo_tbccl/_native*.so
@@ -183,6 +186,7 @@ jobs:
           path: parts
       - name: SBOMs and SHA256SUMS
         run: |
+          bash tools/ci/bootstrap_pip.sh
           python -m pip install --quiet spdx-tools==0.8.5
           mkdir release
           EPOCH=$(date -u -d "@$(git log -1 --format=%ct)" +%Y-%m-%dT%H:%M:%SZ)
