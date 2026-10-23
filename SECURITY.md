@@ -2,7 +2,11 @@
 
 ## Supported versions
 
-Security fixes are made against the latest release series only (currently 0.3.x). Development versions and unreleased branches are not supported.
+Security fixes are made against the latest release series only (currently 0.4.x). Development versions and unreleased branches are not supported.
+
+## Package-manager and trust-store notice (October 2026)
+
+Private keys of eight eMudhra intermediate certificates were reported compromised in October 2026, and the emSign root was removed from the CA bundles that Python tooling uses. This is not a vulnerability of this adapter or of any published release: the wheels contain no CA bundle and perform no TLS. It concerns the tools that fetch packages and the environments that build them. Use at least certifi 2026.10.19, pip 26.2.2 and uv 0.13.4 in every environment where you install the adapter or its framework; upgrading the `certifi` package does not patch an older pip, so upgrade pip itself. The details and the minimums for the other tools are in the [TBCCL security policy](https://tbccl.tensorsofthewall.com/en/latest/project/security-policy.html). The release workflows of this repository install a specific pip (from its hash-pinned wheel) and uv, build in a patched manylinux image and block the emSign roots in its system bundle; `tools/check_trust_dependencies.py` rejects affected pins.
 
 ## Reporting a vulnerability
 

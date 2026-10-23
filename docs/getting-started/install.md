@@ -24,6 +24,7 @@ These versions are intentional: the tag is immutable, so the extra keeps resolvi
 | Python | the package metadata allows 3.13 or newer; the published wheels are `cp313` only, so CPython 3.13 is the only interpreter with a validated prebuilt wheel (anything else would need a [source build](#build-from-source), which is not validated) |
 | exo | the exo fork with the TBCCL integration: `tensorsofthewall/exo-fork` at the immutable tag `tbccl-integration-v2` (commit `d1497b28b89618172d273e70e9ac7992811635f5`, upstream exo `bc412e22` plus the TBCCL integration; the earlier `tbccl-integration-v1` remains available) ([compatibility](../reference/compatibility.md)) |
 | MLX | 0.32.x (`mlx-cuda13` extra on Linux with CUDA 13, `mlx` on macOS), from exo's own environment; validated with 0.32.0 (Linux CUDA) and the 0.32.4 development build `0e3ff3643` that upstream exo pins on macOS |
+| Tools | uv 0.13.4 or later, pip 26.2.2 or later and certifi 2026.10.19 or later (the October 2026 emSign CA removal; see the [security policy](https://tbccl.tensorsofthewall.com/en/latest/project/security-policy.html)). The wheel contains no CA bundle |
 | Platforms | Linux x86-64 (CUDA, CPU) and macOS arm64 (Metal, CPU); wheels `manylinux_2_24`/`2_28` and `macosx_14_0_arm64` |
 | TBCCL | bundled: C ABI 1, wire protocol 4. The 0.4.0 wheel bundles TBCCL 0.7.0; the 0.3.0 wheel that the `tbccl` extra installs bundles TBCCL 0.6.0 |
 
